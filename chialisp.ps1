@@ -12,9 +12,11 @@ if($action.ToLower() -eq "install"){
 }
 #Initialize a new project
 if($action.ToLower() -eq "init"){
-  mkdir "$projectPath\lib" | Out-Null
-  Copy-Item -Path "$PSScriptRoot\std" -Destination "$projectPath\lib" -Recurse | Out-Null
-  Copy-Item -Path "$PSScriptRoot\hello_world\*" -Destination $projectPath | Out-Null
+  if(!(Test-Path "$projectPath\lib")){
+    mkdir "$projectPath\lib" | Out-Null
+  }
+  Copy-Item -Path "$PSScriptRoot\std" -Destination "$projectPath\lib" -Recurse -force | Out-Null
+  Copy-Item -Path "$PSScriptRoot\hello_world\*" -Destination $projectPath -force | Out-Null
   Write-Host "Run 'chialisp run helloworld.py' to test"
 }
 #Activate the venv

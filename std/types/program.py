@@ -10,8 +10,8 @@ from clvm.serialize import sexp_buffer_from_stream, sexp_from_stream, sexp_to_st
 # from clvm_rs import STRICT_MODE, deserialize_and_run_program #not a dependency yets
 from clvm_tools.curry import curry, uncurry
 
-from lib.std.sized_bytes import bytes32
-from lib.std.hash import std_hash
+from lib.std.types.sized_bytes import bytes32
+from lib.std.util.hash import std_hash
 
 
 def run_program(

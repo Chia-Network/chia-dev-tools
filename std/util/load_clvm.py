@@ -1,15 +1,13 @@
-import hashlib
-from lib.std.program import Program
+from lib.std.util.hash import std_hash
+from lib.std.types.program import Program
 
 def load_clvm(filename):
     filehash = ""
-    hasher = hashlib.sha256()
     with open(filename, 'rb') as standard_file:
         buf = standard_file.read()
-        hasher.update(buf)
-        filehash = hasher.hexdigest()
+        filehash = std_hash(buf)
         standard_file.close()
-    hex_filename = filename+"."+filehash+".hex"
+    hex_filename = filename+"."+str(filehash)+".hex"
     with open(hex_filename, 'rb') as hex_file:
         buf = hex_file.read()
         hex_file.close()

@@ -1,6 +1,6 @@
 import blspy
 
-from lib.std.sized_bytes import bytes32
+from lib.std.types.sized_bytes import bytes32
 
 
 def std_hash(b) -> bytes32:

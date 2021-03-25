@@ -1,4 +1,4 @@
-from lib.std.byte_types import make_sized_bytes
+from lib.std.util.byte_types import make_sized_bytes
 
 bytes4 = make_sized_bytes(4)
 bytes8 = make_sized_bytes(8)
