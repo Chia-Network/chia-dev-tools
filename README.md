@@ -1,7 +1,7 @@
 Chialisp Dev Utility
 =======
 
-Install (Windows only atm)
+Install
 -------
 
 ```
