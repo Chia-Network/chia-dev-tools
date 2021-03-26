@@ -1,3 +1,5 @@
-/clvm_tools
 /test_project
-/std/__pycache__
+/chialisp_dev_utility.egg-info
+/venv
+/.eggs
+__pycache__/
