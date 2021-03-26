@@ -3,3 +3,4 @@
 /venv
 /.eggs
 __pycache__/
+main.sym

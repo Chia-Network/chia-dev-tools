@@ -1,5 +1,5 @@
 from typing import List, Dict
-from lib.std.hash import std_hash
+from lib.std.util.hash import std_hash
 from lib.std.types.ints import uint32
 
 from blspy import BasicSchemeMPL, PrivateKey, G1Element, AugSchemeMPL, G2Element

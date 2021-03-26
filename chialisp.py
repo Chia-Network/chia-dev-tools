@@ -42,7 +42,11 @@ def dev_util(args=sys.argv):
             already_compiled.append(full_hex_file_name)
             if not full_hex_file_name.exists():
                 outfile = str(filename) + "." + filehash + ".hex"
-                compile_clvm(str(filename),outfile)
+                try:
+                    compile_clvm(str(filename),outfile)
+                except Exception as e:
+                    print("Couldn't build "+filename+": "+e)
+                    pass
         garbage_files = list(Path(project_path).rglob("*.[hH][eE][xX]"))
         garbage_files = list(filter(lambda e: e not in already_compiled, garbage_files))
         for file in garbage_files:
