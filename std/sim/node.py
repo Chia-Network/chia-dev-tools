@@ -7,19 +7,23 @@ from lib.std.types.coin import Coin
 from lib.std.types.ints import uint32, uint64
 from lib.std.types.sized_bytes import bytes32
 from lib.std.types.spend_bundle import SpendBundle
+from lib.std.types.coin_record import CoinRecord
+from lib.std.types.streamable import dataclass_from_dict
 from lib.std.types.mempool_inclusion_status import MempoolInclusionStatus
 from lib.std.sim.coinbase import create_pool_coin, create_farmer_coin, create_puzzlehash_for_pk
 from lib.std.sim.block_rewards import calculate_pool_reward, calculate_base_farmer_reward
 from lib.std.sim.spend_bundle_validation import validate_spendbundle
+from lib.std.util.timestamp import float_to_timestamp
 
 class Node():
     block_height: uint32 = 0
     timestamp: uint64 = 0
     coins: List[Coin] = []
+    coin_records: List[CoinRecord] = []
     mempool: List[SpendBundle] = []
 
     def __init__(self):
-        self.timestamp = time.time()
+        self.timestamp = float_to_timestamp(time.time())
 
     def set_block_height(self, block_height: uint32):
         self.block_height = height
@@ -28,7 +32,35 @@ class Node():
         self.timestamp = timestamp
 
     def add_coin(self, coin: Coin):
+        #Add the coin to the UTXO set
         self.coins.append(coin)
+        #Create a coin record for it
+        record = CoinRecord(
+            coin,
+            self.block_height,
+            0,
+            False,
+            False,
+            self.timestamp
+        )
+        self.coin_records.append(record)
+
+    def remove_coin(self, coin: Coin):
+        #Remove the coin from the UTXO set
+        self.coins.remove(coin)
+        #Update the coin record
+        matching_record = list(filter(lambda e: e.coin == coin,self.coin_records))
+        for record in matching_record:
+            updated_record = CoinRecord(
+                coin,
+                record.confirmed_block_height,
+                self.block_height,
+                True,
+                record.coinbase,
+                self.timestamp
+            )
+            self.coin_records.remove(record)
+            self.coin_records.append(updated_record)
 
     def get_coins(self, coin_filter={}):
         filtered_coins = self.coins
@@ -52,17 +84,17 @@ class Node():
                 additions.append(addition)
 
         for removal in removals:
-            self.coins.remove(removal)
+            self.remove_coin(removal)
         for addition in additions:
-            self.coins.append(addition)
+            self.add_coin(addition)
 
         # Rewards get generated
-        self.coins.append(create_pool_coin(
+        self.add_coin(create_pool_coin(
             self.block_height,
             create_puzzlehash_for_pk(public_key),
             calculate_pool_reward(self.block_height)
         ))
-        self.coins.append(create_farmer_coin(
+        self.add_coin(create_farmer_coin(
             self.block_height,
             create_puzzlehash_for_pk(public_key),
             (calculate_base_farmer_reward(self.block_height) + fees)
@@ -86,7 +118,7 @@ class Node():
             status = MempoolInclusionStatus.SUCCESS
             error = None
         else:
-            cost, status, error = validate_spendbundle(spend_bundle, removals, self.block_height)
+            cost, status, error = validate_spendbundle(spend_bundle, removals, self.coin_records, self.block_height)
             if status != MempoolInclusionStatus.SUCCESS:
                 if spend_bundle in self.mempool:
                     # Already in mempool

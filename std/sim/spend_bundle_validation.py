@@ -33,9 +33,9 @@ def check_removals(mempool_removals: List[Coin], removals: Dict[bytes32, CoinRec
 
         for record in removals.values():
             removal = record.coin
-            # 1. Checks if it's been spent already (add this back when CoinRecords are stored)
-            # if removal.spent == 1:
-            #     return Err.DOUBLE_SPEND, []
+            # 1. Checks if it's been spent already
+            if record.spent == 1:
+                return Err.DOUBLE_SPEND, []
             # 2. Checks if there's a mempool conflict
             if removal.name() in mempool_removals:
                 conflicts.append(removal)
@@ -54,7 +54,7 @@ def validate_transaction(
     # npc contains names of the coins removed, puzzle_hashes and their spend conditions
     return bytes(calculate_cost_of_program(program, DEFAULT_CONSTANTS.CLVM_COST_RATIO_CONSTANT, True))
 
-def validate_spendbundle(new_spend: SpendBundle, mempool_removals: List[Coin], block_height: uint32, validate_signature=True) -> Tuple[Optional[uint64], MempoolInclusionStatus, Optional[Err]]:
+def validate_spendbundle(new_spend: SpendBundle, mempool_removals: List[Coin], current_coin_records: List[CoinRecord], block_height: uint32, validate_signature=True) -> Tuple[Optional[uint64], MempoolInclusionStatus, Optional[Err]]:
     spend_name = new_spend.name()
     cost_result = CostResult.from_bytes(validate_transaction(bytes(new_spend)))
 
@@ -102,7 +102,11 @@ def validate_spendbundle(new_spend: SpendBundle, mempool_removals: List[Coin], b
     unknown_unspent_error: bool = False
     removal_amount = uint64(0)
     for name in removal_names:
-        removal_record = list(filter(lambda e: e.coin.name() == name,new_spend.coin_solutions))[0]
+        removal_record = list(filter(lambda e: e.coin.name() == name,current_coin_records))
+        if len(removal_record) == 0:
+            removal_record = None
+        else:
+            removal_record = removal_record[0]
         if removal_record is None and name not in additions_dict:
             unknown_unspent_error = True
             break
