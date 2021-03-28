@@ -7,6 +7,7 @@ with open("README.md", "rt") as fh:
 
 dependencies = [
     "clvm_tools>=0.4.3",
+    "clvm_rs>=0.1.1"
 ]
 
 dev_dependencies = []
@@ -17,7 +18,7 @@ setup(
     author="Quexington",
     entry_points={
         "console_scripts": [
-            "chialisp = chialisp:dev_util" 
+            "chialisp = chialisp:dev_util"
         ],
     },
     author_email="quexington@gmail.com",

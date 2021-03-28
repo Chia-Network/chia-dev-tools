@@ -7,7 +7,7 @@ from clvm.casts import int_from_bytes
 from clvm.EvalError import EvalError
 from clvm.operators import OP_REWRITE, OPERATOR_LOOKUP
 from clvm.serialize import sexp_buffer_from_stream, sexp_from_stream, sexp_to_stream
-# from clvm_rs import STRICT_MODE, deserialize_and_run_program #not a dependency yets
+from clvm_rs import STRICT_MODE, deserialize_and_run_program #not a dependency yets
 from clvm_tools.curry import curry, uncurry
 
 from lib.std.types.sized_bytes import bytes32
@@ -172,42 +172,40 @@ class SerializedProgram:
         tmp = sexp_from_stream(io.BytesIO(self._buf), SExp.to)
         return _tree_hash(tmp, set(args))
 
-    #clvm_rs is not a dependency yet so I'm taking this function out
-    # def run_safe_with_cost(self, *args) -> Tuple[int, SExp]:
-    #     return self._run(STRICT_MODE, *args)
+    def run_safe_with_cost(self, *args) -> Tuple[int, SExp]:
+        return self._run(STRICT_MODE, *args)
 
     def run_with_cost(self, *args) -> Tuple[int, SExp]:
         return self._run(0, *args)
 
-    #clvm_rs is not a dependency yet so I'm taking this function out
-    # def _run(self, flags, *args) -> Tuple[int, SExp]:
-    #     # when multiple arguments are passed, concatenate them into a serialized
-    #     # buffer. Some arguments may already be in serialized form (e.g.
-    #     # SerializedProgram) so we don't want to de-serialize those just to
-    #     # serialize them back again. This is handled by _serialize()
-    #     serialized_args = b""
-    #     if len(args) > 1:
-    #         # when we have more than one argument, serialize them into a list
-    #         for a in args:
-    #             serialized_args += b"\xff"
-    #             serialized_args += _serialize(a)
-    #         serialized_args += b"\x80"
-    #     else:
-    #         serialized_args += _serialize(args[0])
-    #
-    #     max_cost = 0
-    #     # TODO: move this ugly magic into `clvm` "dialects"
-    #     native_opcode_names_by_opcode = dict(
-    #         ("op_%s" % OP_REWRITE.get(k, k), op) for op, k in KEYWORD_FROM_ATOM.items() if k not in "qa."
-    #     )
-    #     cost, ret = deserialize_and_run_program(
-    #         self._buf,
-    #         serialized_args,
-    #         KEYWORD_TO_ATOM["q"][0],
-    #         KEYWORD_TO_ATOM["a"][0],
-    #         native_opcode_names_by_opcode,
-    #         max_cost,
-    #         flags,
-    #     )
-    #     # TODO this could be parsed lazily
-    #     return cost, sexp_from_stream(io.BytesIO(ret), SExp.to)
+    def _run(self, flags, *args) -> Tuple[int, SExp]:
+        # when multiple arguments are passed, concatenate them into a serialized
+        # buffer. Some arguments may already be in serialized form (e.g.
+        # SerializedProgram) so we don't want to de-serialize those just to
+        # serialize them back again. This is handled by _serialize()
+        serialized_args = b""
+        if len(args) > 1:
+            # when we have more than one argument, serialize them into a list
+            for a in args:
+                serialized_args += b"\xff"
+                serialized_args += _serialize(a)
+            serialized_args += b"\x80"
+        else:
+            serialized_args += _serialize(args[0])
+
+        max_cost = 0
+        # TODO: move this ugly magic into `clvm` "dialects"
+        native_opcode_names_by_opcode = dict(
+            ("op_%s" % OP_REWRITE.get(k, k), op) for op, k in KEYWORD_FROM_ATOM.items() if k not in "qa."
+        )
+        cost, ret = deserialize_and_run_program(
+            self._buf,
+            serialized_args,
+            KEYWORD_TO_ATOM["q"][0],
+            KEYWORD_TO_ATOM["a"][0],
+            native_opcode_names_by_opcode,
+            max_cost,
+            flags,
+        )
+        # TODO this could be parsed lazily
+        return cost, sexp_from_stream(io.BytesIO(ret), SExp.to)

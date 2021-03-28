@@ -9,7 +9,7 @@ from lib.std.types.sized_bytes import bytes32
 from lib.std.types.condition_opcodes import ConditionOpcode
 from lib.std.types.condition_var_pair import ConditionVarPair
 from clvm.casts import int_from_bytes
-from lib.std.util.errors import ConsensusError, Err
+from lib.std.types.errors import ConsensusError, Err
 from lib.std.types.ints import uint64
 
 

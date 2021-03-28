@@ -1,5 +1,5 @@
 from lib.std.util.hash import std_hash
-from lib.std.types.program import Program
+from lib.std.types.program import Program, SerializedProgram
 
 def load_clvm(filename):
     filehash = ""
@@ -12,3 +12,6 @@ def load_clvm(filename):
         buf = hex_file.read()
         hex_file.close()
         return Program.from_bytes(bytes.fromhex(buf.decode('utf8')))
+
+def load_serialized_clvm(filename):
+    return SerializedProgram.from_bytes(bytes(load_clvm(filename)))
