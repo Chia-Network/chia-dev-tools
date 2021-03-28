@@ -106,6 +106,9 @@ class Node():
         # block_height is incremented
         self.block_height += 1
 
+        # timestamp is reset
+        self.timestamp = float_to_timestamp(time.time())
+
     def push_tx(self, spend_bundle: SpendBundle):
         spend_name = spend_bundle.name()
 
