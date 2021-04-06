@@ -53,7 +53,7 @@ class Node():
         for record in matching_record:
             updated_record = CoinRecord(
                 coin,
-                record.confirmed_block_height,
+                record.confirmed_block_index,
                 self.block_height,
                 True,
                 record.coinbase,
@@ -131,6 +131,10 @@ class Node():
         if status == MempoolInclusionStatus.FAILED:
             assert error is not None
             raise ValueError(f"Failed to include transaction {spend_name}, error {error.name}")
+
+        if status == MempoolInclusionStatus.SUCCESS:
+            self.mempool.append(spend_bundle)
+
         return {
             "status": status.name,
         }
