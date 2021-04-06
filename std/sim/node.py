@@ -65,7 +65,7 @@ class Node():
     def get_coins(self, coin_filter={}):
         filtered_coins = self.coins
         for key in coin_filter:
-            filtered_coins = list(filter(lambda e: e[key] == coin_filter[key], filtered_coins))
+            filtered_coins = list(filter(lambda e: e.__dict__[key] == coin_filter[key], filtered_coins))
         return filtered_coins
 
     def farm_block(self, public_key: G1Element):
