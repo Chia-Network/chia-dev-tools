@@ -28,9 +28,14 @@ def dev_util(args=sys.argv):
         print("Run 'chialisp build' and then 'py helloworld.py'")
     if cmd == "build" :
         clvm_files = list(Path(project_path).rglob("*.[cC][lL][vV][mM]"))
+        already_compiled = []
         if (cmd == "build") & (len(args) > 2):
             clvm_files = list(filter(lambda e: e.name in args, clvm_files))
-        already_compiled = []
+            all_hex_files = list(Path(project_path).rglob("*.[hH][eE][xX]"))
+            staying_hex_files = list(filter(lambda e: args[2] not in e.name, all_hex_files))
+            for hex_file in staying_hex_files:
+                already_compiled.append(hex_file)
+
         for filename in clvm_files:
             filehash = ""
             with open(filename, "rb") as afile:
@@ -43,7 +48,9 @@ def dev_util(args=sys.argv):
             if not full_hex_file_name.exists():
                 outfile = str(filename) + "." + filehash + ".hex"
                 try:
+                    print("Beginning compilation of "+filename.name+"...")
                     compile_clvm(str(filename),outfile)
+                    print("...Compilation finished")
                 except Exception as e:
                     print("Couldn't build "+filename+": "+e)
                     pass
