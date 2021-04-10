@@ -68,6 +68,9 @@ class Node():
             filtered_coins = list(filter(lambda e: e.__dict__[key] == coin_filter[key], filtered_coins))
         return filtered_coins
 
+    def get_coin_record_by_coin_name(self, name):
+        return list(filter(lambda e: e.coin.name() == name, self.coin_records))[0]
+
     def farm_block(self, public_key: G1Element):
         # Fees get calculated
         fees = 0

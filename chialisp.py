@@ -26,9 +26,11 @@ def dev_util(args=sys.argv):
         shutil.copy(hello_world_py,project_path)
         shutil.copy(hello_world_clvm,project_path)
         print("Run 'chialisp build' and then 'py helloworld.py'")
+    #Build all the clvm in the current directory
     if cmd == "build" :
         clvm_files = list(Path(project_path).rglob("*.[cC][lL][vV][mM]"))
         already_compiled = []
+        #Adjust for building only one file
         if (cmd == "build") & (len(args) > 2):
             clvm_files = list(filter(lambda e: e.name in args, clvm_files))
             all_hex_files = list(Path(project_path).rglob("*.[hH][eE][xX]"))
@@ -42,7 +44,7 @@ def dev_util(args=sys.argv):
                 buf = afile.read()
                 afile.close()
                 filehash = hashlib.sha256(buf).hexdigest()
-            hex_file_name = (filename.name + "." + filehash + ".hex") #upper needs to come out here after one run
+            hex_file_name = (filename.name + "." + filehash + ".hex")
             full_hex_file_name = Path(filename.parent).joinpath(hex_file_name)
             already_compiled.append(full_hex_file_name)
             if not full_hex_file_name.exists():
@@ -54,6 +56,7 @@ def dev_util(args=sys.argv):
                 except Exception as e:
                     print("Couldn't build "+filename+": "+e)
                     pass
+        #clean up old hex files
         garbage_files = list(Path(project_path).rglob("*.[hH][eE][xX]"))
         garbage_files = list(filter(lambda e: e not in already_compiled, garbage_files))
         for file in garbage_files:
