@@ -1,7 +1,7 @@
 import time
 from typing import List, Dict
 
-from blspy import G1Element
+from blspy import G1Element, AugSchemeMPL
 
 from lib.std.types.coin import Coin
 from lib.std.types.ints import uint32, uint64
@@ -10,14 +10,17 @@ from lib.std.types.spend_bundle import SpendBundle
 from lib.std.types.coin_record import CoinRecord
 from lib.std.types.streamable import dataclass_from_dict
 from lib.std.types.mempool_inclusion_status import MempoolInclusionStatus
+from lib.std.types.full_block import FullBlock
 from lib.std.sim.coinbase import create_pool_coin, create_farmer_coin, create_puzzlehash_for_pk
 from lib.std.sim.block_rewards import calculate_pool_reward, calculate_base_farmer_reward
 from lib.std.sim.spend_bundle_validation import validate_spendbundle
+from lib.std.sim.bundle_tools import best_solution_program
 from lib.std.util.timestamp import float_to_timestamp
 
 class Node():
     block_height: uint32 = 0
     timestamp: uint64 = 0
+    blocks: List[FullBlock] = []
     coins: List[Coin] = []
     coin_records: List[CoinRecord] = []
     mempool: List[SpendBundle] = []
@@ -71,6 +74,24 @@ class Node():
     def get_coin_record_by_coin_name(self, name):
         return list(filter(lambda e: e.coin.name() == name, self.coin_records))[0]
 
+    def generate_transaction_generator(self):
+        if len(self.mempool) == 0:
+            return None
+
+        signatures = []
+        coin_solutions = []
+        for bundle in self.mempool:
+            signatures.append(bundle.aggregated_signature)
+            coin_solutions.extend(bundle.coin_solutions)
+
+        agg_sig = AugSchemeMPL.aggregate(signatures)
+        total_bundle = SpendBundle(
+            coin_solutions,
+            agg_sig
+        )
+
+        return best_solution_program(total_bundle)
+
     def farm_block(self, public_key: G1Element):
         # Fees get calculated
         fees = 0
@@ -92,15 +113,24 @@ class Node():
             self.add_coin(addition)
 
         # Rewards get generated
-        self.add_coin(create_pool_coin(
+        pool_coin = create_pool_coin(
             self.block_height,
             create_puzzlehash_for_pk(public_key),
             calculate_pool_reward(self.block_height)
-        ))
-        self.add_coin(create_farmer_coin(
+        )
+        farmer_coin = create_farmer_coin(
             self.block_height,
             create_puzzlehash_for_pk(public_key),
             (calculate_base_farmer_reward(self.block_height) + fees)
+        )
+        self.add_coin(pool_coin)
+        self.add_coin(farmer_coin)
+
+        #Block is created
+        self.blocks.append(FullBlock(
+            [pool_coin, farmer_coin],
+            self.generate_transaction_generator(),
+            self.block_height,
         ))
 
         # mempool is cleared
