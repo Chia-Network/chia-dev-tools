@@ -5,7 +5,7 @@ Install
 -------
 
 ```
-git clone https://github.com/Quexington/chialisp_dev_utlity.git
+git clone https://github.com/Quexington/chialisp_dev_utility.git
 cd chialisp_dev_utility
 .\venv\Scripts\activate #Optionally add this to PATH, you will need it every time you are using the utility
 pip install -e .
