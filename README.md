@@ -9,7 +9,7 @@ git clone https://github.com/Quexington/chialisp_dev_utility.git
 cd chialisp_dev_utility
 python3 -m venv venv #py on Windows
 #Optionally add this to PATH, you will need it every time you are using the utility
-.\venv\bin\activate #.\venv\Scripts\activate on windows
+. .\venv\bin\activate #.\venv\Scripts\activate on windows
 pip install -e .
 ```
 
