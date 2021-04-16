@@ -29,7 +29,7 @@ class Node():
         self.timestamp = float_to_timestamp(time.time())
 
     def set_block_height(self, block_height: uint32):
-        self.block_height = height
+        self.block_height = block_height
 
     def set_timestamp(self, timestamp: uint64):
         self.timestamp = timestamp
