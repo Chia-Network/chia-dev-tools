@@ -72,7 +72,11 @@ class Node():
         return filtered_coins
 
     def get_coin_record_by_coin_name(self, name):
-        return list(filter(lambda e: e.coin.name() == name, self.coin_records))[0]
+        coin_record = list(filter(lambda e: e.coin.name() == name, self.coin_records))
+        if len(coin_record) > 0:
+            return coin_record[0]
+        else:
+            return None
 
     def generate_transaction_generator(self):
         if len(self.mempool) == 0:
@@ -170,4 +174,5 @@ class Node():
 
         return {
             "status": status.name,
+            "cost": cost
         }
