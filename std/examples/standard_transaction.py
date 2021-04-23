@@ -1,6 +1,7 @@
 from blspy import AugSchemeMPL
 
 from lib.std.sim.node import Node
+from lib.std.sim.default_constants import DEFAULT_CONSTANTS
 from lib.std.util.keys import public_key_for_index, private_key_for_index
 from lib.std.types.spend_bundle import SpendBundle
 from lib.std.types.coin_solution import CoinSolution
@@ -24,7 +25,7 @@ delegated_puzzle = Program.to((1, [[ConditionOpcode.CREATE_COIN, puzzle_for_pk(p
 #Sign the (delegated_puzzle_hash + coin_name) with synthetic secret key
 signature = AugSchemeMPL.sign(
     calculate_synthetic_secret_key(private_key,DEFAULT_HIDDEN_PUZZLE_HASH),
-    (delegated_puzzle.get_tree_hash() + node.coins[3].name())
+    (delegated_puzzle.get_tree_hash() + node.coins[3].name() + DEFAULT_CONSTANTS.AGG_SIG_ME_ADDITIONAL_DATA)
 )
 
 #Create a spend bundle with the above information

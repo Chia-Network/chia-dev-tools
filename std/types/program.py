@@ -7,18 +7,18 @@ from clvm.casts import int_from_bytes
 from clvm.EvalError import EvalError
 from clvm.operators import OP_REWRITE, OPERATOR_LOOKUP
 from clvm.serialize import sexp_buffer_from_stream, sexp_from_stream, sexp_to_stream
-from clvm_rs import STRICT_MODE, deserialize_and_run_program #not a dependency yets
+from clvm_rs import STRICT_MODE, deserialize_and_run_program
 from clvm_tools.curry import curry, uncurry
 
 from lib.std.types.sized_bytes import bytes32
-from lib.std.util.hash import std_hash
+from lib.std.util.hash import std_hash, std_treehash
 
 
 def run_program(
     program,
     args,
+    max_cost,
     operator_lookup=OPERATOR_LOOKUP,
-    max_cost=None,
     pre_eval_f=None,
 ):
     return default_run_program(
@@ -30,13 +30,16 @@ def run_program(
     )
 
 
+INFINITE_COST = 0x7FFFFFFFFFFFFFFF
+
+
 class Program(SExp):
     """
     A thin wrapper around s-expression data intended to be invoked with "eval".
     """
 
     @classmethod
-    def parse(cls, f):
+    def parse(cls, f) -> "Program":
         return sexp_from_stream(f, cls.to)
 
     def stream(self, f):
@@ -45,7 +48,9 @@ class Program(SExp):
     @classmethod
     def from_bytes(cls, blob: bytes) -> "Program":
         f = io.BytesIO(blob)
-        return cls.parse(f)  # type: ignore # noqa
+        result = cls.parse(f)  # type: ignore # noqa
+        assert f.read() == b""
+        return result
 
     def __bytes__(self) -> bytes:
         f = io.BytesIO()
@@ -55,35 +60,21 @@ class Program(SExp):
     def __str__(self) -> str:
         return bytes(self).hex()
 
-    def _tree_hash(self, precalculated: Set[bytes32]) -> bytes32:
-        """
-        Hash values in `precalculated` are presumed to have been hashed already.
-        """
-        if self.listp():
-            left = self.to(self.first())._tree_hash(precalculated)
-            right = self.to(self.rest())._tree_hash(precalculated)
-            s = b"\2" + left + right
-        else:
-            atom = self.as_atom()
-            if atom in precalculated:
-                return bytes32(atom)
-            s = b"\1" + atom
-        return bytes32(std_hash(s))
-
     def get_tree_hash(self, *args: List[bytes32]) -> bytes32:
         """
         Any values in `args` that appear in the tree
         are presumed to have been hashed already.
         """
-        return self._tree_hash(set(args))
+        return std_treehash(self, set(args))
 
-    def run_with_cost(self, args) -> Tuple[int, "Program"]:
+    def run_with_cost(self, max_cost: int, args) -> Tuple[int, "Program"]:
         prog_args = Program.to(args)
-        return run_program(self, prog_args)
+        cost, r = run_program(self, prog_args, max_cost)
+        return cost, Program.to(r)
 
     def run(self, args) -> "Program":
-        cost, r = self.run_with_cost(args)
-        return Program.to(r)
+        cost, r = self.run_with_cost(INFINITE_COST, args)
+        return r
 
     def curry(self, *args) -> "Program":
         cost, r = curry(self, list(args))
@@ -94,6 +85,28 @@ class Program(SExp):
 
     def as_int(self) -> int:
         return int_from_bytes(self.as_atom())
+
+    def as_atom_list(self) -> List[bytes]:
+        """
+        Pretend `self` is a list of atoms. Return the corresponding
+        python list of atoms.
+
+        At each step, we always assume a node to be an atom or a pair.
+        If the assumption is wrong, we exit early. This way we never fail
+        and always return SOMETHING.
+        """
+        items = []
+        obj = self
+        while True:
+            pair = obj.pair
+            if pair is None:
+                break
+            atom = pair[0].atom
+            if atom is None:
+                break
+            items.append(atom)
+            obj = pair[1]
+        return items
 
     def __deepcopy__(self, memo):
         return type(self).from_bytes(bytes(self))
@@ -172,13 +185,13 @@ class SerializedProgram:
         tmp = sexp_from_stream(io.BytesIO(self._buf), SExp.to)
         return _tree_hash(tmp, set(args))
 
-    def run_safe_with_cost(self, *args) -> Tuple[int, SExp]:
-        return self._run(STRICT_MODE, *args)
+    def run_safe_with_cost(self, max_cost: int, *args) -> Tuple[int, Program]:
+        return self._run(max_cost, STRICT_MODE, *args)
 
-    def run_with_cost(self, *args) -> Tuple[int, SExp]:
-        return self._run(0, *args)
+    def run_with_cost(self, max_cost: int, *args) -> Tuple[int, Program]:
+        return self._run(max_cost, 0, *args)
 
-    def _run(self, flags, *args) -> Tuple[int, SExp]:
+    def _run(self, max_cost: int, flags, *args) -> Tuple[int, Program]:
         # when multiple arguments are passed, concatenate them into a serialized
         # buffer. Some arguments may already be in serialized form (e.g.
         # SerializedProgram) so we don't want to de-serialize those just to
@@ -193,7 +206,6 @@ class SerializedProgram:
         else:
             serialized_args += _serialize(args[0])
 
-        max_cost = 0
         # TODO: move this ugly magic into `clvm` "dialects"
         native_opcode_names_by_opcode = dict(
             ("op_%s" % OP_REWRITE.get(k, k), op) for op, k in KEYWORD_FROM_ATOM.items() if k not in "qa."
@@ -208,4 +220,7 @@ class SerializedProgram:
             flags,
         )
         # TODO this could be parsed lazily
-        return cost, sexp_from_stream(io.BytesIO(ret), SExp.to)
+        return cost, Program.to(sexp_from_stream(io.BytesIO(ret), SExp.to))
+
+
+NIL = Program.from_bytes(b"\x80")

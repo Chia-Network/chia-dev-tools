@@ -1,4 +1,3 @@
-from lib.std.types.sized_bytes import bytes32
 from lib.std.types.ints import uint64
 
 from lib.std.types.consensus_constants import ConsensusConstants
@@ -11,13 +10,13 @@ testnet_kwargs = {
     "SUB_SLOT_ITERS_STARTING": 2 ** 27,
     # DIFFICULTY_STARTING is the starting difficulty for the first epoch, which is then further
     # multiplied by another factor of DIFFICULTY_CONSTANT_FACTOR, to be used in the VDF iter calculation formula.
-    "DIFFICULTY_CONSTANT_FACTOR": 2 ** 62,
-    "DIFFICULTY_STARTING": 5,
+    "DIFFICULTY_CONSTANT_FACTOR": 2 ** 67,
+    "DIFFICULTY_STARTING": 7,
     "DIFFICULTY_CHANGE_MAX_FACTOR": 3,  # The next difficulty is truncated to range [prev / FACTOR, prev * FACTOR]
     # These 3 constants must be changed at the same time
     "SUB_EPOCH_BLOCKS": 384,  # The number of blocks per sub-epoch, mainnet 384
-    "EPOCH_BLOCKS": 384 * 4,  # The number of blocks per epoch, mainnet 4608. Must be multiple of SUB_EPOCH_SB
-    "SIGNIFICANT_BITS": 12,  # The number of bits to look at in difficulty and min iters. The rest are zeroed
+    "EPOCH_BLOCKS": 4608,  # The number of blocks per epoch, mainnet 4608. Must be multiple of SUB_EPOCH_SB
+    "SIGNIFICANT_BITS": 8,  # The number of bits to look at in difficulty and min iters. The rest are zeroed
     "DISCRIMINANT_SIZE_BITS": 1024,  # Max is 1024 (based on ClassGroupElement int size)
     "NUMBER_ZERO_BITS_PLOT_FILTER": 9,  # H(plot signature of the challenge) must start with these many zeroes
     "MIN_PLOT_SIZE": 32,  # 32 for mainnet
@@ -28,41 +27,33 @@ testnet_kwargs = {
     "NUMBER_OF_TIMESTAMPS": 11,  # Than the average of the last NUMBER_OF_TIMESTAMPS blocks
     # Used as the initial cc rc challenges, as well as first block back pointers, and first SES back pointer
     # We override this value based on the chain being run (testnet0, testnet1, mainnet, etc)
-    "GENESIS_CHALLENGE": bytes32([0x00] * 32),
+    # Default used for tests is std_hash(b'')
+    "GENESIS_CHALLENGE": bytes.fromhex("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"),
+    # Forks of chia should change this value to provide replay attack protection. This is set to mainnet genesis chall
+    "AGG_SIG_ME_ADDITIONAL_DATA": bytes.fromhex("ccd5bb71183532bff220ba46c268991a3ff07eb358e8255a65c30a2dce0e5fbb"),
     "GENESIS_PRE_FARM_POOL_PUZZLE_HASH": bytes.fromhex(
-        "bc4fd6c394fe90c6097afbfa6ab5927743e2210ecf689dad477be8eb408745d5"
+        "d23da14695a188ae5708dd152263c4db883eb27edeb936178d4d988b8f3ce5fc"
     ),
     "GENESIS_PRE_FARM_FARMER_PUZZLE_HASH": bytes.fromhex(
-        "4ad98e66a019f11b60a8279514d13105b65588865e2a8e794b5b73d5646174f6"
+        "3d8765d3a597ec1d99663f6c9816d915b9f68613ac94009884c4addaefcce6af"
     ),
     "MAX_VDF_WITNESS_SIZE": 64,
-    # Target tx count per sec
-    "TX_PER_SEC": 20,
-    # Size of mempool = 10x the size of block
-    "MEMPOOL_BLOCK_BUFFER": 10,
+    # Size of mempool = 150x the size of block
+    "MEMPOOL_BLOCK_BUFFER": 150,
     # Max coin amount, fits into 64 bits
     "MAX_COIN_AMOUNT": uint64((1 << 64) - 1),
-    # Targeting twice bitcoin's block size of 1.3MB per block
-    # Raw size per block target = 1,300,000 * 600 / 47 = approx 100 KB
-    # Rax TX (single in, single out) = 219 bytes (not compressed)
-    # TX = 457 vBytes
-    # floor(100 * 1024 / 219) * 457 = 213684 (size in vBytes)
-    # Max block cost in virtual bytes
-    "MAX_BLOCK_COST": 213684,
-    # MAX block cost in clvm cost units = MAX_BLOCK_COST * CLVM_COST_RATIO_CONSTANT
-    # 1 vByte = 108 clvm cost units
-    "CLVM_COST_RATIO_CONSTANT": 108,
-    # Max block cost in clvm cost units (MAX_BLOCK_COST * CLVM_COST_RATIO_CONSTANT)
-    # "MAX_BLOCK_COST_CLVM": 23077872,
-    "MAX_BLOCK_COST_CLVM": 40000000,  # Based on arvid analysis
+    # Max block cost in clvm cost units
+    "MAX_BLOCK_COST_CLVM": 11000000000,
+    # The cost per byte of generator program
+    "COST_PER_BYTE": 12000,
     "WEIGHT_PROOF_THRESHOLD": 2,
     "BLOCKS_CACHE_SIZE": 4608 + (128 * 4),
     "WEIGHT_PROOF_RECENT_BLOCKS": 1000,
     "MAX_BLOCK_COUNT_PER_REQUESTS": 32,  # Allow up to 32 blocks per request
-    "INITIAL_FREEZE_PERIOD": 5000,  # Transaction are disabled first 5000 blocks
+    "INITIAL_FREEZE_END_TIMESTAMP": 1620061200,  # Mon May 03 2021 17:00:00 GMT+0000
     "NETWORK_TYPE": 0,
     "MAX_GENERATOR_SIZE": 1000000,
-    "MAX_GENERATOR_REF_LIST_SIZE": 10000,  # Number of references allowed in the block generator ref list
+    "MAX_GENERATOR_REF_LIST_SIZE": 512,  # Number of references allowed in the block generator ref list
 }
 
 

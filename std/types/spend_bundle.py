@@ -39,12 +39,6 @@ class SpendBundle(Streamable):
             items.extend(coin_solution.additions())
         return items
 
-    def announcements(self) -> List[Announcement]:
-        items: List[Announcement] = []
-        for coin_solution in self.coin_solutions:
-            items.extend(coin_solution.announcements())
-        return items
-
     def removals(self) -> List[Coin]:
         """ This should be used only by wallet"""
         return [_.coin for _ in self.coin_solutions]

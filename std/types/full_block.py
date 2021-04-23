@@ -2,12 +2,14 @@ from dataclasses import dataclass
 from typing import List, Optional, Set, Tuple
 
 from lib.std.sim.mempool_check_conditions import get_name_puzzle_conditions
+from lib.std.sim.default_constants import DEFAULT_CONSTANTS
 from lib.std.types.announcement import Announcement
 from lib.std.types.coin import Coin
 from lib.std.types.program import SerializedProgram
 from lib.std.types.sized_bytes import bytes32
 from lib.std.types.name_puzzle_condition import NPC
-from lib.std.util.condition_tools import created_announcements_for_conditions_dict, created_outputs_for_conditions_dict
+from lib.std.types.generator_types import BlockGenerator
+from lib.std.util.condition_tools import coin_announcements_for_conditions_dict, created_outputs_for_conditions_dict
 from lib.std.types.ints import uint32
 from lib.std.types.streamable import Streamable, streamable
 
@@ -16,7 +18,7 @@ from lib.std.types.streamable import Streamable, streamable
 @streamable
 class FullBlock(Streamable):
     reward_claims_incorporated: List[Coin]
-    transactions_generator: Optional[SerializedProgram] # Program that generates transactions
+    transactions_generator: Optional[BlockGenerator] # Program that generates transactions
     height: uint32
 
     def get_included_reward_coins(self) -> Set[Coin]:
@@ -27,13 +29,15 @@ class FullBlock(Streamable):
 
         if self.transactions_generator is not None:
             # This should never throw here, block must be valid if it comes to here
-            err, npc_list, cost = get_name_puzzle_conditions(self.transactions_generator, False)
+            npc_result = get_name_puzzle_conditions(self.transactions_generator, DEFAULT_CONSTANTS.MAX_BLOCK_COST_CLVM, False)
+            err = npc_result.error
+            npc_list = npc_result.npc_list
+            cost = npc_result.clvm_cost
             # created coins
             if npc_list is not None:
                 additions.extend(additions_for_npc(npc_list))
 
         additions.extend(self.get_included_reward_coins())
-
         return additions
 
     def tx_removals_and_additions(self) -> Tuple[List[bytes32], List[Coin]]:
@@ -47,7 +51,10 @@ class FullBlock(Streamable):
 
         if self.transactions_generator is not None:
             # This should never throw here, block must be valid if it comes to here
-            err, npc_list, cost = get_name_puzzle_conditions(self.transactions_generator, False)
+            npc_result = get_name_puzzle_conditions(self.transactions_generator, DEFAULT_CONSTANTS.MAX_BLOCK_COST_CLVM, False)
+            err = npc_result.error
+            npc_list = npc_result.npc_list
+            cost = npc_result.clvm_cost
             # build removals list
             if npc_list is None:
                 return [], []

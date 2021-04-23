@@ -1,3 +1,4 @@
+import time
 import dataclasses
 import collections
 from typing import Dict, List, Optional, Set, Tuple
@@ -13,14 +14,18 @@ from lib.std.types.coin_record import CoinRecord
 from lib.std.types.mempool_inclusion_status import MempoolInclusionStatus
 from lib.std.types.streamable import dataclass_from_dict, recurse_jsonify
 from lib.std.types.consensus_constants import ConsensusConstants
-from lib.std.types.name_puzzle_condition import additions_for_npc
+from lib.std.types.full_block import additions_for_npc
 from lib.std.types.condition_opcodes import ConditionOpcode
-from lib.std.types.condition_var_pair import ConditionVarPair
-from lib.std.sim.bundle_tools import best_solution_program
-from lib.std.sim.cost_calculator import CostResult, calculate_cost_of_program
-from lib.std.sim.mempool_check_conditions import mempool_check_conditions_dict
+from lib.std.types.condition_with_args import ConditionWithArgs
+from lib.std.sim.bundle_tools import simple_solution_generator
+from lib.std.sim.cost_calculator import NPCResult, calculate_cost_of_program
+from lib.std.sim.mempool_check_conditions import mempool_check_conditions_dict, get_name_puzzle_conditions
 from lib.std.sim.default_constants import DEFAULT_CONSTANTS
-from lib.std.util.condition_tools import pkm_pairs_for_conditions_dict
+from lib.std.util.condition_tools import (
+    pkm_pairs_for_conditions_dict,
+    coin_announcements_names_for_npc,
+    puzzle_announcements_names_for_npc
+)
 
 def check_removals(mempool_removals: List[Coin], removals: Dict[bytes32, CoinRecord]) -> Tuple[Optional[Err], List[Coin]]:
         """
@@ -50,16 +55,17 @@ def validate_transaction(
 ) -> bytes:
     # constants: ConsensusConstants = dataclass_from_dict(ConsensusConstants, recurse_jsonify(dataclasses.asdict(ConsensusConstants)))
     # Calculate the cost and fees
-    program = best_solution_program(SpendBundle.from_bytes(spend_bundle_bytes))
+    program = simple_solution_generator(SpendBundle.from_bytes(spend_bundle_bytes))
     # npc contains names of the coins removed, puzzle_hashes and their spend conditions
-    return bytes(calculate_cost_of_program(program, DEFAULT_CONSTANTS.CLVM_COST_RATIO_CONSTANT, True))
+    return bytes(get_name_puzzle_conditions(program, DEFAULT_CONSTANTS.MAX_BLOCK_COST_CLVM, True))
 
 def validate_spendbundle(new_spend: SpendBundle, mempool_removals: List[Coin], current_coin_records: List[CoinRecord], block_height: uint32, validate_signature=True) -> Tuple[Optional[uint64], MempoolInclusionStatus, Optional[Err]]:
     spend_name = new_spend.name()
-    cost_result = CostResult.from_bytes(validate_transaction(bytes(new_spend)))
+    cost_result = NPCResult.from_bytes(validate_transaction(bytes(new_spend)))
 
     npc_list = cost_result.npc_list
-    cost = cost_result.cost
+    program = simple_solution_generator(new_spend).program
+    cost = calculate_cost_of_program(program, cost_result, DEFAULT_CONSTANTS.COST_PER_BYTE)
 
     if cost > DEFAULT_CONSTANTS.MAX_BLOCK_COST_CLVM:
         return None, MempoolInclusionStatus.FAILED, Err.BLOCK_COST_EXCEEDS_MAX
@@ -132,14 +138,16 @@ def validate_spendbundle(new_spend: SpendBundle, mempool_removals: List[Coin], c
     if addition_amount > removal_amount:
         return None, MempoolInclusionStatus.FAILED, Err.MINTING_COIN
 
-    fees = removal_amount - addition_amount
+    fees = uint64(removal_amount - addition_amount)
     assert_fee_sum: uint64 = uint64(0)
 
     for npc in npc_list:
         if ConditionOpcode.RESERVE_FEE in npc.condition_dict:
-            fee_list: List[ConditionVarPair] = npc.condition_dict[ConditionOpcode.RESERVE_FEE]
+            fee_list: List[ConditionWithArgs] = npc.condition_dict[ConditionOpcode.RESERVE_FEE]
             for cvp in fee_list:
                 fee = int_from_bytes(cvp.vars[0])
+                if fee < 0:
+                    return None, MempoolInclusionStatus.FAILED, Err.RESERVE_FEE_CONDITION_FAILED
                 assert_fee_sum = assert_fee_sum + fee
     if fees < assert_fee_sum:
         return (
@@ -182,6 +190,8 @@ def validate_spendbundle(new_spend: SpendBundle, mempool_removals: List[Coin], c
     pks: List[G1Element] = []
     msgs: List[bytes32] = []
     error: Optional[Err] = None
+    coin_announcements_in_spend: Set[bytes32] = coin_announcements_names_for_npc(npc_list)
+    puzzle_announcements_in_spend: Set[bytes32] = puzzle_announcements_names_for_npc(npc_list)
     for npc in npc_list:
         coin_record: CoinRecord = removal_record_dict[npc.coin_name]
         # Check that the revealed removal puzzles actually match the puzzle hash
@@ -189,15 +199,24 @@ def validate_spendbundle(new_spend: SpendBundle, mempool_removals: List[Coin], c
             return None, MempoolInclusionStatus.FAILED, Err.WRONG_PUZZLE_HASH
 
         chialisp_height = block_height - 1
-        error = mempool_check_conditions_dict(coin_record, new_spend, npc.condition_dict, uint32(chialisp_height))
+        error = mempool_check_conditions_dict(
+            coin_record,
+            coin_announcements_in_spend,
+            puzzle_announcements_in_spend,
+            npc.condition_dict,
+            uint32(chialisp_height),
+            uint64(int(time.time()))
+        )
 
         if error:
-            if error is Err.ASSERT_HEIGHT_NOW_EXCEEDS_FAILED or error is Err.ASSERT_HEIGHT_AGE_EXCEEDS_FAILED:
+            if error is Err.ASSERT_HEIGHT_ABSOLUTE_FAILED or error is Err.ASSERT_HEIGHT_RELATIVE_FAILED:
                 return uint64(cost), MempoolInclusionStatus.PENDING, error
             break
 
         if validate_signature:
-            for pk, message in pkm_pairs_for_conditions_dict(npc.condition_dict, npc.coin_name):
+            for pk, message in pkm_pairs_for_conditions_dict(
+                npc.condition_dict, npc.coin_name, DEFAULT_CONSTANTS.AGG_SIG_ME_ADDITIONAL_DATA
+            ):
                 pks.append(pk)
                 msgs.append(message)
 

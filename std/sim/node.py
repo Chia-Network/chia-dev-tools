@@ -14,7 +14,8 @@ from lib.std.types.full_block import FullBlock
 from lib.std.sim.coinbase import create_pool_coin, create_farmer_coin, create_puzzlehash_for_pk
 from lib.std.sim.block_rewards import calculate_pool_reward, calculate_base_farmer_reward
 from lib.std.sim.spend_bundle_validation import validate_spendbundle
-from lib.std.sim.bundle_tools import best_solution_program
+from lib.std.sim.bundle_tools import simple_solution_generator
+from lib.std.sim.default_constants import DEFAULT_CONSTANTS
 from lib.std.util.timestamp import float_to_timestamp
 
 class Node():
@@ -94,7 +95,7 @@ class Node():
             agg_sig
         )
 
-        return best_solution_program(total_bundle)
+        return simple_solution_generator(total_bundle)
 
     def farm_block(self, public_key: G1Element):
         # Fees get calculated
@@ -120,12 +121,14 @@ class Node():
         pool_coin = create_pool_coin(
             self.block_height,
             create_puzzlehash_for_pk(public_key),
-            calculate_pool_reward(self.block_height)
+            calculate_pool_reward(self.block_height),
+            DEFAULT_CONSTANTS.GENESIS_CHALLENGE
         )
         farmer_coin = create_farmer_coin(
             self.block_height,
             create_puzzlehash_for_pk(public_key),
-            (calculate_base_farmer_reward(self.block_height) + fees)
+            (calculate_base_farmer_reward(self.block_height) + fees),
+            DEFAULT_CONSTANTS.GENESIS_CHALLENGE
         )
         self.add_coin(pool_coin)
         self.add_coin(farmer_coin)
