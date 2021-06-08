@@ -1,17 +1,34 @@
 import os
+import io
 import sys
 import shutil
 from pathlib import Path
 import hashlib
 import re
 import subprocess
+import unittest
 
 from clvm_tools.clvmc import compile_clvm
+from clvm.SExp import to_sexp_type
+from clvm.serialize import sexp_from_stream
+from clvm_tools.binutils import disassemble
 
 def dev_util(args=sys.argv):
-    cmd = args[1].lower()
+    if len(args) < 2:
+        cmd = "help"
+    else:
+        cmd = args[1].lower()
     project_path = Path.cwd()
     script_root = Path(__file__).parent
+    # Show help
+    if cmd == "help" :
+        print("""usage: chialisp <cmd> args...
+help - this message
+init - copy new project skeleton
+build - build chialisp code
+test - run tests in project
+disassemble - disassemble hex files""")
+        sys.exit(1)
     #Initialize a new project
     if cmd == "init" :
         project_path_lib = Path(project_path).joinpath("lib")
@@ -61,3 +78,17 @@ def dev_util(args=sys.argv):
         garbage_files = list(filter(lambda e: e not in already_compiled, garbage_files))
         for file in garbage_files:
             file.unlink()
+    if cmd == "disassemble":
+        disargs = args[2:]
+        for f in disargs:
+            if len(disargs) > 1:
+                prefix = '%s:\n' % f
+            else:
+                prefix = ''
+            se = sexp_from_stream(io.BytesIO(bytes.fromhex(open(f).read())), lambda x: x)
+            print('%s%s' % (prefix, disassemble(sexp_of_clvmobject(se))))
+    if cmd == "test":
+        testloader = unittest.TestLoader()
+        suite = testloader.discover(start_dir='./tests')
+        runner = unittest.TextTestRunner()
+        runner.run(suite)
