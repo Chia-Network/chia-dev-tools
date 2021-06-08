@@ -193,11 +193,6 @@ def validate_spendbundle(new_spend: SpendBundle, mempool_removals: List[Coin], c
     coin_announcements_in_spend: Set[bytes32] = coin_announcements_names_for_npc(npc_list)
     puzzle_announcements_in_spend: Set[bytes32] = puzzle_announcements_names_for_npc(npc_list)
     for npc in npc_list:
-        # XXX this is a hack, but I'm unsure what npc_list represents or why it's
-        # necessarily true that things in it must exist in the remove list.
-        if npc.coin_name not in removal_record_dict:
-                continue
-
         coin_record: CoinRecord = removal_record_dict[npc.coin_name]
         # Check that the revealed removal puzzles actually match the puzzle hash
         if npc.puzzle_hash != coin_record.coin.puzzle_hash:
