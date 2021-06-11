@@ -2,7 +2,7 @@ import io
 import datetime
 import pytimeparse
 from unittest import TestCase
-from blspy import AugSchemeMPL
+from blspy import AugSchemeMPL, G1Element, PrivateKey
 
 from clvm.serialize import sexp_from_stream
 
@@ -17,6 +17,7 @@ from lib.std.spends.defaults import DEFAULT_HIDDEN_PUZZLE, DEFAULT_HIDDEN_PUZZLE
 from lib.std.sim.default_constants import DEFAULT_CONSTANTS
 from lib.std.types.spend_bundle import SpendBundle
 from lib.std.types.coin_solution import CoinSolution
+from lib.std.types.coin_signature import sign_coin_solutions
 from lib.std.types.coin import Coin
 from lib.std.spends.chialisp import sha256tree
 from lib.std.types.program import Program
@@ -27,8 +28,9 @@ block_time = (600.0 / 32.0) / duration_div
 coin_mul = 1000000000000
 
 class SpendResult:
-    def __init__(self):
-        self.outputs = []
+    def __init__(self,result):
+        self.result = result
+        self.outputs = result['additions']
 
 class CoinWrapper(Coin):
     def __init__(self, parent : Coin, puzzle_hash : bytes32, amt : uint64, source : Program):
@@ -81,7 +83,7 @@ class Wallet:
 
     # Make this coin available to the user it goes with.
     def add_coin(self,coin):
-        self.usable_coins[(coin.parent_coin_info,coin.puzzle_hash)] = coin
+        self.usable_coins[coin.name()] = coin
 
     # Find a coin containing amt we can use as a parent.
     def choose_coin(self,amt) -> CoinWrapper:
@@ -103,13 +105,10 @@ class Wallet:
         if found_coin is None:
             raise ValueError(f'could not find available coin containing {amt} mojo')
 
-        print(f'spending coin {found_coin} with name {found_coin.name()}')
-
         # Create a puzzle based on the incoming contract
         cw = ContractWrapper(DEFAULT_CONSTANTS.GENESIS_CHALLENGE, source)
         delegated_puzzle_solution = Program.to((1, [[ConditionOpcode.CREATE_COIN, cw.puzzle_hash(), amt]]))
         solution = Program.to([[], delegated_puzzle_solution, []])
-        print(f'solution1 {solution}')
 
         # Sign the (delegated_puzzle_hash + coin_name) with synthetic secret key
         signature = AugSchemeMPL.sign(
@@ -142,48 +141,52 @@ class Wallet:
     def balance(self):
         return 0
 
-    def spend_coin(self,coin : CoinWrapper,**kwargs):
+    def spend_coin(self, coin : CoinWrapper, **kwargs):
         amt = 1
         if 'amt' in kwargs:
             amt = kwargs['amt']
 
         amt = int(amt * coin_mul)
 
-        solution_list = [[ConditionOpcode.CREATE_COIN, self.puzzle_hash, amt]]
-        if 'remain' in kwargs:
-            remainer = kwargs['remain']
-            remain_amt = coin.amount - amt
-            if isinstance(remainer, ContractWrapper):
-                solution_list.append([ConditionOpcode.CREATE_COIN, remainer.puzzle_hash(), remain_amt])
-            elif isinstance(remainer, Wallet):
-                solution_list.append([ConditionOpcode.CREATE_COIN, remainer.puzzle_hash, remain_amt])
-            else:
-                raise ValueError("remainer is not a waller or a contract")
+        def pk_to_sk(pk: G1Element) -> PrivateKey:
+            assert pk == self.pk()
+            return self.priv_
 
-        delegated_solution = Program.to((1, solution_list))
-        # Our user's puzzle
-        solution = Program.to([[], delegated_solution, []])
-        print(f'solution2 {solution}')
-        signature = AugSchemeMPL.sign(
-            calculate_synthetic_secret_key(self.priv_,DEFAULT_HIDDEN_PUZZLE_HASH),
-            (solution.get_tree_hash() + coin.name() + DEFAULT_CONSTANTS.AGG_SIG_ME_ADDITIONAL_DATA)
+        if not 'args' in kwargs:
+            # Automatic arguments from the user's intention.
+            solution_list = [[ConditionOpcode.CREATE_COIN, self.puzzle_hash, amt]]
+            if 'remain' in kwargs:
+                remainer = kwargs['remain']
+                remain_amt = coin.amount - amt
+                if isinstance(remainer, ContractWrapper):
+                    solution_list.append([ConditionOpcode.CREATE_COIN, remainer.puzzle_hash(), remain_amt])
+                elif isinstance(remainer, Wallet):
+                    solution_list.append([ConditionOpcode.CREATE_COIN, remainer.puzzle_hash, remain_amt])
+                else:
+                    raise ValueError("remainer is not a waller or a contract")
+
+            delegated_solution = Program.to((1, solution_list))
+            # Solution is the solution for the old coin.
+            solution = Program.to([[], delegated_solution, []])
+        else:
+            solution = Program.to([[], Program.to(kwargs['args']), []])
+
+        solution_for_coin = CoinSolution(
+            coin,
+            coin.puzzle(),
+            solution,
         )
 
-        spend_bundle = SpendBundle(
-            [
-                CoinSolution(
-                    coin, # coin
-                    coin.puzzle(), # puzzle reveal
-                    solution, # puzzle solution
-                )
-            ]
-            , signature
+        spend_bundle = sign_coin_solutions(
+            [solution_for_coin],
+            pk_to_sk,
+            DEFAULT_CONSTANTS.AGG_SIG_ME_ADDITIONAL_DATA,
+            DEFAULT_CONSTANTS.MAX_BLOCK_COST_CLVM
         )
 
-        print(spend_bundle)
-        pushed = self.parent.push_tx(spend_bundle)
+        pushed = self.parent.push_tx(SpendBundle.from_chia_spend_bundle(spend_bundle))
         if pushed:
-            return SpendResult(pushed).outputs[0]
+            return SpendResult(pushed)
         else:
             return None
 
@@ -202,7 +205,7 @@ class Network:
             farmer = kwargs['farmer']
 
         farm_duration = datetime.timedelta(block_time)
-        self.node.farm_block(farmer.pk())
+        farmed = self.node.farm_block(farmer.pk())
 
         for k, w in self.wallets.items():
             w.clear_coins()
@@ -213,6 +216,7 @@ class Network:
                     w.add_coin(coin)
 
         self.time += farm_duration
+        return farmed
 
     def alloc_key(self):
         key_idx = len(self.wallets)
@@ -232,8 +236,17 @@ class Network:
         while target_time > self.time:
             self.farm_block(**kwargs)
 
+        # Or possibly aggregate farm_block results.
+        return None
+
     def push_tx(self,bundle):
-        return self.node.push_tx(bundle)
+        res = self.node.push_tx(bundle)
+        results = self.farm_block()
+        return {
+            'cost': res['cost'],
+            'additions': results['additions'],
+            'removals': results['removals']
+        }
 
 class TestGroup(TestCase):
     def setUp(self):

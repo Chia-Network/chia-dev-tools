@@ -24,6 +24,10 @@ class SpendBundle(Streamable):
     aggregated_signature: G2Element
 
     @classmethod
+    def from_chia_spend_bundle(cls, bundle):
+        return SpendBundle(bundle.coin_solutions, bundle.aggregated_signature)
+
+    @classmethod
     def aggregate(cls, spend_bundles) -> "SpendBundle":
         coin_solutions: List[CoinSolution] = []
         sigs: List[G2Element] = []

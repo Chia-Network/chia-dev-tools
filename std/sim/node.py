@@ -51,7 +51,10 @@ class Node():
 
     def remove_coin(self, coin: Coin):
         #Remove the coin from the UTXO set
-        self.coins.remove(coin)
+        old_len = len(self.coins)
+        self.coins = list(filter(lambda x: x.name() != coin.name(), self.coins))
+        assert len(self.coins) == old_len - 1
+
         #Update the coin record
         matching_record = list(filter(lambda e: e.coin == coin,self.coin_records))
         for record in matching_record:
@@ -148,6 +151,10 @@ class Node():
 
         # timestamp is reset
         self.timestamp = float_to_timestamp(time.time())
+        return {
+            'additions': [pool_coin, farmer_coin] + additions,
+            'removals': removals
+        }
 
     def push_tx(self, spend_bundle: SpendBundle):
         spend_name = spend_bundle.name()
