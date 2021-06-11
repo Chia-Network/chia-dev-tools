@@ -71,6 +71,10 @@ class ContractWrapper:
     def custom_coin(self, parent : Coin, amt : uint64):
         return CoinWrapper(parent.name(), self.puzzle_hash(), amt, self.source)
 
+# A basic wallet that knows about standard coins.
+# We can use this to track our balance as an end user and keep track of chia
+# that is released by contracts, if the contracts interact meaningfully with
+# them, as many likely will.
 class Wallet:
     def __init__(self,parent,name,pk,priv):
         self.parent = parent
@@ -93,7 +97,11 @@ class Wallet:
 
         return None
 
-    # Create a new contract based on a parent coin.
+    # Create a new contract based on a parent coin and return the coin to the user.
+    # TODO:
+    #  - allow use of more than one coin to launch contract
+    #  - ensure input chia = output chia.  it'd be dumb to just allow somebody
+    #    to lose their chia without telling them.
     def launch_contract(self,source,**kwargs) -> CoinWrapper:
         amt = 1
         if 'amt' in kwargs:
@@ -132,15 +140,23 @@ class Wallet:
         else:
             return None
 
-    def clear_coins(self):
+    # Called each cycle before coins are re-established from the simulator.
+    def _clear_coins(self):
         self.usable_coins = {}
 
+    # Public key of wallet
     def pk(self):
         return self.pk_
 
+    # Balance of wallet
     def balance(self):
-        return 0
+        return sum(map(lambda x: x.amount, self.usable_coins.values()))
 
+    # Spend a coin, probably a contract coin.
+    # Allows the user to specify the arguments for the puzzle solution.
+    # Automatically takes care of signing, etc.
+    # Result is an object representing the actions taken when the block
+    # with this transaction was farmed.
     def spend_coin(self, coin : CoinWrapper, **kwargs):
         amt = 1
         if 'amt' in kwargs:
@@ -199,6 +215,7 @@ class Network:
         self.nobody = self.make_wallet('nobody')
         self.wallets[str(self.nobody.pk())] = self.nobody
 
+    # Have the system farm one block with a specific beneficiary (nobody if not specified).
     def farm_block(self,**kwargs):
         farmer = self.nobody
         if 'farmer' in kwargs:
@@ -208,7 +225,7 @@ class Network:
         farmed = self.node.farm_block(farmer.pk())
 
         for k, w in self.wallets.items():
-            w.clear_coins()
+            w._clear_coins()
 
         for coin in self.node.coins:
             for kw, w in self.wallets.items():
@@ -218,18 +235,22 @@ class Network:
         self.time += farm_duration
         return farmed
 
-    def alloc_key(self):
+    def _alloc_key(self):
         key_idx = len(self.wallets)
         pk = public_key_for_index(key_idx)
         priv = private_key_for_index(key_idx)
         return pk, priv
 
+    # Allow the user to create a wallet identity to whom standard coins may be targeted.
+    # This results in the creation of a wallet that tracks balance and standard coins.
+    # Public and private key from here are used in signing.
     def make_wallet(self,name):
-        pk, priv = self.alloc_key()
+        pk, priv = self._alloc_key()
         w = Wallet(self, name, pk, priv)
         self.wallets[str(w.pk())] = w
         return w
 
+    # Skip real time by farming blocks until the target duration is achieved.
     def skip_time(self,t,**kwargs):
         target_duration = pytimeparse.parse(t)
         target_time = self.time + datetime.timedelta(target_duration / duration_div)
@@ -239,6 +260,7 @@ class Network:
         # Or possibly aggregate farm_block results.
         return None
 
+    # Given a spend bundle, farm a block and analyze the result.
     def push_tx(self,bundle):
         res = self.node.push_tx(bundle)
         results = self.farm_block()
