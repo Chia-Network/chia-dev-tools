@@ -28,6 +28,12 @@ class Node():
 
     def __init__(self):
         self.timestamp = float_to_timestamp(time.time())
+        self.block_height = 0
+        self.timestamp = 0
+        self.blocks = []
+        self.coins = []
+        self.coin_records = []
+        self.mempool = []
 
     def set_block_height(self, block_height: uint32):
         self.block_height = block_height
