@@ -27,6 +27,7 @@ class Node():
     mempool: List[SpendBundle] = []
 
     def __init__(self):
+        self.fast_time = False
         self.timestamp = float_to_timestamp(time.time())
         self.block_height = 0
         self.timestamp = 0
@@ -39,6 +40,7 @@ class Node():
         self.block_height = block_height
 
     def set_timestamp(self, timestamp: uint64):
+        self.fast_time = True
         self.timestamp = timestamp
 
     def add_coin(self, coin: Coin):
@@ -156,7 +158,11 @@ class Node():
         self.block_height += 1
 
         # timestamp is reset
-        self.timestamp = float_to_timestamp(time.time())
+        if not self.fast_time:
+            self.timestamp = float_to_timestamp(time.time())
+        else:
+            self.timestamp += 600.0 / 32.0
+
         return {
             'additions': [pool_coin, farmer_coin] + additions,
             'removals': removals
@@ -174,7 +180,7 @@ class Node():
             status = MempoolInclusionStatus.SUCCESS
             error = None
         else:
-            cost, status, error = validate_spendbundle(spend_bundle, removals, self.coin_records, self.block_height)
+            cost, status, error = validate_spendbundle(spend_bundle, removals, self.coin_records, self.block_height, timestamp=self.timestamp)
             if status != MempoolInclusionStatus.SUCCESS:
                 if spend_bundle in self.mempool:
                     # Already in mempool

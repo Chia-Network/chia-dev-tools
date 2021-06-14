@@ -216,6 +216,7 @@ class Network:
         self.wallets = {}
         self.time = datetime.timedelta(0)
         self.node = Node()
+        self.node.set_timestamp(0.01)
         self.nobody = self.make_wallet('nobody')
         self.wallets[str(self.nobody.pk())] = self.nobody
 
@@ -258,14 +259,14 @@ class Network:
     def skip_time(self,t,**kwargs):
         target_duration = pytimeparse.parse(t)
         target_time = self.time + datetime.timedelta(target_duration / duration_div)
-        while target_time > self.time:
+        while target_time > self.get_timestamp():
             self.farm_block(**kwargs)
 
         # Or possibly aggregate farm_block results.
         return None
 
     def get_timestamp(self):
-        return self.time
+        return datetime.timedelta(seconds = self.node.timestamp)
 
     # Given a spend bundle, farm a block and analyze the result.
     def push_tx(self,bundle):
