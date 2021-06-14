@@ -31,7 +31,12 @@ coin_mul = 1000000000000
 class SpendResult:
     def __init__(self,result):
         self.result = result
-        self.outputs = result['additions']
+        if 'error' in result:
+            self.error = result['error']
+            self.outputs = []
+        else:
+            self.error = None
+            self.outputs = result['additions']
 
     def find_standard_coins(self,puzzle_hash):
         return list(filter(lambda x: x.puzzle_hash == puzzle_hash, self.outputs))
@@ -139,7 +144,7 @@ class Wallet:
             , signature
         )
         pushed = self.parent.push_tx(spend_bundle)
-        if pushed:
+        if 'error' not in pushed:
             return cw.custom_coin(found_coin, amt)
         else:
             return None
@@ -205,10 +210,10 @@ class Wallet:
         )
 
         pushed = self.parent.push_tx(SpendBundle.from_chia_spend_bundle(spend_bundle))
-        if pushed:
+        if 'error' not in pushed:
             return SpendResult(pushed)
         else:
-            return None
+            return SpendResult(pushed)
 
 # A user oriented (domain specific) view of the chia network.
 class Network:
@@ -270,7 +275,11 @@ class Network:
 
     # Given a spend bundle, farm a block and analyze the result.
     def push_tx(self,bundle):
-        res = self.node.push_tx(bundle)
+        try:
+            res = self.node.push_tx(bundle)
+        except ValueError as e:
+            return { "error": str(e) }
+
         results = self.farm_block()
         return {
             'cost': res['cost'],
