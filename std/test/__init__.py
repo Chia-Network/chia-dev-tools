@@ -26,7 +26,6 @@ from lib.std.types.program import Program
 duration_div = 86400.0
 block_time = (600.0 / 32.0) / duration_div
 # Allowed subdivisions of 1 coin
-coin_mul = 1000000000000
 
 class SpendResult:
     def __init__(self,result):
@@ -116,8 +115,6 @@ class Wallet:
         if 'amt' in kwargs:
             amt = kwargs['amt']
 
-        amt = int(amt * coin_mul)
-
         found_coin = self.choose_coin(amt)
         if found_coin is None:
             raise ValueError(f'could not find available coin containing {amt} mojo')
@@ -170,8 +167,6 @@ class Wallet:
         amt = 1
         if 'amt' in kwargs:
             amt = kwargs['amt']
-
-        amt = int(amt * coin_mul)
 
         def pk_to_sk(pk: G1Element) -> PrivateKey:
             assert pk == self.pk()
@@ -289,6 +284,7 @@ class Network:
 
 class TestGroup(TestCase):
     def setUp(self):
+        self.coin_multiple = 1000000000000
         self.network = Network()
 
     def __init__(self,t):
