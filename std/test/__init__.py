@@ -5,6 +5,7 @@ from unittest import TestCase
 from blspy import AugSchemeMPL, G1Element, PrivateKey
 
 from clvm.serialize import sexp_from_stream
+from clvm import SExp
 
 from lib.std.types.sized_bytes import bytes32
 from lib.std.types.ints import uint64
@@ -31,6 +32,9 @@ class SpendResult:
     def __init__(self,result):
         self.result = result
         self.outputs = result['additions']
+
+    def find_standard_coins(self,puzzle_hash):
+        return list(filter(lambda x: x.puzzle_hash == puzzle_hash, self.outputs))
 
 class CoinWrapper(Coin):
     def __init__(self, parent : Coin, puzzle_hash : bytes32, amt : uint64, source : Program):
@@ -185,7 +189,7 @@ class Wallet:
             # Solution is the solution for the old coin.
             solution = Program.to([[], delegated_solution, []])
         else:
-            solution = Program.to([[], Program.to(kwargs['args']), []])
+            solution = Program.to(kwargs['args'])
 
         solution_for_coin = CoinSolution(
             coin,
@@ -259,6 +263,9 @@ class Network:
 
         # Or possibly aggregate farm_block results.
         return None
+
+    def get_timestamp(self):
+        return self.time
 
     # Given a spend bundle, farm a block and analyze the result.
     def push_tx(self,bundle):
