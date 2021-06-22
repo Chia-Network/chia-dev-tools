@@ -493,7 +493,7 @@ class Wallet:
             solution = Program.to([[], delegated_puzzle_solution, []])
         else:
             delegated_puzzle_solution = Program.to(kwargs['args'])
-            solution = Program.to([[], delegated_puzzle_solution, []])
+            solution = delegated_puzzle_solution
 
         solution_for_coin = CoinSolution(
             coin,
