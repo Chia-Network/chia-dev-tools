@@ -469,6 +469,7 @@ class Wallet:
             assert pk == self.pk()
             return self.priv_
 
+        delegated_puzzle_solution = None
         if not 'args' in kwargs:
             target_puzzle_hash = self.puzzle_hash
             # Allow the user to 'give this much chia' to another user.
@@ -487,11 +488,12 @@ class Wallet:
                 else:
                     raise ValueError("remainer is not a waller or a contract")
 
-            delegated_solution = Program.to((1, solution_list))
+            delegated_puzzle_solution = Program.to((1, solution_list))
             # Solution is the solution for the old coin.
-            solution = Program.to([[], delegated_solution, []])
+            solution = Program.to([[], delegated_puzzle_solution, []])
         else:
-            solution = Program.to(kwargs['args'])
+            delegated_puzzle_solution = Program.to(kwargs['args'])
+            solution = Program.to([[], delegated_puzzle_solution, []])
 
         solution_for_coin = CoinSolution(
             coin,
@@ -502,7 +504,7 @@ class Wallet:
         # Sign the (delegated_puzzle_hash + coin_name) with synthetic secret key
         signature = AugSchemeMPL.sign(
             calculate_synthetic_secret_key(self.priv_,DEFAULT_HIDDEN_PUZZLE_HASH),
-            (delegated_puzzle_solution.get_tree_hash() + found_coin.name() + DEFAULT_CONSTANTS.AGG_SIG_ME_ADDITIONAL_DATA)
+            (delegated_puzzle_solution.get_tree_hash() + coin.name() + DEFAULT_CONSTANTS.AGG_SIG_ME_ADDITIONAL_DATA)
         )
 
         spend_bundle = sign_coin_solutions(
