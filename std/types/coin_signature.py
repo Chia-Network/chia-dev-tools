@@ -1,4 +1,3 @@
-# XXX Pull in
 import asyncio
 from blspy import G1Element
 import chia.wallet.sign_coin_solutions as scs
@@ -26,6 +25,8 @@ async def call_sign_coin_solutions(
     )
     future.take_result(r)
 
+# Invokes chia's sign_coin_solutions and return a local style spend bundle.
+# This is here because it does the right thing for nonstandard coin invocations.
 def sign_coin_solutions(
         coin_solutions,
         secret_key_for_public_key_f,
@@ -34,4 +35,4 @@ def sign_coin_solutions(
 ) -> SpendBundle:
     bf = BasicFuture()
     asyncio.run(call_sign_coin_solutions(bf, coin_solutions, secret_key_for_public_key_f, additional_data, max_cost))
-    return bf.contents
+    return SpendBundle.from_chia_spend_bundle(bf.contents)

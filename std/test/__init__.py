@@ -24,10 +24,6 @@ from lib.std.spends.chialisp import sha256tree
 from lib.std.types.program import Program
 from lib.std.util.hash import std_hash
 
-CONDITION_CREATE_COIN = 51
-CONDITION_CREATE_COIN_ANNOUNCEMENT = 60
-CONDITION_ASSERT_COIN_ANNOUNCEMENT = 61
-
 duration_div = 86400.0
 block_time = (600.0 / 32.0) / duration_div
 # Allowed subdivisions of 1 coin
@@ -122,39 +118,41 @@ class ContractWrapper:
         contract as it would exist post launch"""
         return CoinWrapper(parent.name(), self.puzzle_hash(), amt, self.source)
 
+# Used internally to accumulate a search for coins we can combine to the
+# target amount.
+# Result is the smallest set of coins whose sum of amounts is greater
+# than target_amount.
 class CoinPairSearch:
     def __init__(self,target_amount):
         self.target = target_amount
-        self.best_fit = []
+        self.total = 0
         self.max_coins = []
 
     def get_result(self):
-        return self.best_fit, self.max_coins
+        return self.max_coins, self.total
+
+    def insort(self,coin,s,e):
+        for i in range(len(self.max_coins)):
+            if self.max_coins[i].amount < coin.amount:
+                self.max_coins.insert(i, coin)
+                break
+        else:
+            self.max_coins.append(coin)
 
     def process_coin_for_combine_search(self,coin):
-        # Update max
-        if len(self.max_coins) < 2:
-            self.max_coins = self.max_coins + [coin]
-        elif coin.amount > self.max_coins[0].amount:
-            self.max_coins = ([coin] + self.max_coins)[:2]
-        elif coin.amount > self.max_coins[1].amount:
-            self.max_coins = [self.max_coins[0], coin]
-
-        # Update best
-        if len(self.best_fit) < 2:
-            self.best_fit = self.best_fit + [coin]
+        self.total += coin.amount
+        if len(self.max_coins) == 0:
+            self.max_coins.append(coin)
         else:
-            cur_best_fit_amount = sum(map(lambda x: x.amount, self.best_fit))
-            greater = 0 if self.best_fit[0].amount > self.best_fit[1].amount else 1
-            lesser = (greater + 1) % 2
-            candidate_bf_amount = self.best_fit[lesser].amount + coin.amount
-            if candidate_bf_amount < cur_best_fit_amount and candidate_bf_amount > self.target:
-                self.best_fit = [self.best_fit[lesser], coin]
+            self.insort(coin,0,len(self.max_coins)-1)
+            while len(self.max_coins) > 0 and self.total - self.max_coins[-1].amount >= self.target:
+                self.total -= self.max_coins[-1].amount
+                self.max_coins = self.max_coins[:-1]
 
 # A basic wallet that knows about standard coins.
-# We can use this to track our balance as an end user and keep track of chia
-# that is released by contracts, if the contracts interact meaningfully with
-# them, as many likely will.
+# We can use this to track our balance as an end user and keep track of
+# chia that is released by contracts, if the contracts interact
+# meaningfully with them, as many likely will.
 class Wallet:
     def __init__(self,parent,name,pk,priv):
         """Internal use constructor, use Network::make_wallet
@@ -163,7 +161,7 @@ class Wallet:
         parent - The Network object that created this Wallet
         name - The textural name of the actor
         pk_ - The actor's public key
-        priv_ - The actor's private key
+        sk_ - The actor's private key
         usable_coins - Standard coins spendable by this actor
         puzzle - A program for creating this actor's standard coin
         puzzle_hash - The puzzle hash for this actor's standard coin
@@ -171,7 +169,7 @@ class Wallet:
         self.parent = parent
         self.name = name
         self.pk_ = pk
-        self.priv_ = priv
+        self.sk_ = priv
         self.usable_coins = {}
         self.puzzle = puzzle_for_pk(self.pk())
         self.puzzle_hash = self.puzzle.get_tree_hash()
@@ -184,10 +182,6 @@ class Wallet:
         self.usable_coins[coin.name()] = coin
 
     def compute_combine_action(self,amt,actions,usable_coins):
-        # No point in going on if we're on our last dollar.
-        if len(usable_coins) < 2:
-            return None
-
         # No one coin is enough, try to find a best fit pair, otherwise combine the two
         # maximum coins.
         searcher = CoinPairSearch(amt)
@@ -196,22 +190,12 @@ class Wallet:
         for k,c in usable_coins.items():
             searcher.process_coin_for_combine_search(c)
 
-        best_fit, max_coins = searcher.get_result()
+        max_coins, total = searcher.get_result()
 
-        # Best fit coins indicate we can combine just 2, so do that.
-        if len(best_fit) == 2:
-            return actions + [best_fit]
+        if total >= amt:
+            return max_coins
         else:
-            del usable_coins[max_coins[0].name()]
-            del usable_coins[max_coins[1].name()]
-            new_coin = CoinWrapper(
-                max_coins[0],
-                self.puzzle_hash,
-                max_coins[0].amount + max_coins[1].amount,
-                self.puzzle
-            )
-            usable_coins[new_coin.name()] = new_coin
-            return compute_combine_action(amt, actions + [max_coins], usable_coins)
+            return None
 
     # Given some coins, combine them, causing the network to make us
     # recompute our balance in return.
@@ -232,14 +216,15 @@ class Wallet:
     #     coins are signed like this:
     #
     #             AugSchemeMPL.sign(
-    #               calculate_synthetic_secret_key(self.priv_,DEFAULT_HIDDEN_PUZZLE_HASH),
+    #               calculate_synthetic_secret_key(self.sk_,DEFAULT_HIDDEN_PUZZLE_HASH),
     #               (delegated_puzzle_solution.get_tree_hash() + c.name() + DEFAULT_CONSTANTS.AGG_SIG_ME_ADDITIONAL_DATA)
     #             )
     #
     #     where c.name is the coin's "name" (in the code) or coinID (in the
     #     chialisp docs). delegated_puzzle_solution is a clvm program that
-    #     produces the arguments we want to give the puzzle program (the first
-    #     kind of 'solution').
+    #     produces the conditions we want to give the puzzle program (the first
+    #     kind of 'solution'), which will add the basic ones needed by owned
+    #     standard coins.
     #
     #     In most cases, we'll give a tuple like (1, [some, python, [data,
     #     here]]) for these arguments, because '1' is the quote function 'q' in
@@ -283,7 +268,7 @@ class Wallet:
 
         def pk_to_sk(pk: G1Element) -> PrivateKey:
             assert pk == self.pk()
-            return self.priv_
+            return self.sk_
 
         # We need the final coin to know what the announced coin name will be.
         final_coin = CoinWrapper(
@@ -300,33 +285,29 @@ class Wallet:
 
         for c in coins[:-1]:
             announce_conditions = [
-                # each coin announces its name to alert the final coin that it spent
-                [
-                    CONDITION_CREATE_COIN_ANNOUNCEMENT,
-                    c.name()
-                ],
                 # Each coin expects the final coin creation announcement
                 [
-                    CONDITION_ASSERT_COIN_ANNOUNCEMENT,
+                    ConditionOpcode.ASSERT_COIN_ANNOUNCEMENT,
                     std_hash(coins[-1].name() + final_coin.name())
                 ]
             ]
 
-            coin_solution, signature = c.create_standard_spend(self.priv_, announce_conditions)
+            coin_solution, signature = c.create_standard_spend(self.sk_, announce_conditions)
             destroyed_coin_solutions.append(coin_solution)
             signatures.append(signature)
 
-        final_coin_creation = list(map(lambda x: [
-            CONDITION_ASSERT_COIN_ANNOUNCEMENT,
-            std_hash(c.name() + c.name()),
-        ], coins[:-1]))
-
-        final_coin_creation += [
-            [CONDITION_CREATE_COIN_ANNOUNCEMENT, final_coin.name()],
-            [CONDITION_CREATE_COIN, self.puzzle_hash, final_coin.amount],
+        final_coin_creation = [
+            [
+                ConditionOpcode.CREATE_COIN_ANNOUNCEMENT,
+                final_coin.name()
+            ],
+            [
+                ConditionOpcode.CREATE_COIN,
+                self.puzzle_hash, final_coin.amount
+            ],
         ]
 
-        coin_solution, signature = coins[-1].create_standard_spend(self.priv_, final_coin_creation)
+        coin_solution, signature = coins[-1].create_standard_spend(self.sk_, final_coin_creation)
         destroyed_coin_solutions.append(coin_solution)
         signatures.append(signature)
 
@@ -346,43 +327,37 @@ class Wallet:
     # Synthesize a coin with sufficient funds if possible.
     def choose_coin(self,amt) -> CoinWrapper:
         """Given an amount requirement, find a coin that contains at least that much chia"""
-        best_fit_coin = None
-        for _ in range(1000):
-            for k,c in self.usable_coins.items():
-                if best_fit_coin is None and c.amount >= amt:
-                    best_fit_coin = c
-                elif c.amount >= amt and c.amount < best_fit_coin.amount:
-                    best_fit_coin = c
-                else:
-                    pass
+        start_balance = self.balance()
+        coins_to_spend = self.compute_combine_action(amt, [], dict(self.usable_coins))
 
-            if best_fit_coin is not None:
-                return best_fit_coin
+        # Couldn't find a working combination.
+        if coins_to_spend is None:
+            return None
 
-            actions_to_take = self.compute_combine_action(amt, [], dict(self.usable_coins))
-            # Couldn't find a working combination.
-            if actions_to_take is None:
-                return None
+        if len(coins_to_spend) == 1:
+            return coins_to_spend[0]
 
-            # We receive a timeline of actions to take (indicating that we have a plan)
-            # Do the first action and start over.
-            result = self.combine_coins(
-                list(
-                    map(
-                        lambda x:CoinWrapper(
-                            x.parent_coin_info,
-                            x.puzzle_hash,
-                            x.amount,
-                            self.puzzle
-                        ),
-                        actions_to_take[0]
-                    )
+        # We receive a timeline of actions to take (indicating that we have a plan)
+        # Do the first action and start over.
+        result = self.combine_coins(
+            list(
+                map(
+                    lambda x:CoinWrapper(
+                        x.parent_coin_info,
+                        x.puzzle_hash,
+                        x.amount,
+                        self.puzzle
+                    ),
+                    coins_to_spend
                 )
             )
+        )
 
-            # Bugged out, couldn't combine for some reason.
-            if result is None:
-                return None
+        if result is None:
+            return None
+
+        assert self.balance() == start_balance
+        return self.choose_coin(amt)
 
     # Create a new contract based on a parent coin and return the coin to the user.
     # TODO:
@@ -407,7 +382,11 @@ class Wallet:
         ]
         if amt < found_coin.amount:
             condition_args.append(
-                [ConditionOpcode.CREATE_COIN, self.puzzle_hash, found_coin.amount - amt]
+                [
+                    ConditionOpcode.CREATE_COIN,
+                    self.puzzle_hash,
+                    found_coin.amount - amt
+                ]
             )
 
         delegated_puzzle_solution = Program.to((1, condition_args))
@@ -415,7 +394,7 @@ class Wallet:
 
         # Sign the (delegated_puzzle_hash + coin_name) with synthetic secret key
         signature = AugSchemeMPL.sign(
-            calculate_synthetic_secret_key(self.priv_,DEFAULT_HIDDEN_PUZZLE_HASH),
+            calculate_synthetic_secret_key(self.sk_,DEFAULT_HIDDEN_PUZZLE_HASH),
             (delegated_puzzle_solution.get_tree_hash() + found_coin.name() + DEFAULT_CONSTANTS.AGG_SIG_ME_ADDITIONAL_DATA)
         )
 
@@ -467,7 +446,7 @@ class Wallet:
 
         def pk_to_sk(pk: G1Element) -> PrivateKey:
             assert pk == self.pk()
-            return self.priv_
+            return self.sk_
 
         delegated_puzzle_solution = None
         if not 'args' in kwargs:
@@ -486,7 +465,7 @@ class Wallet:
                 elif isinstance(remainer, Wallet):
                     solution_list.append([ConditionOpcode.CREATE_COIN, remainer.puzzle_hash, remain_amt])
                 else:
-                    raise ValueError("remainer is not a waller or a contract")
+                    raise ValueError("remainer is not a wallet or a contract")
 
             delegated_puzzle_solution = Program.to((1, solution_list))
             # Solution is the solution for the old coin.
@@ -501,12 +480,9 @@ class Wallet:
             solution,
         )
 
-        # Sign the (delegated_puzzle_hash + coin_name) with synthetic secret key
-        signature = AugSchemeMPL.sign(
-            calculate_synthetic_secret_key(self.priv_,DEFAULT_HIDDEN_PUZZLE_HASH),
-            (delegated_puzzle_solution.get_tree_hash() + coin.name() + DEFAULT_CONSTANTS.AGG_SIG_ME_ADDITIONAL_DATA)
-        )
-
+        # The reason this use of sign_coin_solutions exists is that it correctly handles
+        # the signing for non-standard coins.  I don't fully understand the difference but
+        # this definitely does the right thing.
         spend_bundle = sign_coin_solutions(
             [solution_for_coin],
             pk_to_sk,
@@ -514,7 +490,7 @@ class Wallet:
             DEFAULT_CONSTANTS.MAX_BLOCK_COST_CLVM
         )
 
-        pushed = self.parent.push_tx(SpendBundle.from_chia_spend_bundle(spend_bundle))
+        pushed = self.parent.push_tx(spend_bundle)
         return SpendResult(pushed)
 
 # A user oriented (domain specific) view of the chia network.

@@ -1,7 +1,7 @@
 from lib.std.test import TestGroup
 
 class CoinTests(TestGroup):
-    def test_multi_spend(self):
+    def do_multi_spend(self,use_amount):
         alice = self.network.make_wallet('alice')
         bob = self.network.make_wallet('bob')
 
@@ -12,8 +12,6 @@ class CoinTests(TestGroup):
         alice_start_balance = alice.balance()
         bob_start_balance = bob.balance()
 
-        use_amount = 3 * self.coin_multiple
-
         # Give 3 chia (for which we won't have a single coin big enough)
         # to bob.  This will only work if we're combining coins.
         result = alice.give_chia(bob, use_amount)
@@ -22,3 +20,15 @@ class CoinTests(TestGroup):
 
         assert bob.balance() == bob_start_balance + use_amount
         assert alice.balance() == alice_start_balance - use_amount
+
+    def test_1_chia(self):
+        self.do_multi_spend(1 * self.coin_multiple)
+
+    def test_2_chia(self):
+        self.do_multi_spend(2 * self.coin_multiple)
+
+    def test_3_chia(self):
+        self.do_multi_spend(3 * self.coin_multiple)
+
+    def test_4_chia(self):
+        self.do_multi_spend(4 * self.coin_multiple)
