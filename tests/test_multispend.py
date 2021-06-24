@@ -12,7 +12,7 @@ class CoinTests(TestGroup):
         alice_start_balance = alice.balance()
         bob_start_balance = bob.balance()
 
-        # Give 3 chia (for which we won't have a single coin big enough)
+        # Give 'amount' chia (for which we won't have a single coin big enough)
         # to bob.  This will only work if we're combining coins.
         result = alice.give_chia(bob, use_amount)
 
