@@ -24,13 +24,6 @@ class SpendBundle(Streamable):
     aggregated_signature: G2Element
 
     @classmethod
-    # Used to convert a chia style spend bundle to the local style when returned from
-    # chia's coin signature method as exposed by std.types.coin_signature.sign_coin_solutions
-    # which is used to sign nonstandard coin spends (such as bespoke coins you make yourself).
-    def from_chia_spend_bundle(cls, bundle):
-        return SpendBundle(bundle.coin_solutions, bundle.aggregated_signature)
-
-    @classmethod
     def aggregate(cls, spend_bundles) -> "SpendBundle":
         coin_solutions: List[CoinSolution] = []
         sigs: List[G2Element] = []
