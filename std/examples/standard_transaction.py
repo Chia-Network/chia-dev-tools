@@ -21,6 +21,7 @@ node.farm_block(public_key)
 
 #Create a puzzle that just outputs a new coin locked up with standard puzzle hash
 delegated_puzzle = Program.to((1, [[ConditionOpcode.CREATE_COIN, puzzle_for_pk(public_key).get_tree_hash(), 250000000000]]))
+solution = Program.to([[], delegated_puzzle, []])
 
 #Sign the (delegated_puzzle_hash + coin_name) with synthetic secret key
 signature = AugSchemeMPL.sign(
@@ -33,12 +34,11 @@ bundle = SpendBundle(
     [
         CoinSolution(
             node.coins[3], #coin being spent
-            puzzle_for_pk(public_key), #puzzle reveal
-            Program.to([[], delegated_puzzle, []]) #puzzle solution
+            puzzle_for_pk(public_key), #puzzle reveal -- the actual puzzle used
+            solution #puzzle solution
         )
     ],
     signature
 )
-
 #Attempt to spend the bundle
 print(node.push_tx(bundle))

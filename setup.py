@@ -7,7 +7,8 @@ with open("README.md", "rt") as fh:
 
 dependencies = [
     "clvm_tools>=0.4.3",
-    "clvm_rs>=0.1.1"
+    "clvm_rs>=0.1.1",
+    "pytimeparse==1.1.8",
 ]
 
 dev_dependencies = []

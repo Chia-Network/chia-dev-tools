@@ -27,12 +27,20 @@ class Node():
     mempool: List[SpendBundle] = []
 
     def __init__(self):
+        self.fast_time = False
         self.timestamp = float_to_timestamp(time.time())
+        self.block_height = 0
+        self.timestamp = 0
+        self.blocks = []
+        self.coins = []
+        self.coin_records = []
+        self.mempool = []
 
     def set_block_height(self, block_height: uint32):
         self.block_height = block_height
 
     def set_timestamp(self, timestamp: uint64):
+        self.fast_time = True
         self.timestamp = timestamp
 
     def add_coin(self, coin: Coin):
@@ -51,7 +59,10 @@ class Node():
 
     def remove_coin(self, coin: Coin):
         #Remove the coin from the UTXO set
-        self.coins.remove(coin)
+        old_len = len(self.coins)
+        self.coins = list(filter(lambda x: x.name() != coin.name(), self.coins))
+        assert len(self.coins) == old_len - 1
+
         #Update the coin record
         matching_record = list(filter(lambda e: e.coin == coin,self.coin_records))
         for record in matching_record:
@@ -147,7 +158,15 @@ class Node():
         self.block_height += 1
 
         # timestamp is reset
-        self.timestamp = float_to_timestamp(time.time())
+        if not self.fast_time:
+            self.timestamp = float_to_timestamp(time.time())
+        else:
+            self.timestamp += 600.0 / 32.0
+
+        return {
+            'additions': [pool_coin, farmer_coin] + additions,
+            'removals': removals
+        }
 
     def push_tx(self, spend_bundle: SpendBundle):
         spend_name = spend_bundle.name()
@@ -161,7 +180,7 @@ class Node():
             status = MempoolInclusionStatus.SUCCESS
             error = None
         else:
-            cost, status, error = validate_spendbundle(spend_bundle, removals, self.coin_records, self.block_height)
+            cost, status, error = validate_spendbundle(spend_bundle, removals, self.coin_records, self.block_height, timestamp=self.timestamp)
             if status != MempoolInclusionStatus.SUCCESS:
                 if spend_bundle in self.mempool:
                     # Already in mempool

@@ -51,7 +51,7 @@ def check_removals(mempool_removals: List[Coin], removals: Dict[bytes32, CoinRec
         return None, []
 
 def validate_transaction(
-    spend_bundle_bytes: bytes,
+    spend_bundle_bytes: bytes
 ) -> bytes:
     # constants: ConsensusConstants = dataclass_from_dict(ConsensusConstants, recurse_jsonify(dataclasses.asdict(ConsensusConstants)))
     # Calculate the cost and fees
@@ -59,7 +59,10 @@ def validate_transaction(
     # npc contains names of the coins removed, puzzle_hashes and their spend conditions
     return bytes(get_name_puzzle_conditions(program, DEFAULT_CONSTANTS.MAX_BLOCK_COST_CLVM, True))
 
-def validate_spendbundle(new_spend: SpendBundle, mempool_removals: List[Coin], current_coin_records: List[CoinRecord], block_height: uint32, validate_signature=True) -> Tuple[Optional[uint64], MempoolInclusionStatus, Optional[Err]]:
+def validate_spendbundle(new_spend: SpendBundle, mempool_removals: List[Coin], current_coin_records: List[CoinRecord], block_height: uint32, validate_signature=True, timestamp=None) -> Tuple[Optional[uint64], MempoolInclusionStatus, Optional[Err]]:
+    if timestamp is None:
+        timestamp = time.time()
+
     spend_name = new_spend.name()
     cost_result = NPCResult.from_bytes(validate_transaction(bytes(new_spend)))
 
@@ -205,7 +208,7 @@ def validate_spendbundle(new_spend: SpendBundle, mempool_removals: List[Coin], c
             puzzle_announcements_in_spend,
             npc.condition_dict,
             uint32(chialisp_height),
-            uint64(int(time.time()))
+            uint64(timestamp)
         )
 
         if error:
