@@ -9,7 +9,7 @@ import subprocess
 import unittest
 
 from clvm_tools.clvmc import compile_clvm
-from clvm.SExp import to_sexp_type
+from clvm.SExp import SExp, to_sexp_type
 from clvm.serialize import sexp_from_stream
 from clvm_tools.binutils import disassemble
 
@@ -86,7 +86,7 @@ disassemble - disassemble hex files""")
             else:
                 prefix = ''
             se = sexp_from_stream(io.BytesIO(bytes.fromhex(open(f).read())), lambda x: x)
-            print('%s%s' % (prefix, disassemble(sexp_of_clvmobject(se))))
+            print('%s%s' % (prefix, disassemble(SExp.to(se))))
     if cmd == "test":
         testloader = unittest.TestLoader()
         suite = testloader.discover(start_dir='./tests')
