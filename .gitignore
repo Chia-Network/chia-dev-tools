@@ -1,6 +1,7 @@
 /test_project
 /chialisp_dev_utility.egg-info
 /venv
+/dist
 /.eggs
 __pycache__/
 main.sym

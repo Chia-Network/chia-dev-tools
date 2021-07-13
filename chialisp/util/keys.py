@@ -1,6 +1,15 @@
 from typing import List, Dict
-from lib.std.util.hash import std_hash
-from lib.std.types.ints import uint32
+
+from chia.util.hash import std_hash
+from chia.util.ints import uint32
+from chia.wallet.derive_keys import (
+    _derive_path,
+    master_sk_to_farmer_sk,
+    master_sk_to_pool_sk,
+    master_sk_to_wallet_sk,
+    master_sk_to_local_sk,
+    master_sk_to_backup_sk,
+)
 
 from blspy import BasicSchemeMPL, PrivateKey, G1Element, AugSchemeMPL, G2Element
 

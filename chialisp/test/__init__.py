@@ -1,28 +1,32 @@
 import io
 import datetime
-import pytimeparse
+from typing import Dict
 from unittest import TestCase
 from blspy import AugSchemeMPL, G1Element, PrivateKey
 
 from clvm.serialize import sexp_from_stream
 from clvm import SExp
 
-from lib.std.types.sized_bytes import bytes32
-from lib.std.types.ints import uint64
-from lib.std.util.keys import public_key_for_index, private_key_for_index
-from lib.std.sim.node import Node
-from lib.std.types.program import Program
-from lib.std.util.condition_tools import ConditionOpcode, conditions_by_opcode
-from lib.std.spends.p2_delegated_puzzle_or_hidden_puzzle import puzzle_for_pk, solution_for_delegated_puzzle, calculate_synthetic_secret_key # standard_transaction
-from lib.std.spends.defaults import DEFAULT_HIDDEN_PUZZLE, DEFAULT_HIDDEN_PUZZLE_HASH
-from lib.std.sim.default_constants import DEFAULT_CONSTANTS
-from lib.std.types.spend_bundle import SpendBundle
-from lib.std.types.coin_solution import CoinSolution
-from lib.std.types.coin_signature import sign_coin_solutions
-from lib.std.types.coin import Coin
-from lib.std.spends.chialisp import sha256tree
-from lib.std.types.program import Program
-from lib.std.util.hash import std_hash
+from chia.types.blockchain_format.sized_bytes import bytes32
+from chia.types.blockchain_format.coin import Coin
+from chia.types.blockchain_format.program import Program
+from chia.types.spend_bundle import SpendBundle
+from chia.types.coin_solution import CoinSolution
+from chia.util.ints import uint64
+from chia.util.condition_tools import ConditionOpcode, conditions_by_opcode
+from chia.util.hash import std_hash
+from chia.wallet.sign_coin_solutions import sign_coin_solutions
+from chia.wallet.puzzles.p2_delegated_puzzle_or_hidden_puzzle import ( # standard_transaction
+    puzzle_for_pk,
+    solution_for_delegated_puzzle,
+    calculate_synthetic_secret_key,
+    DEFAULT_HIDDEN_PUZZLE,
+    DEFAULT_HIDDEN_PUZZLE_HASH,
+)
+from chia.clvm.node import Node, NodeClient
+from chia.consensus.default_constants import DEFAULT_CONSTANTS
+
+from chialisp.util.keys import public_key_for_index, private_key_for_index
 
 duration_div = 86400.0
 block_time = (600.0 / 32.0) / duration_div
@@ -70,12 +74,19 @@ class CoinWrapper(Coin):
         """Return a contract object wrapping this coin's program"""
         return ContractWrapper(DEFAULT_CONSTANTS.GENESIS_CHALLENGE, self.source)
 
+    def as_coin(self):
+        return Coin(
+            self.parent_coin_info,
+            self.puzzle_hash,
+            self.amount,
+        )
+
     def create_standard_spend(self, priv, conditions):
         delegated_puzzle_solution = Program.to((1, conditions))
         solution = Program.to([[], delegated_puzzle_solution, []])
 
         coin_solution_object = CoinSolution(
-            self,
+            self.as_coin(),
             self.puzzle(),
             solution,
         )
@@ -257,7 +268,7 @@ class Wallet:
     #         signature = AugSchemeMPL.aggregate(signatures)
     #         spend_bundle = SpendBundle(coin_solutions, signature)
     #
-    def combine_coins(self,coins):
+    async def combine_coins(self,coins):
         # Overall structure:
         # Create len-1 spends that just assert that the final coin is created with full value.
         # Create 1 spend for the final coin that asserts the other spends occurred and
@@ -314,7 +325,7 @@ class Wallet:
         signature = AugSchemeMPL.aggregate(signatures)
         spend_bundle = SpendBundle(destroyed_coin_solutions, signature)
 
-        pushed = self.parent.push_tx(spend_bundle)
+        pushed = await self.parent.push_tx(spend_bundle)
 
         # We should have the same amount of money.
         assert beginning_balance == self.balance()
@@ -325,7 +336,7 @@ class Wallet:
 
     # Find a coin containing amt we can use as a parent.
     # Synthesize a coin with sufficient funds if possible.
-    def choose_coin(self,amt) -> CoinWrapper:
+    async def choose_coin(self,amt) -> CoinWrapper:
         """Given an amount requirement, find a coin that contains at least that much chia"""
         start_balance = self.balance()
         coins_to_spend = self.compute_combine_action(amt, [], dict(self.usable_coins))
@@ -339,7 +350,7 @@ class Wallet:
 
         # We receive a timeline of actions to take (indicating that we have a plan)
         # Do the first action and start over.
-        result = self.combine_coins(
+        result = await self.combine_coins(
             list(
                 map(
                     lambda x:CoinWrapper(
@@ -357,21 +368,21 @@ class Wallet:
             return None
 
         assert self.balance() == start_balance
-        return self.choose_coin(amt)
+        return await self.choose_coin(amt)
 
     # Create a new contract based on a parent coin and return the coin to the user.
     # TODO:
     #  - allow use of more than one coin to launch contract
     #  - ensure input chia = output chia.  it'd be dumb to just allow somebody
     #    to lose their chia without telling them.
-    def launch_contract(self,source,**kwargs) -> CoinWrapper:
+    async def launch_contract(self,source,**kwargs) -> CoinWrapper:
         """Create a new contract based on a parent coin and return the contract's living
         coin to the user or None if the spend failed."""
         amt = 1
         if 'amt' in kwargs:
             amt = kwargs['amt']
 
-        found_coin = self.choose_coin(amt)
+        found_coin = await self.choose_coin(amt)
         if found_coin is None:
             raise ValueError(f'could not find available coin containing {amt} mojo')
 
@@ -408,15 +419,15 @@ class Wallet:
             ]
             , signature
         )
-        pushed = self.parent.push_tx(spend_bundle)
+        pushed = await self.parent.push_tx(spend_bundle)
         if 'error' not in pushed:
             return cw.custom_coin(found_coin, amt)
         else:
             return None
 
     # Give chia
-    def give_chia(self, target, amt):
-        return self.launch_contract(target.puzzle, amt=amt)
+    async def give_chia(self, target, amt):
+        return await self.launch_contract(target.puzzle, amt=amt)
 
     # Called each cycle before coins are re-established from the simulator.
     def _clear_coins(self):
@@ -437,7 +448,7 @@ class Wallet:
     # Automatically takes care of signing, etc.
     # Result is an object representing the actions taken when the block
     # with this transaction was farmed.
-    def spend_coin(self, coin : CoinWrapper, **kwargs):
+    async def spend_coin(self, coin : CoinWrapper, **kwargs):
         """Given a coin object, invoke it on the blockchain, either as a standard
         coin if no arguments are given or with custom arguments in args="""
         amt = 1
@@ -475,7 +486,7 @@ class Wallet:
             solution = delegated_puzzle_solution
 
         solution_for_coin = CoinSolution(
-            coin,
+            coin.as_coin(),
             coin.puzzle(),
             solution,
         )
@@ -490,23 +501,35 @@ class Wallet:
             DEFAULT_CONSTANTS.MAX_BLOCK_COST_CLVM
         )
 
-        pushed = self.parent.push_tx(spend_bundle)
+        pushed = await self.parent.push_tx(spend_bundle)
         return SpendResult(pushed)
 
 # A user oriented (domain specific) view of the chia network.
 class Network:
     """An object that owns a node simulation, responsible for managing Wallet actors,
     time and initialization."""
-    def __init__(self):
-        self.wallets = {}
+
+    time: uint64
+    node: Node
+    wallets: Dict[str, Wallet]
+    nobody: Wallet
+
+    @classmethod
+    async def create(cls):
+        self = cls()
         self.time = datetime.timedelta(0)
-        self.node = Node()
-        self.node.set_timestamp(0.01)
+        self.node = await Node.create()
+        self.node_client = NodeClient(self.node)
+        self.wallets = {}
         self.nobody = self.make_wallet('nobody')
         self.wallets[str(self.nobody.pk())] = self.nobody
+        return self
+
+    async def close(self):
+        await self.node.close()
 
     # Have the system farm one block with a specific beneficiary (nobody if not specified).
-    def farm_block(self,**kwargs):
+    async def farm_block(self,**kwargs):
         """Given a farmer, farm a block with that actor as the beneficiary of the farm
         reward.
 
@@ -517,15 +540,16 @@ class Network:
             farmer = kwargs['farmer']
 
         farm_duration = datetime.timedelta(block_time)
-        farmed = self.node.farm_block(farmer.pk())
+        farmed = await self.node.farm_block(farmer.puzzle_hash)
 
         for k, w in self.wallets.items():
             w._clear_coins()
 
-        for coin in self.node.coins:
-            for kw, w in self.wallets.items():
-                if coin.puzzle_hash == w.puzzle_hash:
-                    w.add_coin(coin)
+        for kw, w in self.wallets.items():
+            coin_records = await self.node_client.get_coin_records_by_puzzle_hash(w.puzzle_hash)
+            for coin_record in coin_records:
+                if coin_record.spent == False:
+                    w.add_coin(coin_record.coin)
 
         self.time += farm_duration
         return farmed
@@ -549,13 +573,12 @@ class Network:
         return w
 
     # Skip real time by farming blocks until the target duration is achieved.
-    def skip_time(self,t,**kwargs):
+    async def skip_time(self,target_duration,**kwargs):
         """Skip a duration of simulated time, causing blocks to be farmed.  If a farmer
         is specified, they win each block"""
-        target_duration = pytimeparse.parse(t)
         target_time = self.time + datetime.timedelta(target_duration / duration_div)
         while target_time > self.get_timestamp():
-            self.farm_block(**kwargs)
+            await self.farm_block(**kwargs)
 
         # Or possibly aggregate farm_block results.
         return None
@@ -565,31 +588,18 @@ class Network:
         return datetime.timedelta(seconds = self.node.timestamp)
 
     # Given a spend bundle, farm a block and analyze the result.
-    def push_tx(self,bundle,more=False):
+    async def push_tx(self,bundle):
         """Given a spend bundle, try to farm a block containing it.  If the spend bundle
         didn't validate, then a result containing an 'error' key is returned.  The reward
         for the block goes to Network::nobody"""
-        try:
-            res = self.node.push_tx(bundle)
-        except ValueError as e:
+
+        status, error = await self.node_client.push_tx(bundle)
+        if error:
             return { "error": str(e) }
 
-        if not more:
-            # Common case that we want to farm this right away.
-            results = self.farm_block()
-            return {
-                'cost': res['cost'],
-                'additions': results['additions'],
-                'removals': results['removals']
-            }
-        else:
-            return {'cost': 0, 'additions':[], 'removals': []}
-
-class TestGroup(TestCase):
-    def setUp(self):
-        self.coin_multiple = 1000000000000
-        self.network = Network()
-        self.network.farm_block() # gives 21000000 chia!
-
-    def __init__(self,t):
-        super().__init__(t)
+        # Common case that we want to farm this right away.
+        additions, removals = await self.farm_block()
+        return {
+            'additions': additions,
+            'removals':removals,
+        }

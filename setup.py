@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 with open("README.md", "rt") as fh:
     long_description = fh.read()
@@ -8,24 +8,24 @@ with open("README.md", "rt") as fh:
 dependencies = [
     "clvm_tools>=0.4.3",
     "clvm_rs>=0.1.1",
-    "pytimeparse==1.1.8",
+    "chia-blockchain>=1.2.0",
 ]
 
 dev_dependencies = []
 
 setup(
     name="chialisp_dev_utility",
-    packages=[],
+    version="0.0.4",
+    packages=find_packages(),
     author="Quexington",
     entry_points={
         "console_scripts": [
-            "chialisp = chialisp:dev_util"
+            "chialisp = chialisp.cli:main"
         ],
     },
     author_email="quexington@gmail.com",
     setup_requires=["setuptools_scm"],
     install_requires=dependencies,
-    use_scm_version={"fallback_version": "unknown"},
     url="https://github.com/Quexington",
     license="https://mit-license.org/",
     description="Chialisp development utility",
@@ -35,7 +35,7 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
-        "License :: MIT",
+        "License :: OSI Approved :: MIT License",
         "Topic :: Security :: Cryptography",
     ],
     extras_require=dict(dev=dev_dependencies,),
