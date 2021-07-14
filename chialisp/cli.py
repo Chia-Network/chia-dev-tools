@@ -47,7 +47,7 @@ def cli(ctx: click.Context) -> None:
 
 @cli.command("version", short_help="Show chialisp version")
 def version_cmd() -> None:
-    print("version")
+    print(__version__)
 
 # @cli.command("init", short_help="Initialize a skeleton project")
 # def init_cmd() -> None:

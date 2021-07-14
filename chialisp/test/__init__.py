@@ -1,5 +1,6 @@
 import io
 import datetime
+import pytimeparse
 from typing import Dict
 from unittest import TestCase
 from blspy import AugSchemeMPL, G1Element, PrivateKey
@@ -23,7 +24,7 @@ from chia.wallet.puzzles.p2_delegated_puzzle_or_hidden_puzzle import ( # standar
     DEFAULT_HIDDEN_PUZZLE,
     DEFAULT_HIDDEN_PUZZLE_HASH,
 )
-from chia.clvm.node import Node, NodeClient
+from chia.clvm.spend_sim import SpendSim, SimClient
 from chia.consensus.default_constants import DEFAULT_CONSTANTS
 
 from chialisp.util.keys import public_key_for_index, private_key_for_index
@@ -494,7 +495,7 @@ class Wallet:
         # The reason this use of sign_coin_solutions exists is that it correctly handles
         # the signing for non-standard coins.  I don't fully understand the difference but
         # this definitely does the right thing.
-        spend_bundle = sign_coin_solutions(
+        spend_bundle = await sign_coin_solutions(
             [solution_for_coin],
             pk_to_sk,
             DEFAULT_CONSTANTS.AGG_SIG_ME_ADDITIONAL_DATA,
@@ -506,27 +507,27 @@ class Wallet:
 
 # A user oriented (domain specific) view of the chia network.
 class Network:
-    """An object that owns a node simulation, responsible for managing Wallet actors,
+    """An object that owns a simulation, responsible for managing Wallet actors,
     time and initialization."""
 
     time: uint64
-    node: Node
+    sim: SpendSim
     wallets: Dict[str, Wallet]
     nobody: Wallet
 
     @classmethod
     async def create(cls):
         self = cls()
-        self.time = datetime.timedelta(0)
-        self.node = await Node.create()
-        self.node_client = NodeClient(self.node)
+        self.time = datetime.timedelta(days=18750, seconds=61201) # Past the initial transaction freeze
+        self.sim = await SpendSim.create()
+        self.sim_client = SimClient(self.sim)
         self.wallets = {}
         self.nobody = self.make_wallet('nobody')
         self.wallets[str(self.nobody.pk())] = self.nobody
         return self
 
     async def close(self):
-        await self.node.close()
+        await self.sim.close()
 
     # Have the system farm one block with a specific beneficiary (nobody if not specified).
     async def farm_block(self,**kwargs):
@@ -540,13 +541,13 @@ class Network:
             farmer = kwargs['farmer']
 
         farm_duration = datetime.timedelta(block_time)
-        farmed = await self.node.farm_block(farmer.puzzle_hash)
+        farmed = await self.sim.farm_block(farmer.puzzle_hash)
 
         for k, w in self.wallets.items():
             w._clear_coins()
 
         for kw, w in self.wallets.items():
-            coin_records = await self.node_client.get_coin_records_by_puzzle_hash(w.puzzle_hash)
+            coin_records = await self.sim_client.get_coin_records_by_puzzle_hash(w.puzzle_hash)
             for coin_record in coin_records:
                 if coin_record.spent == False:
                     w.add_coin(coin_record.coin)
@@ -576,16 +577,17 @@ class Network:
     async def skip_time(self,target_duration,**kwargs):
         """Skip a duration of simulated time, causing blocks to be farmed.  If a farmer
         is specified, they win each block"""
-        target_time = self.time + datetime.timedelta(target_duration / duration_div)
+        target_time = self.time + datetime.timedelta(pytimeparse.parse(target_duration) / duration_div)
         while target_time > self.get_timestamp():
             await self.farm_block(**kwargs)
+            self.sim.pass_time(20)
 
         # Or possibly aggregate farm_block results.
         return None
 
     def get_timestamp(self):
         """Return the current simualtion time in seconds."""
-        return datetime.timedelta(seconds = self.node.timestamp)
+        return datetime.timedelta(seconds = self.sim.timestamp)
 
     # Given a spend bundle, farm a block and analyze the result.
     async def push_tx(self,bundle):
@@ -593,9 +595,9 @@ class Network:
         didn't validate, then a result containing an 'error' key is returned.  The reward
         for the block goes to Network::nobody"""
 
-        status, error = await self.node_client.push_tx(bundle)
+        status, error = await self.sim_client.push_tx(bundle)
         if error:
-            return { "error": str(e) }
+            return { "error": str(error) }
 
         # Common case that we want to farm this right away.
         additions, removals = await self.farm_block()

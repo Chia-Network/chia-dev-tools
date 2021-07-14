@@ -9,13 +9,16 @@ dependencies = [
     "clvm_tools>=0.4.3",
     "clvm_rs>=0.1.1",
     "chia-blockchain>=1.2.0",
+    "pytest",
+    "pytest-asyncio",
+    "pytimeparse",
 ]
 
 dev_dependencies = []
 
 setup(
     name="chialisp_dev_utility",
-    version="0.0.4",
+    version="0.0.8",
     packages=find_packages(),
     author="Quexington",
     entry_points={
