@@ -12,11 +12,11 @@ from chia.types.blockchain_format.sized_bytes import bytes32
 from chia.types.blockchain_format.coin import Coin
 from chia.types.blockchain_format.program import Program
 from chia.types.spend_bundle import SpendBundle
-from chia.types.coin_solution import CoinSolution
+from chia.types.coin_spend import CoinSpend
 from chia.util.ints import uint64
 from chia.util.condition_tools import ConditionOpcode, conditions_by_opcode
 from chia.util.hash import std_hash
-from chia.wallet.sign_coin_solutions import sign_coin_solutions
+from chia.wallet.sign_coin_spends import sign_coin_spends
 from chia.wallet.puzzles.p2_delegated_puzzle_or_hidden_puzzle import ( # standard_transaction
     puzzle_for_pk,
     solution_for_delegated_puzzle,
@@ -86,7 +86,7 @@ class CoinWrapper(Coin):
         delegated_puzzle_solution = Program.to((1, conditions))
         solution = Program.to([[], delegated_puzzle_solution, []])
 
-        coin_solution_object = CoinSolution(
+        coin_solution_object = CoinSpend(
             self.as_coin(),
             self.puzzle(),
             solution,
@@ -244,17 +244,17 @@ class Wallet:
     #     The important thing is that it's runnable code, not literal data as
     #     one might expect.
     #
-    #   - A list of CoinSolution objects.
+    #   - A list of CoinSpend objects.
     #     Theese consist of (with c : Coin):
     #
-    #             CoinSolution(
+    #             CoinSpend(
     #               c,
     #               c.puzzle(),
     #               solution,
     #             )
     #
     # Where solution is a second formulation of a 'solution' to a puzzle (the third form
-    # of 'solution' we'll use in this documentation is the CoinSolution object.).  This is
+    # of 'solution' we'll use in this documentation is the CoinSpend object.).  This is
     # related to the program arguments above, but prefixes and suffixes an empty list on
     # them (admittedly i'm cargo culting this part):
     #
@@ -262,7 +262,7 @@ class Wallet:
     #
     # So you do whatever you want with a bunch of coins at once and now you have two lists:
     # 1) A list of G1Element objects yielded by AugSchemeMPL.sign
-    # 2) A list of CoinSolution objects.
+    # 2) A list of CoinSpend objects.
     #
     # Now to spend them at once:
     #
@@ -412,7 +412,7 @@ class Wallet:
 
         spend_bundle = SpendBundle(
             [
-                CoinSolution(
+                CoinSpend(
                     found_coin, # Coin to spend
                     self.puzzle, # Puzzle used for found_coin
                     solution, # The solution to the puzzle locking found_coin
@@ -486,16 +486,16 @@ class Wallet:
             delegated_puzzle_solution = Program.to(kwargs['args'])
             solution = delegated_puzzle_solution
 
-        solution_for_coin = CoinSolution(
+        solution_for_coin = CoinSpend(
             coin.as_coin(),
             coin.puzzle(),
             solution,
         )
 
-        # The reason this use of sign_coin_solutions exists is that it correctly handles
+        # The reason this use of sign_coin_spends exists is that it correctly handles
         # the signing for non-standard coins.  I don't fully understand the difference but
         # this definitely does the right thing.
-        spend_bundle = await sign_coin_solutions(
+        spend_bundle = await sign_coin_spends(
             [solution_for_coin],
             pk_to_sk,
             DEFAULT_CONSTANTS.AGG_SIG_ME_ADDITIONAL_DATA,

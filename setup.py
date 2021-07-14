@@ -1,14 +1,27 @@
 #!/usr/bin/env python
 
 from setuptools import setup, find_packages
+from glob import glob
+from pathlib import Path
 
 with open("README.md", "rt") as fh:
     long_description = fh.read()
 
+data_files = []
+filetype_globs = [
+    Path('chialisp').rglob("*.[cC][lL][vV][mM]"),
+    Path('chialisp').rglob("*.[cC][lL][vV][mM].[hH][eE][xX]"),
+    Path('chialisp').rglob("*.[cC][lL][iI][bB]"),
+]
+for f_glob in filetype_globs:
+    for path in f_glob:
+        data_files.append((str(path.parent), path.name))
+
 dependencies = [
     "clvm_tools>=0.4.3",
     "clvm_rs>=0.1.1",
-    "chia-blockchain>=1.2.0",
+    "chia-blockchain==1.2.2",
+    # "chia-blockchain@git+https://github.com/Chia-Network/chia-blockchain.git@fa2e66bc74d07a0d79d9a3762e5207aa6d38a0de",
     "pytest",
     "pytest-asyncio",
     "pytimeparse",
@@ -18,13 +31,16 @@ dev_dependencies = []
 
 setup(
     name="chialisp_dev_utility",
-    version="0.0.8",
+    version="0.0.14",
     packages=find_packages(),
     author="Quexington",
     entry_points={
         "console_scripts": [
             "chialisp = chialisp.cli:main"
         ],
+    },
+    package_data={
+        "": ["*.clvm", "*.clvm.hex"],
     },
     author_email="quexington@gmail.com",
     setup_requires=["setuptools_scm"],

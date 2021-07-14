@@ -13,7 +13,7 @@ class TestCoins:
             network = await Network.create()
             coin_amount = int(0.0987654321 * coin_multiple)
 
-            template_program = load_clvm('template.clvm', 'tests')
+            template_program = load_clvm('timelock.clvm', 'chialisp.examples.clvm')
 
             # Make wallets for our actors.
             alice = network.make_wallet('alice')
