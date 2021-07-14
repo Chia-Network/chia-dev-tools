@@ -98,8 +98,12 @@ def disassemble_cmd(files):
         print('%s%s' % (prefix, disassemble(SExp.to(se))))
 
 @cli.command("test", short_help="Run the local test suite (located in ./tests)")
-def test_cmd():
-    pytest.main(["./tests"])
+@click.option("-d", "--discover", is_flag=True, type=bool, help="List the tests without running them")
+def test_cmd(discover: bool):
+    if discover:
+        pytest.main(["--collect-only","./tests"])
+    else:
+        pytest.main(["./tests"])
 
 def main() -> None:
     monkey_patch_click()
