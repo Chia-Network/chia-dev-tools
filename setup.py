@@ -31,7 +31,7 @@ dev_dependencies = []
 
 setup(
     name="chialisp_dev_utility",
-    version="0.0.14",
+    version="0.0.17",
     packages=find_packages(),
     author="Quexington",
     entry_points={
