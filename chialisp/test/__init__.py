@@ -605,3 +605,9 @@ class Network:
             'additions': additions,
             'removals':removals,
         }
+
+async def setup():
+    network = await Network.create()
+    alice = network.make_wallet('alice')
+    bob = network.make_wallet('bob')
+    return network, alice, bob
