@@ -12,6 +12,7 @@ from chia.util.bech32m import encode_puzzle_hash, decode_puzzle_hash
 from chialisp.cmds import (
     clsp,
     chia_inspect,
+    rpc,
 )
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
@@ -76,6 +77,7 @@ def encode_cmd(address):
 
 cli.add_command(clsp.clsp_cmd)
 cli.add_command(chia_inspect.inspect_cmd)
+cli.add_command(rpc.rpc_cmd)
 
 def main() -> None:
     monkey_patch_click()
