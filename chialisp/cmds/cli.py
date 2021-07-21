@@ -8,8 +8,11 @@ from pathlib import Path
 from chialisp import __version__
 
 from chia.util.bech32m import encode_puzzle_hash, decode_puzzle_hash
+
 from chialisp.cmds import (
+    clsp,
 )
+
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 def monkey_patch_click() -> None:
@@ -69,6 +72,8 @@ def encode_cmd(puzzle_hash, prefix):
 @click.argument("address", nargs=1, required=True)
 def encode_cmd(address):
     print(decode_puzzle_hash(address).hex())
+
+cli.add_command(clsp.clsp_cmd)
 
 def main() -> None:
     monkey_patch_click()
