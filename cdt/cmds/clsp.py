@@ -14,7 +14,7 @@ from clvm_tools.binutils import disassemble, assemble
 
 from chia.types.blockchain_format.program import Program
 
-@click.group("clsp", short_help="commands to use when developing chialisp")
+@click.group("clsp", short_help="Commands to use when developing with chialisp")
 def clsp_cmd():
     pass
 
@@ -41,9 +41,9 @@ def parse_program(program: str, include):
                 prog = Program.from_bytes(bytes.fromhex(filestring))
     return prog
 
-@clsp_cmd.command("build", short_help="Build all CLVM files in a directory")
+@clsp_cmd.command("build", short_help="Build all specified CLVM files (i.e mypuz.clsp or ./puzzles/*.clsp)")
 @click.argument("files", nargs=-1, required=True, default=None)
-@click.option("-i","--include", required=False, multiple=True)
+@click.option("-i","--include", required=False, multiple=True, help="Paths to search for include files (./include will be searched automatically)")
 def build_cmd(files, include) -> None:
     project_path = Path.cwd()
     clvm_files = []
@@ -81,24 +81,27 @@ def disassemble_cmd(files):
 
 @clsp_cmd.command("treehash", short_help="Return the tree hash of a clvm file or string")
 @click.argument("program", nargs=1, required=True)
-@click.option("-i","--include", required=False, multiple=True)
+@click.option("-i","--include", required=False, multiple=True, help="Paths to search for include files (./include will be searched automatically)")
 def treehash_cmd(program: str, include):
     print(parse_program(program, include).get_tree_hash())
 
 @clsp_cmd.command("curry", short_help="Curry a program with specified arguments")
 @click.argument("program", required=True)
-@click.option("-a","--args", multiple=True)
-@click.option("-H","--treehash", is_flag=True)
-@click.option("-i","--include", required=False, multiple=True)
-def curry_cmd(program, args, treehash, include):
+@click.option("-a","--args", multiple=True, help="An argument to be curried in (i.e. -a 0xdeadbeef -a '(a 2 3)')")
+@click.option("-H","--treehash", is_flag=True, help="Output the tree hash of the curried puzzle")
+@click.option("-x","--dump", is_flag=True, help="Output the hex serialized program rather that the CLVM form")
+@click.option("-i","--include", required=False, multiple=True, help="Paths to search for include files (./include will be searched automatically)")
+def curry_cmd(program, args, treehash, dump, include):
     prog = parse_program(program, include)
     curry_args = [assemble(arg) for arg in args]
 
     prog_final = prog.curry(*curry_args)
     if treehash:
         print(prog_final.get_tree_hash())
-    else:
+    elif dump:
         print(prog_final)
+    else:
+        print(disassemble(prog_final))
 
 @clsp_cmd.command("retrieve", short_help="Copy the specified .clib file to the current directory (for example sha256tree)")
 @click.argument("libraries", nargs=-1, required=True)

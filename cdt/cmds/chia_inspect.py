@@ -22,7 +22,13 @@ def inspect_callback(objs, ctx, id_calc=None, type='Unknown'):
         if ctx.obj['json']:
             pprint([obj.to_json_dict() for obj in objs])
         if ctx.obj['bytes']:
-            pprint([bytes(obj) for obj in objs])
+            final_output = []
+            for obj in objs:
+                try:
+                    final_output.append(bytes(obj))
+                except AssertionError:
+                    final_output.append(None)
+            pprint(final_output)
         if ctx.obj['id']:
             pprint([id_calc(obj) for obj in objs])
         if ctx.obj['type']:

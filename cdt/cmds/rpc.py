@@ -29,7 +29,7 @@ async def get_client():
             print(f"Exception from 'harvester' {e}")
         return None
 
-@rpc_cmd.command("state", short_help="gets the status of the blockchain (get_blockchain_state)")
+@rpc_cmd.command("state", short_help="Gets the status of the blockchain (get_blockchain_state)")
 def rpc_state_cmd():
     async def do_command():
         try:
@@ -72,7 +72,7 @@ def rpc_blockrecords_cmd(start, end):
 
     asyncio.get_event_loop().run_until_complete(do_command())
 
-@rpc_cmd.command("addrem", short_help="Gets the coins added and removed for a specific header hash (get_additions_and_removals)")
+@rpc_cmd.command("blockcoins", short_help="Gets the coins added and removed for a specific header hash (get_additions_and_removals)")
 @click.argument("headerhash", nargs=1, required=True)
 def rpc_addrem_cmd(headerhash):
     async def do_command():
@@ -86,7 +86,7 @@ def rpc_addrem_cmd(headerhash):
 
     asyncio.get_event_loop().run_until_complete(do_command())
 
-@rpc_cmd.command("puzsol", short_help="Gets the puzzle and solution for a coin spent at the specified block height (get_puzzle_and_solution)")
+@rpc_cmd.command("blockspends", short_help="Gets the puzzle and solution for a coin spent at the specified block height (get_puzzle_and_solution)")
 @click.option("-id","--coinid", required=True, help="The id of the coin that was spent")
 @click.option("-h","--block-height", required=True, type=int, help="The block height in which the coin was spent")
 def rpc_puzsol_cmd(coinid, block_height):
@@ -101,8 +101,8 @@ def rpc_puzsol_cmd(coinid, block_height):
 
     asyncio.get_event_loop().run_until_complete(do_command())
 
-@click.argument("spendbundles", nargs=-1, required=True)
 @rpc_cmd.command("pushtx", short_help="Pushes a spend bundle to the network (push_tx)")
+@click.argument("spendbundles", nargs=-1, required=True)
 def rpc_pushtx_cmd(spendbundles):
     async def do_command():
         try:
@@ -124,11 +124,11 @@ def rpc_pushtx_cmd(spendbundles):
 
     asyncio.get_event_loop().run_until_complete(do_command())
 
+@rpc_cmd.command("coinrecords", short_help="Gets coin records by a specified information (get_coin_records_by_*)")
 @click.argument("values", nargs=-1, required=True)
-@rpc_cmd.command("coinrecords", short_help="Gets coin records by specified information (get_coin_records_by_*)")
 @click.option("--by", help="The property to use (id, puzzlehash, parentid)")
-@click.option("-nd","--as-name-dict", is_flag=True, help="Return the records as a dictionary with names as the keys")
-@click.option("-ou","--only-unspent", is_flag=True, help="Include already spent coins in the search")
+@click.option("-nd","--as-name-dict", is_flag=True, help="Return the records as a dictionary with ids as the keys")
+@click.option("-ou","--only-unspent", is_flag=True, help="Exclude already spent coins from the search")
 @click.option("-s","--start", type=int, help="The block index to start at (included)")
 @click.option("-e","--end", type=int, help="The block index to end at (excluded)")
 def rpc_coinrecords_cmd(values, by, as_name_dict, **kwargs):

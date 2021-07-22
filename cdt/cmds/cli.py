@@ -37,18 +37,14 @@ def monkey_patch_click() -> None:
     help=f"\n  Dev tooling for Chialisp development \n",
     context_settings=CONTEXT_SETTINGS,
 )
-
+@click.version_option(__version__)
 @click.pass_context
-def cli(ctx: click.Context) -> None:
+def cli(ctx: click.Context, version) -> None:
     ctx.ensure_object(dict)
-
-@cli.command("version", short_help="Show cdt version")
-def version_cmd() -> None:
-    print(__version__)
 
 @cli.command("test", short_help="Run the local test suite (located in ./tests)")
 @click.option("-d", "--discover", is_flag=True, type=bool, help="List the tests without running them")
-@click.option("-i","--init", is_flag=True, type=bool, help="Create the test directory and/or add a new skeleton test")
+@click.option("-i","--init", is_flag=True, type=bool, help="Create the test directory and/or add a new test skeleton")
 def test_cmd(discover: bool, init: str):
     if init:
         test_dir = Path(os.getcwd()).joinpath("tests")
@@ -65,7 +61,7 @@ def test_cmd(discover: bool, init: str):
 
 @cli.command("encode", short_help="Encode a puzzle hash to a bech32m address")
 @click.argument("puzzle_hash", nargs=1, required=True)
-@click.option("-p", "--prefix", type=str, default="xch", show_default=True, required=False)
+@click.option("-p", "--prefix", type=str, default="xch", show_default=True, required=False, help="The prefix to encode with")
 def encode_cmd(puzzle_hash, prefix):
     print(encode_puzzle_hash(bytes.fromhex(puzzle_hash), prefix))
 
