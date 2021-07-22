@@ -69,15 +69,10 @@ def build_cmd(files, include) -> None:
                 pass
 
 @clsp_cmd.command("disassemble", short_help="Disassemble serialized clvm into human readable form.")
-@click.argument("files", nargs=-1, required=True)
-def disassemble_cmd(files):
-    for f in files:
-        if len(files) > 1:
-            prefix = '%s:\n' % f
-        else:
-            prefix = ''
-        se = sexp_from_stream(io.BytesIO(bytes.fromhex(open(f).read())), lambda x: x)
-        print('%s%s' % (prefix, disassemble(SExp.to(se))))
+@click.argument("programs", nargs=-1, required=True)
+def disassemble_cmd(programs):
+    for program in programs:
+        print(disassemble(parse_program(program, [])))
 
 @clsp_cmd.command("treehash", short_help="Return the tree hash of a clvm file or string")
 @click.argument("program", nargs=1, required=True)

@@ -2,6 +2,7 @@ import click
 import json
 
 from chia.types.blockchain_format.coin import Coin
+from chia.util.ints import uint64
 from pprint import pprint
 
 @click.group("inspect", short_help="Inspect various data structures")
@@ -72,7 +73,7 @@ def inspect_any_cmd(ctx, objects):
 
 
 @inspect_cmd.command("coins", short_help="Various methods for examining and calculating coin objects")
-@click.argument("coins", nargs=-1, required=True)
+@click.argument("coins", nargs=-1, required=False)
 @click.option("-pid","--parent-id", help="The parent coin's ID")
 @click.option("-ph","--puzzle-hash", help="The tree hash of the CLVM puzzle that locks this coin")
 @click.option("-a","--amount", help="The amount of the coin")
@@ -81,8 +82,8 @@ def inspect_coin_cmd(ctx, coins, **kwargs):
     do_inspect_coin_cmd(ctx, coins, **kwargs)
 
 def do_inspect_coin_cmd(ctx, coins, **kwargs):
-    if kwargs.keys() == ['parent_id','puzzle_hash','amount']:
-        coin_objs = [Coin(bytes.fromhex(kwargs['parent_id']), bytes.fromhex(kwargs['puzzle_hash']), uint64(amount))]
+    if list(kwargs.keys()) == ['parent_id','puzzle_hash','amount']:
+        coin_objs = [Coin(bytes.fromhex(kwargs['parent_id']), bytes.fromhex(kwargs['puzzle_hash']), uint64(kwargs['amount']))]
     else:
         coin_objs = []
         try:
