@@ -1,6 +1,8 @@
 import click
+import json
 
 from chia.types.blockchain_format.coin import Coin
+from pprint import pprint
 
 @click.group("inspect", short_help="Inspect various data structures")
 @click.option("-j","--json", is_flag=True, help="Output the result as JSON")
@@ -31,10 +33,10 @@ def streamable_load(cls, inputs):
     for input in inputs:
         if "{" in input:
             input_objs.append(cls.from_json_dict(json.loads(input)))
-        elif "." in inputs:
+        elif "." in input:
             file_string = open(input, "r").read()
             if "{" in file_string:
-                input_objs.append(cls.from_json_dict(file_string))
+                input_objs.append(cls.from_json_dict(json.loads(file_string)))
             else:
                 input_objs.append(cls.from_bytes(bytes.fromhex(file_string)))
         else:

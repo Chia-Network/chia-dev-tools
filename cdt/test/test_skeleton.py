@@ -1,11 +1,11 @@
 import pytest
 
-from chialisp.test import setup as test_setup
+from cdt.test import setup as setup_test
 
 class TestSomething:
     @pytest.fixture(scope="function")
     async def setup(self):
-        network, alice, bob = await test_setup()
+        network, alice, bob = await setup_test()
         yield network, alice, bob
 
     @pytest.mark.asyncio

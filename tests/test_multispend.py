@@ -1,6 +1,6 @@
 import pytest
 
-from chialisp.test import Network
+from cdt.test import Network
 
 class TestCoins:
 

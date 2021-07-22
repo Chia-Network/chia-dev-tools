@@ -65,7 +65,7 @@ def build_cmd(files, include) -> None:
                 compile_clvm(str(filename),outfile, search_paths=append_include(include))
                 print("...Compilation finished")
             except Exception as e:
-                print("Couldn't build "+filename.name+": "+e)
+                print("Couldn't build "+filename.name+": "+str(e))
                 pass
 
 @clsp_cmd.command("disassemble", short_help="Disassemble serialized clvm into human readable form.")
@@ -103,7 +103,7 @@ def curry_cmd(program, args, treehash, include):
 @clsp_cmd.command("retrieve", short_help="Copy the specified .clib file to the current directory (for example sha256tree)")
 @click.argument("libraries", nargs=-1, required=True)
 def retrieve_cmd(libraries):
-    import chialisp.clibs as clibs
+    import cdt.clibs as clibs
     for lib in libraries:
         if lib[-5:] == ".clib":
             lib = lib[:-5]

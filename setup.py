@@ -7,16 +7,6 @@ from pathlib import Path
 with open("README.md", "rt") as fh:
     long_description = fh.read()
 
-data_files = []
-filetype_globs = [
-    Path('chialisp').rglob("*.[cC][lL][vV][mM]"),
-    Path('chialisp').rglob("*.[cC][lL][vV][mM].[hH][eE][xX]"),
-    Path('chialisp').rglob("*.[cC][lL][iI][bB]"),
-]
-for f_glob in filetype_globs:
-    for path in f_glob:
-        data_files.append((str(path.parent), path.name))
-
 dependencies = [
     "clvm_tools>=0.4.3",
     "clvm_rs>=0.1.1",
@@ -30,17 +20,17 @@ dependencies = [
 dev_dependencies = []
 
 setup(
-    name="chialisp_dev_utility",
-    version="0.0.17",
+    name="chia_dev_tools",
+    version="0.0.3",
     packages=find_packages(),
     author="Quexington",
     entry_points={
         "console_scripts": [
-            "chialisp = chialisp.cli:main"
+            "cdt = cdt.cmds.cli:main"
         ],
     },
     package_data={
-        "": ["*.clvm", "*.clvm.hex"],
+        "": ["*.clvm", "*.clvm.hex", "*.clib", "*.clsp", "*.clsp.hex"],
     },
     author_email="quexington@gmail.com",
     setup_requires=["setuptools_scm"],

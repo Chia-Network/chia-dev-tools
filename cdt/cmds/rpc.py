@@ -108,13 +108,16 @@ def rpc_pushtx_cmd(spendbundles):
         try:
             node_client = await get_client()
             for bundle in spendbundles:
-                if '"spend_bundle"' in bundle:
-                    result = await node_client.push_tx(SpendBundle.from_json_dict(json.loads(bundle)["spend_bundle"]))
-                    print(result)
-                else:
-                    json_bundle = json.loads(open(bundle, "r").read())
-                    result = await node_client.push_tx(SpendBundle.from_json_dict(json_bundle["spend_bundle"]))
-                    print(result)
+                try:
+                    if '"spend_bundle"' in bundle:
+                        result = await node_client.push_tx(SpendBundle.from_json_dict(json.loads(bundle)["spend_bundle"]))
+                        print(result)
+                    else:
+                        json_bundle = json.loads(open(bundle, "r").read())
+                        result = await node_client.push_tx(SpendBundle.from_json_dict(json_bundle["spend_bundle"]))
+                        print(result)
+                except ValueError as e:
+                    print(str(e))
         finally:
             node_client.close()
             await node_client.await_closed()

@@ -5,11 +5,11 @@ import io
 import shutil
 from pathlib import Path
 
-from chialisp import __version__
+from cdt import __version__
 
 from chia.util.bech32m import encode_puzzle_hash, decode_puzzle_hash
 
-from chialisp.cmds import (
+from cdt.cmds import (
     clsp,
     chia_inspect,
     rpc,
@@ -35,7 +35,6 @@ def monkey_patch_click() -> None:
 
 @click.group(
     help=f"\n  Dev tooling for Chialisp development \n",
-    epilog="Make a new directory and try chialisp init",
     context_settings=CONTEXT_SETTINGS,
 )
 
@@ -43,7 +42,7 @@ def monkey_patch_click() -> None:
 def cli(ctx: click.Context) -> None:
     ctx.ensure_object(dict)
 
-@cli.command("version", short_help="Show chialisp version")
+@cli.command("version", short_help="Show cdt version")
 def version_cmd() -> None:
     print(__version__)
 
@@ -55,9 +54,9 @@ def test_cmd(discover: bool, init: str):
         test_dir = Path(os.getcwd()).joinpath("tests")
         if not test_dir.exists():
             os.mkdir("tests")
-        import chialisp.test as testlib
-        src_path = Path(testlib.__file__).parent.joinpath("skeleton.py")
-        dest_path = test_dir.joinpath("skeleton.py")
+        import cdt.test as testlib
+        src_path = Path(testlib.__file__).parent.joinpath("test_skeleton.py")
+        dest_path = test_dir.joinpath("test_skeleton.py")
         shutil.copyfile(src_path, dest_path)
     if discover:
         pytest.main(["--collect-only","./tests"])
