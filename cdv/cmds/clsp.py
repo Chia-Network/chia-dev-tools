@@ -106,7 +106,7 @@ def curry_cmd(program, args, treehash, dump, include):
 @clsp_cmd.command("retrieve", short_help="Copy the specified .clib file to the current directory (for example sha256tree)")
 @click.argument("libraries", nargs=-1, required=True)
 def retrieve_cmd(libraries):
-    import cdt.clibs as clibs
+    import cdv.clibs as clibs
     for lib in libraries:
         if lib[-5:] == ".clib":
             lib = lib[:-5]

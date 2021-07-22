@@ -5,11 +5,11 @@ import io
 import shutil
 from pathlib import Path
 
-from cdt import __version__
+from cdv import __version__
 
 from chia.util.bech32m import encode_puzzle_hash, decode_puzzle_hash
 
-from cdt.cmds import (
+from cdv.cmds import (
     clsp,
     chia_inspect,
     rpc,
@@ -39,7 +39,7 @@ def monkey_patch_click() -> None:
 )
 @click.version_option(__version__)
 @click.pass_context
-def cli(ctx: click.Context, version) -> None:
+def cli(ctx: click.Context) -> None:
     ctx.ensure_object(dict)
 
 @cli.command("test", short_help="Run the local test suite (located in ./tests)")
@@ -50,7 +50,7 @@ def test_cmd(discover: bool, init: str):
         test_dir = Path(os.getcwd()).joinpath("tests")
         if not test_dir.exists():
             os.mkdir("tests")
-        import cdt.test as testlib
+        import cdv.test as testlib
         src_path = Path(testlib.__file__).parent.joinpath("test_skeleton.py")
         dest_path = test_dir.joinpath("test_skeleton.py")
         shutil.copyfile(src_path, dest_path)

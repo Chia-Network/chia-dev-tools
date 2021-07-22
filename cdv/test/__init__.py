@@ -27,7 +27,7 @@ from chia.wallet.puzzles.p2_delegated_puzzle_or_hidden_puzzle import ( # standar
 from chia.clvm.spend_sim import SpendSim, SimClient
 from chia.consensus.default_constants import DEFAULT_CONSTANTS
 
-from cdt.util.keys import public_key_for_index, private_key_for_index
+from cdv.util.keys import public_key_for_index, private_key_for_index
 
 duration_div = 86400.0
 block_time = (600.0 / 32.0) / duration_div

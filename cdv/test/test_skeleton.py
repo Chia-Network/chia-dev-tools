@@ -1,6 +1,6 @@
 import pytest
 
-from cdt.test import setup as setup_test
+from cdv.test import setup as setup_test
 
 class TestSomething:
     @pytest.fixture(scope="function")

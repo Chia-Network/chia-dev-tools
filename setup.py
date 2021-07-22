@@ -21,12 +21,12 @@ dev_dependencies = []
 
 setup(
     name="chia_dev_tools",
-    version="0.0.3",
+    version="0.0.5",
     packages=find_packages(),
     author="Quexington",
     entry_points={
         "console_scripts": [
-            "cdt = cdt.cmds.cli:main"
+            "cdv = cdv.cmds.cli:main"
         ],
     },
     package_data={

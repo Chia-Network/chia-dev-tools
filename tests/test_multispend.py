@@ -1,6 +1,6 @@
 import pytest
 
-from cdt.test import Network
+from cdv.test import Network
 
 class TestCoins:
 

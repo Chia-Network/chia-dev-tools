@@ -1,6 +1,6 @@
 import pytest
 
-from cdt.test import Network
+from cdv.test import Network
 from chia.types.blockchain_format.program import Program
 from chia.wallet.puzzles.load_clvm import load_clvm
 
@@ -13,7 +13,7 @@ class TestCoins:
             network = await Network.create()
             coin_amount = int(0.0987654321 * coin_multiple)
 
-            template_program = load_clvm('timelock.clvm', 'cdt.examples.clvm')
+            template_program = load_clvm('timelock.clvm', 'cdv.examples.clvm')
 
             # Make wallets for our actors.
             alice = network.make_wallet('alice')
