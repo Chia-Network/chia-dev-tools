@@ -18,7 +18,13 @@ from chia.types.blockchain_format.program import Program
 def clsp_cmd():
     pass
 
-def parse_program(program: str):
+def append_include(search_paths):
+    if search_paths:
+        list(search_paths).append("./include")
+    else:
+        return ['./include']
+
+def parse_program(program: str, include):
     if '(' in program:
         prog = Program.to(assemble(program))
     elif '.' not in program:
@@ -28,7 +34,7 @@ def parse_program(program: str):
             filestring = file.read()
             if '(' in filestring:
                 if re.compile('\(mod\s').search(filestring):
-                    prog = Program.to(compile_clvm_text(filestring, ['.']))
+                    prog = Program.to(compile_clvm_text(filestring, append_include(include)))
                 else:
                     prog = Program.to(assemble(filestring))
             else:
@@ -36,14 +42,18 @@ def parse_program(program: str):
     return prog
 
 @clsp_cmd.command("build", short_help="Build all CLVM files in a directory")
-@click.argument("files", nargs=-1, required=False, default=None)
+@click.argument("files", nargs=-1, required=True, default=None)
 @click.option("-i","--include", required=False, multiple=True)
 def build_cmd(files, include) -> None:
     project_path = Path.cwd()
-    clvm_files = list(filter(lambda path: "venv" not in str(path), list(Path(project_path).rglob("*.[cC][lL][vV][mM]"))))
-    #Adjust for building only one file
-    if files:
-        clvm_files = list(filter(lambda e: e.name in files, clvm_files))
+    clvm_files = []
+    for glob in files:
+        for path in Path(project_path).rglob(glob):
+            if path.is_dir():
+                for clvm_path in Path(path).rglob('*.cl[vs][mp]'):
+                    clvm_files.append(clvm_path)
+            else:
+                clvm_files.append(path)
 
     for filename in clvm_files:
         hex_file_name = (filename.name + ".hex")
@@ -52,12 +62,11 @@ def build_cmd(files, include) -> None:
             outfile = str(filename) + ".hex"
             try:
                 print("Beginning compilation of "+filename.name+"...")
-                compile_clvm(str(filename),outfile, search_paths=include)
+                compile_clvm(str(filename),outfile, search_paths=append_include(include))
                 print("...Compilation finished")
             except Exception as e:
                 print("Couldn't build "+filename.name+": "+e)
                 pass
-
 
 @clsp_cmd.command("disassemble", short_help="Disassemble serialized clvm into human readable form.")
 @click.argument("files", nargs=-1, required=True)
@@ -72,44 +81,21 @@ def disassemble_cmd(files):
 
 @clsp_cmd.command("treehash", short_help="Return the tree hash of a clvm file or string")
 @click.argument("program", nargs=1, required=True)
-def treehash_cmd(program: str):
-    print(parse_program(program).get_tree_hash())
+@click.option("-i","--include", required=False, multiple=True)
+def treehash_cmd(program: str, include):
+    print(parse_program(program, include).get_tree_hash())
 
-class OrderedParamsCommand(click.Command):
-    _options = []
-    def parse_args(self, ctx, args):
-        # run the parser for ourselves to preserve the passed order
-        parser = self.make_parser(ctx)
-        opts, _, param_order = parser.parse_args(args=list(args))
-        for param in param_order:
-            if param.name not in ('program', 'treehash'):
-                type(self)._options.append((param, opts[param.name].pop(0)))
-
-        # return "normal" parse results
-        return super().parse_args(ctx, args)
-
-@clsp_cmd.command("curry", short_help="Curry a program with specified arguments", cls=OrderedParamsCommand)
-@click.argument("program", nargs=1, required=True)
-@click.option("-b","--bytes", type=str, required=False, multiple=True)
-@click.option("-s","--string", type=str, required=False, multiple=True)
-@click.option("-i","--integer", type=int, required=False, multiple=True)
-@click.option("-p","--prog", type=str, required=False, multiple=True)
-@click.option("-th","--treehash", is_flag=True, type=bool, help="Return the tree hash of the program")
-def curry_cmd(*, program: str, **kwargs):
-    prog = parse_program(program)
-    curry_args = []
-    for param, value in OrderedParamsCommand._options:
-        if param.name == 'bytes':
-            curry_args.append(bytes.fromhex(value))
-        elif param.name == 'string':
-            curry_args.append(value)
-        elif param.name == 'integer':
-            curry_args.append(int(value))
-        elif param.name == 'prog':
-            curry_args.append(parse_program(value))
+@clsp_cmd.command("curry", short_help="Curry a program with specified arguments")
+@click.argument("program", required=True)
+@click.option("-a","--args", multiple=True)
+@click.option("-H","--treehash", is_flag=True)
+@click.option("-i","--include", required=False, multiple=True)
+def curry_cmd(program, args, treehash, include):
+    prog = parse_program(program, include)
+    curry_args = [assemble(arg) for arg in args]
 
     prog_final = prog.curry(*curry_args)
-    if kwargs["treehash"]:
+    if treehash:
         print(prog_final.get_tree_hash())
     else:
         print(prog_final)
@@ -122,4 +108,7 @@ def retrieve_cmd(libraries):
         if lib[-5:] == ".clib":
             lib = lib[:-5]
         src_path = Path(clibs.__file__).parent.joinpath(f"{lib}.clib")
-        shutil.copyfile(src_path, Path(os.getcwd()).joinpath(f"{lib}.clib"))
+        include_path = Path(os.getcwd()).joinpath("include")
+        if not include_path.exists():
+            os.mkdir("include")
+        shutil.copyfile(src_path, include_path.joinpath(f"{lib}.clib"))
