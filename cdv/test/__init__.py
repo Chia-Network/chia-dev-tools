@@ -3,7 +3,7 @@ import datetime
 import pytimeparse
 from typing import Dict
 from unittest import TestCase
-from blspy import AugSchemeMPL, G1Element, PrivateKey
+from blspy import AugSchemeMPL, G1Element, G2Element, PrivateKey
 
 from clvm.serialize import sexp_from_stream
 from clvm import SExp
@@ -82,6 +82,15 @@ class CoinWrapper(Coin):
             self.amount,
         )
 
+    @classmethod
+    def from_coin(cls, coin: Coin, puzzle: Program):
+        return cls(
+            coin.parent_coin_info,
+            coin.puzzle_hash,
+            coin.amount,
+            puzzle,
+        )
+
     def create_standard_spend(self, priv, conditions):
         delegated_puzzle_solution = Program.to((1, conditions))
         solution = Program.to([[], delegated_puzzle_solution, []])
@@ -152,12 +161,16 @@ class CoinPairSearch:
             self.max_coins.append(coin)
 
     def process_coin_for_combine_search(self,coin):
+        if self.target == 0:
+            breakpoint()
         self.total += coin.amount
         if len(self.max_coins) == 0:
             self.max_coins.append(coin)
         else:
             self.insort(coin,0,len(self.max_coins)-1)
-            while len(self.max_coins) > 0 and self.total - self.max_coins[-1].amount >= self.target:
+            while (len(self.max_coins) > 0) and \
+            (self.total - self.max_coins[-1].amount >= self.target) and \
+            ((self.total - self.max_coins[-1].amount > 0) or (len(self.max_coins) > 1)):
                 self.total -= self.max_coins[-1].amount
                 self.max_coins = self.max_coins[:-1]
 
@@ -177,6 +190,7 @@ class Wallet:
         usable_coins - Standard coins spendable by this actor
         puzzle - A program for creating this actor's standard coin
         puzzle_hash - The puzzle hash for this actor's standard coin
+        pk_to_sk_dict - a dictionary for retrieving the secret keys when presented with the corresponding public key
         """
         self.parent = parent
         self.name = name
@@ -186,12 +200,19 @@ class Wallet:
         self.puzzle = puzzle_for_pk(self.pk())
         self.puzzle_hash = self.puzzle.get_tree_hash()
 
+        synth_sk = calculate_synthetic_secret_key(self.sk_, DEFAULT_HIDDEN_PUZZLE_HASH)
+        self.pk_to_sk_dict = {str(self.pk_): self.sk_, str(synth_sk.get_g1()): synth_sk}
+
     def __repr__(self):
         return f'<Wallet(name={self.name},puzzle_hash={self.puzzle_hash},pk={self.pk_})>'
 
     # Make this coin available to the user it goes with.
     def add_coin(self,coin):
         self.usable_coins[coin.name()] = coin
+
+    def pk_to_sk(self, pk: G1Element):
+        assert str(pk) in self.pk_to_sk_dict
+        return self.pk_to_sk_dict[str(pk)]
 
     def compute_combine_action(self,amt,actions,usable_coins):
         # No one coin is enough, try to find a best fit pair, otherwise combine the two
@@ -277,10 +298,6 @@ class Wallet:
 
         beginning_balance = self.balance()
         beginning_coins = len(self.usable_coins)
-
-        def pk_to_sk(pk: G1Element) -> PrivateKey:
-            assert pk == self.pk()
-            return self.sk_
 
         # We need the final coin to know what the announced coin name will be.
         final_coin = CoinWrapper(
@@ -413,7 +430,7 @@ class Wallet:
         spend_bundle = SpendBundle(
             [
                 CoinSpend(
-                    found_coin, # Coin to spend
+                    found_coin.as_coin(), # Coin to spend
                     self.puzzle, # Puzzle used for found_coin
                     solution, # The solution to the puzzle locking found_coin
                 )
@@ -449,16 +466,12 @@ class Wallet:
     # Automatically takes care of signing, etc.
     # Result is an object representing the actions taken when the block
     # with this transaction was farmed.
-    async def spend_coin(self, coin : CoinWrapper, **kwargs):
+    async def spend_coin(self, coin : CoinWrapper, pushtx=True, **kwargs):
         """Given a coin object, invoke it on the blockchain, either as a standard
         coin if no arguments are given or with custom arguments in args="""
         amt = 1
         if 'amt' in kwargs:
             amt = kwargs['amt']
-
-        def pk_to_sk(pk: G1Element) -> PrivateKey:
-            assert pk == self.pk()
-            return self.sk_
 
         delegated_puzzle_solution = None
         if not 'args' in kwargs:
@@ -468,7 +481,10 @@ class Wallet:
                 target_puzzle_hash = kwargs['to'].puzzle_hash
 
             # Automatic arguments from the user's intention.
-            solution_list = [[ConditionOpcode.CREATE_COIN, target_puzzle_hash, amt]]
+            if not 'custom_conditions' in kwargs:
+                solution_list = [[ConditionOpcode.CREATE_COIN, target_puzzle_hash, amt]]
+            else:
+                solution_list = kwargs['custom_conditions']
             if 'remain' in kwargs:
                 remainer = kwargs['remain']
                 remain_amt = coin.amount - amt
@@ -495,15 +511,24 @@ class Wallet:
         # The reason this use of sign_coin_spends exists is that it correctly handles
         # the signing for non-standard coins.  I don't fully understand the difference but
         # this definitely does the right thing.
-        spend_bundle = await sign_coin_spends(
-            [solution_for_coin],
-            pk_to_sk,
-            DEFAULT_CONSTANTS.AGG_SIG_ME_ADDITIONAL_DATA,
-            DEFAULT_CONSTANTS.MAX_BLOCK_COST_CLVM
-        )
+        try:
+            spend_bundle = await sign_coin_spends(
+                [solution_for_coin],
+                self.pk_to_sk,
+                DEFAULT_CONSTANTS.AGG_SIG_ME_ADDITIONAL_DATA,
+                DEFAULT_CONSTANTS.MAX_BLOCK_COST_CLVM
+            )
+        except:
+            spend_bundle = SpendBundle(
+                [solution_for_coin],
+                G2Element(),
+            )
 
-        pushed = await self.parent.push_tx(spend_bundle)
-        return SpendResult(pushed)
+        if pushtx:
+            pushed = await self.parent.push_tx(spend_bundle)
+            return SpendResult(pushed)
+        else:
+            return spend_bundle
 
 # A user oriented (domain specific) view of the chia network.
 class Network:
@@ -550,7 +575,7 @@ class Network:
             coin_records = await self.sim_client.get_coin_records_by_puzzle_hash(w.puzzle_hash)
             for coin_record in coin_records:
                 if coin_record.spent == False:
-                    w.add_coin(coin_record.coin)
+                    w.add_coin(CoinWrapper.from_coin(coin_record.coin, w.puzzle))
 
         self.time += farm_duration
         return farmed

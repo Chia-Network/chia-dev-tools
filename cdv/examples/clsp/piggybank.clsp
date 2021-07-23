@@ -1,0 +1,38 @@
+(mod (
+       TARGET_AMOUNT
+       CASH_OUT_PUZHASH
+       my_puzhash
+       my_amount
+       new_amount
+     )
+
+  (include condition_codes.clib)
+
+  (defun-inline reached_goal (CASH_OUT_PUZHASH new_amount my_puzhash my_amount)
+    (list
+      (list CREATE_COIN CASH_OUT_PUZHASH new_amount)
+      (list CREATE_COIN my_puzhash 0)
+      (list ASSERT_MY_AMOUNT my_amount)
+      (list ASSERT_MY_PUZZLEHASH my_puzhash)
+      (list CREATE_COIN_ANNOUNCEMENT new_amount)
+    )
+  )
+
+  (defun-inline recreate_self (new_amount my_puzhash my_amount)
+    (list
+      (list CREATE_COIN my_puzhash new_amount)
+      (list ASSERT_MY_AMOUNT my_amount)
+      (list ASSERT_MY_PUZZLEHASH my_puzhash)
+      (list CREATE_COIN_ANNOUNCEMENT new_amount)
+    )
+  )
+
+  ; main
+  (if (> new_amount my_amount)
+    (if (> new_amount TARGET_AMOUNT)
+      (reached_goal CASH_OUT_PUZHASH new_amount my_puzhash my_amount)
+      (recreate_self new_amount my_puzhash my_amount)
+    )
+    (x)
+  )
+)
