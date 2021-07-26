@@ -43,9 +43,12 @@ def cli(ctx: click.Context) -> None:
     ctx.ensure_object(dict)
 
 @cli.command("test", short_help="Run the local test suite (located in ./tests)")
+@click.argument("tests", default="./tests", required=False)
 @click.option("-d", "--discover", is_flag=True, type=bool, help="List the tests without running them")
 @click.option("-i","--init", is_flag=True, type=bool, help="Create the test directory and/or add a new test skeleton")
-def test_cmd(discover: bool, init: str):
+def test_cmd(tests: str, discover: bool, init: str):
+    test_paths = Path.cwd().rglob(tests)
+    test_paths = list(map(lambda e: str(e), test_paths))
     if init:
         test_dir = Path(os.getcwd()).joinpath("tests")
         if not test_dir.exists():
@@ -55,9 +58,9 @@ def test_cmd(discover: bool, init: str):
         dest_path = test_dir.joinpath("test_skeleton.py")
         shutil.copyfile(src_path, dest_path)
     if discover:
-        pytest.main(["--collect-only","./tests"])
+        pytest.main(["--collect-only",*test_paths])
     elif not init:
-        pytest.main(["./tests"])
+        pytest.main([*test_paths])
 
 @cli.command("encode", short_help="Encode a puzzle hash to a bech32m address")
 @click.argument("puzzle_hash", nargs=1, required=True)
