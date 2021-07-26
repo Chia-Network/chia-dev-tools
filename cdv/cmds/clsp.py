@@ -24,7 +24,7 @@ def append_include(search_paths):
     else:
         return ['./include']
 
-def parse_program(program: str, include):
+def parse_program(program: str, include=[]):
     if '(' in program:
         prog = Program.to(assemble(program))
     elif '.' not in program:
@@ -72,7 +72,7 @@ def build_cmd(files, include) -> None:
 @click.argument("programs", nargs=-1, required=True)
 def disassemble_cmd(programs):
     for program in programs:
-        print(disassemble(parse_program(program, [])))
+        print(disassemble(parse_program(program)))
 
 @clsp_cmd.command("treehash", short_help="Return the tree hash of a clvm file or string")
 @click.argument("program", nargs=1, required=True)
