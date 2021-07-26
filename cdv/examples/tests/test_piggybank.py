@@ -21,7 +21,7 @@ class TestStandardTransaction:
         await network.farm_block(farmer=alice)
 
         # This will use one mojo to create our piggybank on the blockchain.
-        piggybank_coin = await alice.launch_contract(create_piggybank_puzzle(1000000000000, bob.puzzle_hash))
+        piggybank_coin = await alice.launch_smart_coin(create_piggybank_puzzle(1000000000000, bob.puzzle_hash))
         # This retrieves us a coin that is at least 500 mojos.
         contribution_coin = await alice.choose_coin(CONTRIBUTION_AMOUNT)
 

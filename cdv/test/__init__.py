@@ -71,8 +71,8 @@ class CoinWrapper(Coin):
         """Return this coin's puzzle hash"""
         return self.puzzle().get_tree_hash()
 
-    def contract(self):
-        """Return a contract object wrapping this coin's program"""
+    def smart_coin(self):
+        """Return a smart coin object wrapping this coin's program"""
         return ContractWrapper(DEFAULT_CONSTANTS.GENESIS_CHALLENGE, self.source)
 
     def as_coin(self):
@@ -118,25 +118,25 @@ class CoinWrapper(Coin):
 #   services.  These also contain a chia balance but are used for purposes
 #   other than a fungible, liquid, spendable resource.  They should not show
 #   up in a "wallet" in the same way.  We should use them by locking value
-#   into wallet coins.  We should ensure that value contained in a contract
+#   into wallet coins.  We should ensure that value contained in a smart coin
 #   coin is never destroyed.
 class ContractWrapper:
     def __init__(self,genesis_challenge,source):
-        """A wrapper for a contract carrying useful methods for interacting with chia."""
+        """A wrapper for a smart coin carrying useful methods for interacting with chia."""
         self.genesis_challenge = genesis_challenge
         self.source = source
 
     def puzzle(self):
-        """Give this contract's program"""
+        """Give this smart coin's program"""
         return self.source
 
     def puzzle_hash(self):
-        """Give this contract's puzzle hash"""
+        """Give this smart coin's puzzle hash"""
         return self.source.get_tree_hash()
 
     def custom_coin(self, parent : Coin, amt : uint64):
         """Given a parent and an amount, create the Coin object representing this
-        contract as it would exist post launch"""
+        smart coin as it would exist post launch"""
         return CoinWrapper(parent.name(), self.puzzle_hash(), amt, self.source)
 
 # Used internally to accumulate a search for coins we can combine to the
@@ -176,7 +176,7 @@ class CoinPairSearch:
 
 # A basic wallet that knows about standard coins.
 # We can use this to track our balance as an end user and keep track of
-# chia that is released by contracts, if the contracts interact
+# chia that is released by smart coins, if the smart coins interact
 # meaningfully with them, as many likely will.
 class Wallet:
     def __init__(self,parent,name,pk,priv):
@@ -388,13 +388,13 @@ class Wallet:
         assert self.balance() == start_balance
         return await self.choose_coin(amt)
 
-    # Create a new contract based on a parent coin and return the coin to the user.
+    # Create a new smart coin based on a parent coin and return the coin to the user.
     # TODO:
-    #  - allow use of more than one coin to launch contract
+    #  - allow use of more than one coin to launch smart coin
     #  - ensure input chia = output chia.  it'd be dumb to just allow somebody
     #    to lose their chia without telling them.
-    async def launch_contract(self,source,**kwargs) -> CoinWrapper:
-        """Create a new contract based on a parent coin and return the contract's living
+    async def launch_smart_coin(self,source,**kwargs) -> CoinWrapper:
+        """Create a new smart coin based on a parent coin and return the smart coin's living
         coin to the user or None if the spend failed."""
         amt = 1
         if 'amt' in kwargs:
@@ -404,7 +404,7 @@ class Wallet:
         if found_coin is None:
             raise ValueError(f'could not find available coin containing {amt} mojo')
 
-        # Create a puzzle based on the incoming contract
+        # Create a puzzle based on the incoming smart coin
         cw = ContractWrapper(DEFAULT_CONSTANTS.GENESIS_CHALLENGE, source)
         condition_args = [
             [ConditionOpcode.CREATE_COIN, cw.puzzle_hash(), amt],
@@ -445,7 +445,7 @@ class Wallet:
 
     # Give chia
     async def give_chia(self, target, amt):
-        return await self.launch_contract(target.puzzle, amt=amt)
+        return await self.launch_smart_coin(target.puzzle, amt=amt)
 
     # Called each cycle before coins are re-established from the simulator.
     def _clear_coins(self):
@@ -461,7 +461,7 @@ class Wallet:
         """Return the actor's balance in standard coins as we understand it"""
         return sum(map(lambda x: x.amount, self.usable_coins.values()))
 
-    # Spend a coin, probably a contract coin.
+    # Spend a coin, probably a smart coin.
     # Allows the user to specify the arguments for the puzzle solution.
     # Automatically takes care of signing, etc.
     # Result is an object representing the actions taken when the block
@@ -493,7 +493,7 @@ class Wallet:
                 elif isinstance(remainer, Wallet):
                     solution_list.append([ConditionOpcode.CREATE_COIN, remainer.puzzle_hash, remain_amt])
                 else:
-                    raise ValueError("remainer is not a wallet or a contract")
+                    raise ValueError("remainer is not a wallet or a smart coin")
 
             delegated_puzzle_solution = Program.to((1, solution_list))
             # Solution is the solution for the old coin.

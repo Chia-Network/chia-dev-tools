@@ -19,7 +19,7 @@ class TestCoins:
             alice = network.make_wallet('alice')
             bob = network.make_wallet('bob')
 
-            # Load the contract and set alice and bob as the participants.
+            # Load the smart coin and set alice and bob as the participants.
             coin_source = template_program.curry(
                 alice.puzzle_hash,
                 bob.puzzle_hash,
@@ -32,10 +32,10 @@ class TestCoins:
             await network.skip_time("10s", farmer=bob)
 
             # Check that the bundle can be launched
-            time_coin = await alice.launch_contract(coin_source, amt=coin_amount)
+            time_coin = await alice.launch_smart_coin(coin_source, amt=coin_amount)
             assert time_coin
 
-            # Return the contract's new coin and the actors.
+            # Return the smart coin's new coin and the actors.
             return network, time_coin, coin_amount, alice, bob
         except:
             await network.close()
