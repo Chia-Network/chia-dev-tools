@@ -109,4 +109,8 @@ def retrieve_cmd(libraries):
         include_path = Path(os.getcwd()).joinpath("include")
         if not include_path.exists():
             os.mkdir("include")
-        shutil.copyfile(src_path, include_path.joinpath(f"{lib}.clib"))
+        retrieve_path = include_path.joinpath(f"{lib}.clib")
+        if retrieve_path.exists():
+            shutil.copyfile(src_path, retrieve_path)
+        else:
+            print(f"Could not find {lib}.clib. You can always create it in ./include yourself.")

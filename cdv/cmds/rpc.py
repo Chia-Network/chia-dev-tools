@@ -10,6 +10,7 @@ from chia.util.default_root import DEFAULT_ROOT_PATH
 from chia.util.config import load_config
 from chia.util.ints import uint16
 from chia.types.spend_bundle import SpendBundle
+from chia.types.blockchain_format.coin import Coin
 
 from cdv.cmds.chia_inspect import fake_context, do_inspect_spend_bundle_cmd
 
@@ -26,9 +27,9 @@ async def get_client():
         return full_node_client
     except Exception as e:
         if isinstance(e, aiohttp.ClientConnectorError):
-            print(f"Connection error. Check if full node is running at {full_node_rpc_port}")
+            pprint(f"Connection error. Check if full node is running at {full_node_rpc_port}")
         else:
-            print(f"Exception from 'harvester' {e}")
+            pprint(f"Exception from 'harvester' {e}")
         return None
 
 @rpc_cmd.command("state", short_help="Gets the status of the blockchain (get_blockchain_state)")
@@ -37,7 +38,8 @@ def rpc_state_cmd():
         try:
             node_client = await get_client()
             state = await node_client.get_blockchain_state()
-            print(state)
+            state['peak'] = state['peak'].to_json_dict()
+            pprint(state)
         finally:
             node_client.close()
             await node_client.await_closed()
@@ -52,7 +54,7 @@ def rpc_blocks_cmd(start, end):
         try:
             node_client = await get_client()
             blocks = await node_client.get_all_block(start, end)
-            print(blocks)
+            pprint([block.to_json_dict() for block in blocks])
         finally:
             node_client.close()
             await node_client.await_closed()
@@ -67,7 +69,7 @@ def rpc_blockrecords_cmd(start, end):
         try:
             node_client = await get_client()
             block_records = await node_client.get_block_records(start, end)
-            print(block_records)
+            pprint(block_records)
         finally:
             node_client.close()
             await node_client.await_closed()
@@ -81,7 +83,9 @@ def rpc_addrem_cmd(headerhash):
         try:
             node_client = await get_client()
             additions, removals = await node_client.get_additions_and_removals(bytes.fromhex(headerhash))
-            print({'additions': additions, 'removals': removals})
+            additions = [rec.to_json_dict() for rec in additions]
+            removals = [rec.to_json_dict() for rec in removals]
+            pprint({'additions': additions, 'removals': removals})
         finally:
             node_client.close()
             await node_client.await_closed()
@@ -96,7 +100,7 @@ def rpc_puzsol_cmd(coinid, block_height):
         try:
             node_client = await get_client()
             coin_spend = await node_client.get_puzzle_and_solution(bytes.fromhex(coinid), block_height)
-            print(coin_spend)
+            pprint(coin_spend)
         finally:
             node_client.close()
             await node_client.await_closed()
@@ -112,9 +116,9 @@ def rpc_pushtx_cmd(spendbundles):
             for bundle in do_inspect_spend_bundle_cmd(fake_context(), spendbundles, print_results=False):
                 try:
                     result = await node_client.push_tx(bundle)
-                    print(result)
+                    pprint(result)
                 except ValueError as e:
-                    print(str(e))
+                    pprint(str(e))
         finally:
             node_client.close()
             await node_client.await_closed()
@@ -147,10 +151,12 @@ def rpc_coinrecords_cmd(values, by, as_name_dict, **kwargs):
             elif by in ["parent_id","parent_info","parent_coin_info","parentid","parentinfo","parent"]:
                 coin_records = await node_client.get_coin_records_by_parent_ids(clean_values,**_kwargs)
 
+            coin_records = [rec.to_json_dict() for rec in coin_records]
+
             if as_name_dict:
                 cr_dict = {}
                 for record in coin_records:
-                    cr_dict[record.coin.name()] = record
+                    cr_dict[Coin.from_json_dict(record["coin"]).name().hex()] = record
                 pprint(cr_dict)
             else:
                 pprint(coin_records)

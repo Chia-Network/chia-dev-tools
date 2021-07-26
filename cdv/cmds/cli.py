@@ -47,7 +47,7 @@ def cli(ctx: click.Context) -> None:
 @click.option("-d", "--discover", is_flag=True, type=bool, help="List the tests without running them")
 @click.option("-i","--init", is_flag=True, type=bool, help="Create the test directory and/or add a new test skeleton")
 def test_cmd(tests: str, discover: bool, init: str):
-    test_paths = Path.cwd().rglob(tests)
+    test_paths = Path.cwd().glob(tests)
     test_paths = list(map(lambda e: str(e), test_paths))
     if init:
         test_dir = Path(os.getcwd()).joinpath("tests")
