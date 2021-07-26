@@ -4,33 +4,99 @@ Chialisp Dev Utility
 Install
 -------
 
+Initialize a new project directory and `cd` into it. Then follow the following instructions to get set up:
+
+**Ubuntu/MacOSs**
 ```
-git clone https://github.com/Quexington/chialisp_dev_utility.git
-cd chialisp_dev_utility
-python3 -m venv venv #py on Windows
-#Optionally add this to PATH, you will need it every time you are using the utility
-. .\venv\bin\activate #.\venv\Scripts\activate on windows
-pip install -e .
+python3 -m venv venv
+. ./venv/bin/activate
+pip install chia-dev-tools
+cdv --version
 ```
 
-Initialize a hello world project
--------
+**Windows Powershell**
 ```
-mkdir My-Chia-Project
-cd My-Chia-Project
-chialisp init
-```
-
-Run the hello world project
--------
-```
-chialisp build
-py helloworld.py
+py -m venv venv
+./venv/Scripts/activate
+pip install chia-dev-tools
+cdv --version
 ```
 
-All current commands
--------
+What's in it?
+-------------
+
+This python wheel will bring in commands from other chia repositories such as `brun` or even `chia`!
+
+The command unique to this repository is `cdv`. Run `cdv --help` to see what it does:
+
 ```
-chialisp init #creates a 'Hello World' script in the current directory
-chialisp build <optional clvm filename> #build all .clvm files into .hex files or just the specified one
+Usage: cdv [OPTIONS] COMMAND [ARGS]...
+
+  Dev tooling for Chia development
+
+Options:
+  --version   Show the version and exit.
+  -h, --help  Show this message and exit.
+
+Commands:
+  clsp     Commands to use when developing with chialisp
+  decode   Decode a bech32m address to a puzzle hash
+  encode   Encode a puzzle hash to a bech32m address
+  inspect  Inspect various data structures
+  rpc      Make RPC requests to a Chia full node
+  test     Run the local test suite (located in ./tests)
 ```
+
+Tests
+----------
+
+The test command allows you to initialize and run local tests.
+
+```
+cdv test --init
+# Make changes to the ./tests/test_skeleton.py file
+cdv test
+```
+
+Chialisp Commands
+-----------------
+
+The `clsp` family of commands are helpful when writing, building, and hashing Chialisp and CLVM programs.
+
+```
+cdv clsp build .\puzzles\password.clsp
+cdv clsp retrieve condition_codes sha256tree
+cdv clsp treehash '(a 2 3)'
+cdv clsp curry .\puzzles\password.clsp.hex -a 0xdeadbeef -a "(q . 'I'm an inner puzzle!')"
+cdv clsp disassemble ff0180
+```
+
+Inspect Commands
+----------------
+
+The `inspect` family of commands allows you to build and examine certain Chia related objects
+
+```
+cdv inspect -id coins --parent-id e16dbc782f500aa24891886779067792b3305cff8b873ae1e77273ad0b7e6c05 --puzzle-hash e16dbc782f500aa24891886779067792b3305cff8b873ae1e77273ad0b7e6c05 --amount 123
+cdv inspect --json spends --coin .\coin.json --puzzle-reveal ff0180 --solution '()'
+cdv inspect --bytes spendbundles .\spend_bundle.json
+cdv inspect --json any 0e1074f76177216b011668c35b1496cbd10eff5ae43f6a7924798771ac131b0a0e1074f76177216b011668c35b1496cbd10eff5ae43f6a7924798771ac131b0a0000000000000001ff018080
+```
+
+RPC Commands
+------------
+
+There are also commands for interacting with the full node's RPC endpoints (in development, more to come).  The family of commands finds the full node the same way that the `chia` commands do.  Make sure to have a local node running before you try these.
+
+```
+cdv rpc state
+cdv rpc blocks -s 0 -e 1
+cdv coinrecords --by id e16dbc782f500aa24891886779067792b3305cff8b873ae1e77273ad0b7e6c05
+cdv pushtx .\spend_bundle.json
+```
+
+Python Packages
+---------------
+
+Being in a virtual environment with this tool will also give your python programs access to all of the chia repository packages.
+It also comes with a package of its own that lives in the `cdv` namespace with some helpful utilities.  Of particular interest is the `cdv.test` package which comes with all sorts of tools to help you write lifecycle tests of smart coins.  Check out [the examples](https://github.com/Quexington/chialisp_dev_utility/tree/main/cdv/examples) to see it in action.
