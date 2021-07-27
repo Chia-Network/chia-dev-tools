@@ -1,4 +1,4 @@
-Chialisp Dev Utility
+Chia Dev Tools
 =======
 
 Install
