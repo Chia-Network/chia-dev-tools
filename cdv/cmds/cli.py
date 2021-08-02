@@ -57,6 +57,8 @@ def test_cmd(tests: str, discover: bool, init: str):
         src_path = Path(testlib.__file__).parent.joinpath("test_skeleton.py")
         dest_path = test_dir.joinpath("test_skeleton.py")
         shutil.copyfile(src_path, dest_path)
+        dest_path_init = test_dir.joinpath("__init__.py")
+        open(dest_path_init,"w")
     if discover:
         pytest.main(["--collect-only",*test_paths])
     elif not init:
