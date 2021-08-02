@@ -21,7 +21,7 @@ dev_dependencies = []
 
 setup(
     name="chia_dev_tools",
-    version="0.1.0",
+    version="1.0.1",
     packages=find_packages(),
     author="Quexington",
     entry_points={
