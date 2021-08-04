@@ -8,6 +8,7 @@ from blspy import AugSchemeMPL, G2Element
 from chia.types.blockchain_format.program import INFINITE_COST, Program
 from chia.types.blockchain_format.coin import Coin
 from chia.types.coin_spend import CoinSpend
+from chia.types.coin_record import CoinRecord
 from chia.types.spend_bundle import SpendBundle
 from chia.consensus.cost_calculator import calculate_cost_of_program
 from chia.full_node.mempool_check_conditions import get_name_puzzle_conditions
@@ -86,7 +87,7 @@ def inspect_any_cmd(ctx, objects):
     input_objects = []
     for obj in objects:
         in_obj = obj
-        for cls in [Coin, CoinSpend, SpendBundle]:
+        for cls in [Coin, CoinSpend, SpendBundle, CoinRecord]:
             try:
                 in_obj = streamable_load(cls, [obj])[0]
             except Exception as e:
@@ -102,6 +103,8 @@ def inspect_any_cmd(ctx, objects):
             do_inspect_coin_spend_cmd(ctx, [obj])
         elif type(obj) == SpendBundle:
             do_inspect_spend_bundle_cmd(ctx, [obj])
+        elif type(obj) == CoinRecord:
+            do_inspect_coin_record_cmd(ctx, [obj])
 
 
 @inspect_cmd.command("coins", short_help="Various methods for examining and calculating coin objects")
@@ -279,3 +282,62 @@ def do_inspect_spend_bundle_cmd(ctx, bundles, print_results=True, **kwargs):
                                     print(f"\t- {msg.hex()}")
     else:
         return spend_bundle_objs
+
+@inspect_cmd.command("coinrecords", short_help="Various methods for examining and calculating CoinRecord objects")
+@click.argument("records", nargs=-1, required=False)
+@click.option("-c","--coin", help="The coin to spend (replaces -pid, -ph, -a)")
+@click.option("-pid","--parent-id", help="The parent coin's ID")
+@click.option("-ph","--puzzle-hash", help="The tree hash of the CLVM puzzle that locks the coin being spent")
+@click.option("-a","--amount", help="The amount of the coin being spent")
+@click.option("-cb","--coinbase", is_flag=True, help="Is this coin generated as a farming reward?")
+@click.option("-ci","--confirmed-block-index", help="The block index in which this coin was created")
+@click.option("-s","--spent", is_flag=True, help="Has the coin been spent?")
+@click.option("-si","--spent-block-index", default=0, show_default=True, type=int, help="The block index in which this coin was spent")
+@click.option("-t","--timestamp", help="The timestamp of the block in which this coin was created")
+@click.pass_context
+def inspect_coin_record_cmd(ctx, records, **kwargs):
+    do_inspect_coin_record_cmd(ctx, records, **kwargs)
+
+def do_inspect_coin_record_cmd(ctx, records, print_results=True, **kwargs):
+    if kwargs and all([kwargs['confirmed_block_index'], kwargs['timestamp']]):
+        if (not kwargs['coin']) and all([kwargs['parent_id'], kwargs['puzzle_hash'], kwargs['amount']]):
+            coin_record_objs = [CoinRecord(
+                Coin(
+                    bytes.fromhex(kwargs['parent_id']),
+                    bytes.fromhex(kwargs['puzzle_hash']),
+                    uint64(kwargs['amount']),
+                ),
+                kwargs["confirmed_block_index"],
+                kwargs["spent_block_index"],
+                kwargs["spent"],
+                kwargs["coinbase"],
+                kwargs["timestamp"],
+            )]
+        elif kwargs['coin']:
+            coin_record_objs = [CoinRecord(
+                do_inspect_coin_cmd(ctx, [kwargs['coin']], print_results=False)[0],
+                kwargs["confirmed_block_index"],
+                kwargs["spent_block_index"],
+                kwargs["spent"],
+                kwargs["coinbase"],
+                kwargs["timestamp"],
+            )]
+        else:
+            print("Invalid arguments specified.")
+    elif not kwargs or not any([kwargs[key] for key in kwargs.keys()]):
+        coin_record_objs = []
+        try:
+            if type(records[0]) == str:
+                coin_record_objs = streamable_load(CoinRecord, records)
+            else:
+                coin_record_objs = records
+        except:
+            print("One or more of the specified objects was not a coin record")
+    else:
+        print("Invalid arguments specified.")
+        return
+
+    if print_results:
+        inspect_callback(coin_record_objs, ctx, id_calc=(lambda e: e.coin.name()), type='CoinRecord')
+    else:
+        return coin_record_objs
