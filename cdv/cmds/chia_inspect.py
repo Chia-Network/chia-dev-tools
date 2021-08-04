@@ -183,15 +183,22 @@ def do_inspect_coin_spend_cmd(ctx, spends, print_results=True, **kwargs):
 @click.argument("bundles", nargs=-1, required=False)
 @click.option("-s","--spend", multiple=True, help="A coin spend object to add to the bundle")
 @click.option("-as","--aggsig", multiple=True, help="A BLS signature to aggregate into the bundle (can be used more than once)")
+@click.option("-db","--debug", is_flag=True, help="Show debugging information about the bundles")
+@click.option("-sd","--signable_data", is_flag=True, help="Print the data that needs to be signed in the bundles")
+@click.option("-n","--network", default="mainnet", show_default=True, help="The network this spend bundle will be pushed to (for AGG_SIG_ME)")
 @click.pass_context
 def inspect_spend_bundle_cmd(ctx, bundles, **kwargs):
     do_inspect_spend_bundle_cmd(ctx, bundles, **kwargs)
 
 def do_inspect_spend_bundle_cmd(ctx, bundles, print_results=True, **kwargs):
-    if kwargs and (len(kwargs['spend']) > 0) and (len(kwargs['aggsig']) > 0):
+    if kwargs and (len(kwargs['spend']) > 0):
+        if (len(kwargs['aggsig']) > 0):
+            sig = AugSchemeMPL.aggregate([G2Element(bytes.fromhex(sanitize_bytes(sig))) for sig in kwargs["aggsig"]])
+        else:
+            sig = G2Element()
         spend_bundle_objs = [SpendBundle(
             do_inspect_coin_spend_cmd(ctx, kwargs["spend"], print_results=False),
-            AugSchemeMPL.aggregate([G2Element(bytes.fromhex(sanitize_bytes(aggsig))) for aggsig in kwargs["aggsig"]])
+            sig
         )]
     else:
         spend_bundle_objs = []
@@ -205,5 +212,42 @@ def do_inspect_spend_bundle_cmd(ctx, bundles, print_results=True, **kwargs):
 
     if print_results:
         inspect_callback(spend_bundle_objs, ctx, id_calc=(lambda e: e.name()), type='SpendBundle')
+        if kwargs:
+            if kwargs["debug"]:
+                print(f"")
+                print(f"Debugging Information")
+                print(f"---------------------")
+                for bundle in spend_bundle_objs:
+                    print(bundle.debug())
+            if kwargs["signable_data"]:
+                print(f"")
+                print(f"Public Key/Message Pairs")
+                print(f"------------------------")
+                for obj in spend_bundle_objs:
+                    for coin_spend in obj.coin_spends:
+                        err, conditions_dict, _ = conditions_dict_for_solution(
+                            coin_spend.puzzle_reveal, coin_spend.solution, INFINITE_COST
+                        )
+                        if err or conditions_dict is None:
+                            print(f"Generating conditions failed, con:{conditions_dict}, error: {err}")
+                        else:
+                            from chia.util.default_root import DEFAULT_ROOT_PATH
+                            from chia.util.config import load_config
+                            config = load_config(DEFAULT_ROOT_PATH, "config.yaml")
+                            genesis_challenge = config["network_overrides"]["constants"][kwargs["network"]]["GENESIS_CHALLENGE"]
+                            pkm_dict = {}
+                            for pk, msg in pkm_pairs_for_conditions_dict(
+                                conditions_dict,
+                                coin_spend.coin.name(),
+                                bytes.fromhex(genesis_challenge),
+                            ):
+                                if str(pk) in pkm_dict:
+                                    pkm_dict[str(pk)].append(msg)
+                                else:
+                                    pkm_dict[str(pk)] = [msg]
+                            for pk, msgs in pkm_dict.items():
+                                print(f"{pk}:")
+                                for msg in msgs:
+                                    print(f"\t- {msg.hex()}")
     else:
         return spend_bundle_objs
