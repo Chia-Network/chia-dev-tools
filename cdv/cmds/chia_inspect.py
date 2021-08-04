@@ -474,3 +474,49 @@ def do_inspect_keys_cmd(ctx, print_results=True, **kwargs):
     print(f"Public Key: {str(pk)}")
     print(f"Fingerprint: {str(pk.get_fingerprint())}")
     print(f"HD Path: {path}")
+
+
+class OrderedParamsCommand(click.Command):
+    _options = []
+
+    def parse_args(self, ctx, args):
+        # run the parser for ourselves to preserve the passed order
+        parser = self.make_parser(ctx)
+        opts, _, param_order = parser.parse_args(args=list(args))
+        for param in param_order:
+            if param.name != "help":
+                type(self)._options.append((param, opts[param.name].pop(0)))
+
+        # return "normal" parse results
+        return super().parse_args(ctx, args)
+
+@inspect_cmd.command("signatures", cls=OrderedParamsCommand, short_help="Various methods for examining BLS aggregated signatures")
+@click.option("-sk","--secret-key", multiple=True, help="A secret key to sign a message with")
+@click.option("-t","--utf-8", multiple=True, help="A UTF-8 message to be signed with the specified secret key")
+@click.option("-b","--bytes", multiple=True, help="A hex message to be signed with the specified secret key")
+@click.option("-sig","--aggsig", multiple=True, help="A signature to be aggregated")
+@click.pass_context
+def inspect_sigs_cmd(ctx, **kwargs):
+    do_inspect_sigs_cmd(ctx, **kwargs)
+
+def do_inspect_sigs_cmd(ctx, print_results=True, **kwargs):
+    base = G2Element()
+    sk = None
+    for param, value in OrderedParamsCommand._options:
+        if param.name == "secret_key":
+            sk = PrivateKey.from_bytes(bytes.fromhex(sanitize_bytes(value)))
+        elif param.name == "aggsig":
+            new_sig = G2Element.from_bytes(bytes.fromhex(sanitize_bytes(value)))
+            base = AugSchemeMPL.aggregate([base, new_sig])
+        elif sk:
+            if param.name == "utf_8":
+                new_sig = AugSchemeMPL.sign(sk, bytes(value, "utf-8"))
+                base = AugSchemeMPL.aggregate([base, new_sig])
+            if param.name == "bytes":
+                new_sig = AugSchemeMPL.sign(sk, bytes.fromhex(sanitize_bytes(value)))
+                base = AugSchemeMPL.aggregate([base, new_sig])
+
+    if print_results:
+        print(str(base))
+    else:
+        return base
