@@ -28,17 +28,21 @@ def parse_program(program: str, include=[]):
     if '(' in program:
         prog = Program.to(assemble(program))
     elif '.' not in program:
-        prog = Program.from_bytes(bytes.fromhex(program))
+        #TODO: Replace this and the one below with sanitize_bytes (inspect) once that's not circular
+        sanitized = program[2:] if program[:2] == "0x" else program
+        prog = Program.from_bytes(bytes.fromhex(sanitized))
     else:
         with open(program, "r") as file:
             filestring = file.read()
             if '(' in filestring:
+                # TODO: This should probably be more robust
                 if re.compile('\(mod\s').search(filestring):
                     prog = Program.to(compile_clvm_text(filestring, append_include(include)))
                 else:
                     prog = Program.to(assemble(filestring))
             else:
-                prog = Program.from_bytes(bytes.fromhex(filestring))
+                sanitized = filestring[2:] if filestring[:2] == "0x" else filestring
+                prog = Program.from_bytes(bytes.fromhex(sanitized))
     return prog
 
 @clsp_cmd.command("build", short_help="Build all specified CLVM files (i.e mypuz.clsp or ./puzzles/*.clsp)")
