@@ -31,10 +31,16 @@ def inspect_cmd(ctx, **kwargs):
 
 def inspect_callback(objs, ctx, id_calc=None, type='Unknown'):
     if not any([value for key, value in ctx.obj.items()]):
-        pprint([obj.to_json_dict() for obj in objs])
+        if getattr(objs[0], "to_json_dict", None):
+            pprint([obj.to_json_dict() for obj in objs])
+        else:
+            pprint(f"Object of type {type} cannot be serialized to JSON")
     else:
         if ctx.obj['json']:
-            pprint([obj.to_json_dict() for obj in objs])
+            if getattr(obj, "to_json_dict", None):
+                pprint([obj.to_json_dict() for obj in objs])
+            else:
+                pprint(f"Object of type {type} cannot be serialized to JSON")
         if ctx.obj['bytes']:
             final_output = []
             for obj in objs:
@@ -87,11 +93,18 @@ def inspect_any_cmd(ctx, objects):
     input_objects = []
     for obj in objects:
         in_obj = obj
+        # Try it as Streamable types
         for cls in [Coin, CoinSpend, SpendBundle, CoinRecord]:
             try:
                 in_obj = streamable_load(cls, [obj])[0]
-            except Exception as e:
+            except:
                 pass
+        # Try it as a Program
+        try:
+            in_obj = parse_program(obj)
+        except:
+            pass
+
         input_objects.append(in_obj)
 
     for obj in input_objects:
@@ -105,6 +118,8 @@ def inspect_any_cmd(ctx, objects):
             do_inspect_spend_bundle_cmd(ctx, [obj])
         elif type(obj) == CoinRecord:
             do_inspect_coin_record_cmd(ctx, [obj])
+        elif type(obj) == Program:
+            do_inspect_program_cmd(ctx, [obj])
 
 
 @inspect_cmd.command("coins", short_help="Various methods for examining and calculating coin objects")
@@ -341,3 +356,24 @@ def do_inspect_coin_record_cmd(ctx, records, print_results=True, **kwargs):
         inspect_callback(coin_record_objs, ctx, id_calc=(lambda e: e.coin.name()), type='CoinRecord')
     else:
         return coin_record_objs
+
+@inspect_cmd.command("programs", short_help="Various methods for examining CLVM Program objects")
+@click.argument("programs", nargs=-1, required=False)
+@click.pass_context
+def inspect_program_cmd(ctx, programs, **kwargs):
+    do_inspect_program_cmd(ctx, programs, **kwargs)
+
+def do_inspect_program_cmd(ctx, programs, print_results=True, **kwargs):
+    program_objs = []
+    try:
+        if type(programs[0]) == str:
+            program_objs = [parse_program(prog) for prog in programs]
+        else:
+            program_objs = programs
+    except:
+        print("One or more of the specified objects was not a Program")
+
+    if print_results:
+        inspect_callback(program_objs, ctx, id_calc=(lambda e: e.get_tree_hash()), type='Program')
+    else:
+        return program_objs
