@@ -5,10 +5,15 @@ from pprint import pprint
 
 from blspy import AugSchemeMPL, G2Element
 
+from chia.types.blockchain_format.program import INFINITE_COST, Program
 from chia.types.blockchain_format.coin import Coin
 from chia.types.coin_spend import CoinSpend
 from chia.types.spend_bundle import SpendBundle
+from chia.consensus.cost_calculator import calculate_cost_of_program
+from chia.full_node.mempool_check_conditions import get_name_puzzle_conditions
+from chia.full_node.bundle_tools import simple_solution_generator
 from chia.util.ints import uint64
+from chia.util.condition_tools import conditions_dict_for_solution, pkm_pairs_for_conditions_dict
 
 from cdv.cmds.clsp import parse_program
 
@@ -137,11 +142,20 @@ def do_inspect_coin_cmd(ctx, coins, print_results=True, **kwargs):
 @click.option("-a","--amount", help="The amount of the coin being spent")
 @click.option("-pr","--puzzle-reveal", help="The program that is hashed into this coin")
 @click.option("-s","--solution", help="The attempted solution to the puzzle")
+@click.option("-ec","--cost", is_flag=True, help="Print the CLVM cost of the spend")
+@click.option("-bc","--cost-per-byte", default=12000, show_default=True, help="The cost per byte in the puzzle and solution reveal to use when calculating cost")
 @click.pass_context
 def inspect_coin_cmd(ctx, spends, **kwargs):
     do_inspect_coin_spend_cmd(ctx, spends, **kwargs)
 
 def do_inspect_coin_spend_cmd(ctx, spends, print_results=True, **kwargs):
+    cost_flag = False
+    cost_per_byte = 12000
+    if kwargs:
+        cost_flag = kwargs["cost"]
+        cost_per_byte = kwargs["cost_per_byte"]
+        del kwargs["cost"]
+        del kwargs["cost_per_byte"]
     if kwargs and all([kwargs['puzzle_reveal'], kwargs['solution']]):
         if (not kwargs['coin']) and all([kwargs['parent_id'], kwargs['puzzle_hash'], kwargs['amount']]):
             coin_spend_objs = [CoinSpend(
@@ -176,6 +190,12 @@ def do_inspect_coin_spend_cmd(ctx, spends, print_results=True, **kwargs):
 
     if print_results:
         inspect_callback(coin_spend_objs, ctx, id_calc=(lambda e: e.coin.name()), type='CoinSpend')
+        if cost_flag:
+            for coin_spend in coin_spend_objs:
+                program = simple_solution_generator(SpendBundle([coin_spend], G2Element()))
+                npc_result = get_name_puzzle_conditions(program, INFINITE_COST, cost_per_byte=cost_per_byte, safe_mode=True)
+                cost = calculate_cost_of_program(program, npc_result, cost_per_byte)
+                print(f"Cost: {cost}")
     else:
         return coin_spend_objs
 
@@ -186,6 +206,8 @@ def do_inspect_coin_spend_cmd(ctx, spends, print_results=True, **kwargs):
 @click.option("-db","--debug", is_flag=True, help="Show debugging information about the bundles")
 @click.option("-sd","--signable_data", is_flag=True, help="Print the data that needs to be signed in the bundles")
 @click.option("-n","--network", default="mainnet", show_default=True, help="The network this spend bundle will be pushed to (for AGG_SIG_ME)")
+@click.option("-ec","--cost", is_flag=True, help="Print the CLVM cost of the spend")
+@click.option("-bc","--cost-per-byte", default=12000, show_default=True, help="The cost per byte in the puzzle and solution reveal to use when calculating cost")
 @click.pass_context
 def inspect_spend_bundle_cmd(ctx, bundles, **kwargs):
     do_inspect_spend_bundle_cmd(ctx, bundles, **kwargs)
@@ -213,6 +235,12 @@ def do_inspect_spend_bundle_cmd(ctx, bundles, print_results=True, **kwargs):
     if print_results:
         inspect_callback(spend_bundle_objs, ctx, id_calc=(lambda e: e.name()), type='SpendBundle')
         if kwargs:
+            if kwargs["cost"]:
+                for spend_bundle in spend_bundle_objs:
+                    program = simple_solution_generator(spend_bundle)
+                    npc_result = get_name_puzzle_conditions(program, INFINITE_COST, cost_per_byte=kwargs["cost_per_byte"], safe_mode=True)
+                    cost = calculate_cost_of_program(program, npc_result, kwargs["cost_per_byte"])
+                    print(f"Cost: {cost}")
             if kwargs["debug"]:
                 print(f"")
                 print(f"Debugging Information")
