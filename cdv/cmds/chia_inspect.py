@@ -2,8 +2,9 @@ import click
 import json
 
 from pprint import pprint
+from secrets import token_bytes
 
-from blspy import AugSchemeMPL, G2Element
+from blspy import AugSchemeMPL, PrivateKey, G1Element, G2Element
 
 from chia.types.blockchain_format.program import INFINITE_COST, Program
 from chia.types.blockchain_format.coin import Coin
@@ -13,7 +14,14 @@ from chia.types.spend_bundle import SpendBundle
 from chia.consensus.cost_calculator import calculate_cost_of_program
 from chia.full_node.mempool_check_conditions import get_name_puzzle_conditions
 from chia.full_node.bundle_tools import simple_solution_generator
-from chia.util.ints import uint64
+from chia.wallet.derive_keys import _derive_path
+from chia.wallet.puzzles.p2_delegated_puzzle_or_hidden_puzzle import (
+    DEFAULT_HIDDEN_PUZZLE_HASH,
+    calculate_synthetic_secret_key,
+    calculate_synthetic_public_key,
+)
+from chia.util.keychain import mnemonic_to_seed, bytes_to_mnemonic
+from chia.util.ints import uint64, uint32
 from chia.util.condition_tools import conditions_dict_for_solution, pkm_pairs_for_conditions_dict
 
 from cdv.cmds.clsp import parse_program
@@ -99,6 +107,12 @@ def inspect_any_cmd(ctx, objects):
                 in_obj = streamable_load(cls, [obj])[0]
             except:
                 pass
+        # Try it as some key stuff
+        for cls in [G1Element, G2Element, PrivateKey]:
+            try:
+                in_obj = cls.from_bytes(bytes.fromhex(sanitize_bytes(obj)))
+            except:
+                pass
         # Try it as a Program
         try:
             in_obj = parse_program(obj)
@@ -120,6 +134,10 @@ def inspect_any_cmd(ctx, objects):
             do_inspect_coin_record_cmd(ctx, [obj])
         elif type(obj) == Program:
             do_inspect_program_cmd(ctx, [obj])
+        elif type(obj) == G1Element:
+            do_inspect_keys_cmd(ctx, public_key=obj)
+        elif type(obj) == PrivateKey:
+            do_inspect_keys_cmd(ctx, secret_key=obj)
 
 
 @inspect_cmd.command("coins", short_help="Various methods for examining and calculating coin objects")
@@ -377,3 +395,82 @@ def do_inspect_program_cmd(ctx, programs, print_results=True, **kwargs):
         inspect_callback(program_objs, ctx, id_calc=(lambda e: e.get_tree_hash()), type='Program')
     else:
         return program_objs
+
+@inspect_cmd.command("keys", short_help="Various methods for examining BLS Public Keys")
+@click.option("-pk","--public-key", help="A BLS public key")
+@click.option("-sk","--secret-key", help="The secret key from which to derive the public key")
+@click.option("-m","--mnemonic", help="A 24 word mnemonic from which to derive the secret key")
+@click.option("-pw","--passphrase", default="", show_default=True, help="A passphrase to use when deriving a secret key from mnemonic")
+@click.option("-r","--random", is_flag=True, help="Generate a random set of keys")
+@click.option("-hd","--hd-path", help="Enter the HD path in the form 'm/12381/8444/n/n'")
+@click.option("-t","--key-type", type=click.Choice(["farmer","pool","wallet","local","backup","owner","auth"]), help="Automatically use a chia defined HD path for a specific service")
+@click.option("-sy","--synthetic", is_flag=True, help="Use a hidden puzzle hash (-ph) to calculate a synthetic secret/public key")
+@click.option("-ph","--hidden-puzhash", default=DEFAULT_HIDDEN_PUZZLE_HASH.hex(), show_default=False, help="The hidden puzzle to use when calculating a synthetic key")
+@click.pass_context
+def inspect_keys_cmd(ctx, **kwargs):
+    do_inspect_keys_cmd(ctx, **kwargs)
+
+def do_inspect_keys_cmd(ctx, print_results=True, **kwargs):
+    sk = None
+    pk = None
+    path = "m"
+    if len(kwargs) == 1:
+        if "secret_key" in kwargs:
+            sk = kwargs["secret_key"]
+            pk = sk.get_g1()
+        elif "public_key" in kwargs:
+            pk = kwargs["public_key"]
+    else:
+        condition_list = [kwargs["public_key"], kwargs["secret_key"], kwargs["mnemonic"], kwargs["random"]]
+        def one_or_zero(value):
+            return 1 if value else 0
+        if sum([one_or_zero(condition) for condition in condition_list]) == 1:
+            if kwargs["public_key"]:
+                sk = None
+                pk = G1Element.from_bytes(bytes.fromhex(sanitize_bytes(kwargs["public_key"])))
+            elif kwargs["secret_key"]:
+                sk = PrivateKey.from_bytes(bytes.fromhex(sanitize_bytes(kwargs["secret_key"])))
+                pk = sk.get_g1()
+            elif kwargs["mnemonic"]:
+                seed = mnemonic_to_seed(kwargs["mnemonic"], kwargs["passphrase"])
+                sk = AugSchemeMPL.key_gen(seed)
+                pk = sk.get_g1()
+            elif kwargs["random"]:
+                sk = AugSchemeMPL.key_gen(mnemonic_to_seed(bytes_to_mnemonic(token_bytes(32)),""))
+                pk = sk.get_g1()
+
+            if kwargs["hd_path"] and (kwargs["hd_path"] != "m"):
+                path = [uint32(int(i)) for i in kwargs["hd_path"].split("/") if i != "m"]
+            elif kwargs["key_type"]:
+                case = kwargs["key_type"]
+                if case == "farmer":
+                    path = [12381, 8444, 0, 0]
+                if case == "pool":
+                    path = [12381, 8444, 1, 0]
+                if case == "wallet":
+                    path = [12381, 8444, 2, 0]
+                if case == "local":
+                    path = [12381, 8444, 3, 0]
+                if case == "backup":
+                    path = [12381, 8444, 4, 0]
+                if case == "owner":
+                    path = [12381, 8444, 5, 0]
+                if case == "auth":
+                    path = [12381, 8444, 6, 0]
+            if path != "m":
+                sk = _derive_path(sk, path)
+                pk = sk.get_g1()
+                path = "m/" + "/".join([str(e) for e in path])
+
+            if kwargs["synthetic"]:
+                if sk:
+                    sk = calculate_synthetic_secret_key(sk, bytes.fromhex(kwargs["hidden_puzhash"]))
+                pk = calculate_synthetic_public_key(pk, bytes.fromhex(kwargs["hidden_puzhash"]))
+        else:
+            print("Invalid arguments specified.")
+
+    if sk:
+        print(f"Secret Key: {bytes(sk).hex()}")
+    print(f"Public Key: {str(pk)}")
+    print(f"Fingerprint: {str(pk.get_fingerprint())}")
+    print(f"HD Path: {path}")
