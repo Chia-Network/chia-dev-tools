@@ -9,10 +9,11 @@ from chia.rpc.full_node_rpc_client import FullNodeRpcClient
 from chia.util.default_root import DEFAULT_ROOT_PATH
 from chia.util.config import load_config
 from chia.util.ints import uint16
+from chia.util.misc import format_bytes
 from chia.types.spend_bundle import SpendBundle
 from chia.types.blockchain_format.coin import Coin
 
-from cdv.cmds.chia_inspect import fake_context, do_inspect_spend_bundle_cmd
+from cdv.cmds.chia_inspect import fake_context, do_inspect_spend_bundle_cmd, sanitize_bytes
 
 @click.group("rpc", short_help="Make RPC requests to a Chia full node")
 def rpc_cmd():
@@ -46,14 +47,21 @@ def rpc_state_cmd():
 
     asyncio.get_event_loop().run_until_complete(do_command())
 
-@rpc_cmd.command("blocks", short_help="Gets blocks between two indexes (get_blocks)")
-@click.option("-s","--start", required=True, help="The block index to start at (included)")
-@click.option("-e","--end", required=True, help="The block index to end at (excluded)")
-def rpc_blocks_cmd(start, end):
+@rpc_cmd.command("blocks", short_help="Gets blocks between two indexes (get_block(s))")
+@click.option("-hh","--header-hash", help="The header hash of the block to get")
+@click.option("-s","--start", help="The block index to start at (included)")
+@click.option("-e","--end", help="The block index to end at (excluded)")
+def rpc_blocks_cmd(header_hash, start, end):
     async def do_command():
         try:
             node_client = await get_client()
-            blocks = await node_client.get_all_block(start, end)
+            if header_hash:
+                blocks = [await node_client.get_block(bytes.fromhex(sanitize_bytes(header_hash)))]
+            elif start and end:
+                blocks = await node_client.get_all_block(start, end)
+            else:
+                print("Invalid arguments specified")
+                return
             pprint([block.to_json_dict() for block in blocks])
         finally:
             node_client.close()
@@ -61,15 +69,78 @@ def rpc_blocks_cmd(start, end):
 
     asyncio.get_event_loop().run_until_complete(do_command())
 
-@rpc_cmd.command("blockrecords", short_help="Gets block records between two indexes (get_block_records)")
-@click.option("-s","--start", required=True, help="The block index to start at (included)")
-@click.option("-e","--end", required=True, help="The block index to end at (excluded)")
-def rpc_blockrecords_cmd(start, end):
+@rpc_cmd.command("blockrecords", short_help="Gets block records between two indexes (get_block_record(s), get_block_record_by_height)")
+@click.option("-hh","--header-hash", help="The header hash of the block to get")
+@click.option("-i","--height", help="The height of the block to get")
+@click.option("-s","--start", help="The block index to start at (included)")
+@click.option("-e","--end", help="The block index to end at (excluded)")
+def rpc_blockrecords_cmd(header_hash, height, start, end):
     async def do_command():
         try:
             node_client = await get_client()
-            block_records = await node_client.get_block_records(start, end)
+            if header_hash:
+                block_record = await node_client.get_block_record(bytes.fromhex(sanitize_bytes(header_hash)))
+                block_records = block_record.to_json_dict() if block_record else []
+            elif height:
+                block_record = await node_client.get_block_record_by_height(height)
+                block_records = block_record.to_json_dict() if block_record else []
+            elif start and end:
+                block_records = await node_client.get_block_records(start, end)
+            else:
+                print("Invalid arguments specified")
             pprint(block_records)
+        finally:
+            node_client.close()
+            await node_client.await_closed()
+
+    asyncio.get_event_loop().run_until_complete(do_command())
+
+@rpc_cmd.command("unfinished", short_help="Returns the current unfinished header blocks (get_unfinished_block_headers)")
+def rpc_unfinished_cmd():
+    async def do_command():
+        try:
+            node_client = await get_client()
+            header_blocks = await node_client.get_unfinished_block_headers()
+            pprint([block.to_json_dict() for block in header_blocks])
+        finally:
+            node_client.close()
+            await node_client.await_closed()
+
+    asyncio.get_event_loop().run_until_complete(do_command())
+
+@rpc_cmd.command("space", short_help="Gets the netspace of the network between two blocks (get_network_space)")
+@click.option("-old","--older", help="The header hash of the older block")
+@click.option("-new","--newer", help="The header hash of the newer block")
+@click.option("-s","--start", help="The height of the block to start at")
+@click.option("-e","--end", help="The height of the block to end at")
+def rpc_space_cmd(older, newer, start, end):
+    async def do_command():
+        try:
+            node_client = await get_client()
+
+            if (older and start) or (newer and end):
+                pprint("Invalid arguments specified.")
+            else:
+                if start:
+                    start_hash = (await node_client.get_block_record_by_height(start)).header_hash
+                elif older:
+                    start_hash = bytes.fromhex(sanitize_bytes(older))
+                else:
+                    start_hash = (await node_client.get_block_record_by_height(0)).header_hash
+
+                if end:
+                    end_hash = (await node_client.get_block_record_by_height(end)).header_hash
+                elif newer:
+                    end_hash = bytes.fromhex(sanitize_bytes(newer))
+                else:
+                    end_hash = (await node_client.get_block_record_by_height((await node_client.get_blockchain_state())["peak"].height)).header_hash
+
+            netspace = await node_client.get_network_space(start_hash, end_hash)
+            if netspace:
+                pprint(format_bytes(netspace))
+            else:
+                pprint("Invalid block range specified")
+
         finally:
             node_client.close()
             await node_client.await_closed()
@@ -119,6 +190,32 @@ def rpc_pushtx_cmd(spendbundles):
                     pprint(result)
                 except ValueError as e:
                     pprint(str(e))
+        finally:
+            node_client.close()
+            await node_client.await_closed()
+
+    asyncio.get_event_loop().run_until_complete(do_command())
+
+@rpc_cmd.command("mempool", short_help="Gets items that are currently sitting in the mempool (get_(all_)mempool_*)")
+@click.option("-txid","--transaction-id", help="The ID of a spend bundle that is sitting in the mempool")
+@click.option("--ids-only", is_flag=True, help="Only show the IDs of the retrieved spend bundles")
+def rpc_mempool_cmd(transaction_id, ids_only):
+    async def do_command():
+        try:
+            node_client = await get_client()
+            if transaction_id:
+                items = {}
+                items[transaction_id] = await node_client.get_mempool_item_by_tx_id(bytes.fromhex(sanitize_bytes(transaction_id)))
+            else:
+                b_items = await node_client.get_all_mempool_items()
+                items = {}
+                for key in b_items.keys():
+                    items[key.hex()] = b_items[key]
+
+            if ids_only:
+                pprint(list(items.keys()))
+            else:
+                pprint(items)
         finally:
             node_client.close()
             await node_client.await_closed()
