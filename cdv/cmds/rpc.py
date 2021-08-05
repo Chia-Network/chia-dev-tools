@@ -14,7 +14,8 @@ from chia.util.byte_types import hexstr_to_bytes
 from chia.types.spend_bundle import SpendBundle
 from chia.types.blockchain_format.coin import Coin
 
-from cdv.cmds.chia_inspect import fake_context, do_inspect_spend_bundle_cmd
+from cdv.cmds.util import fake_context
+from cdv.cmds.chia_inspect import do_inspect_spend_bundle_cmd
 
 @click.group("rpc", short_help="Make RPC requests to a Chia full node")
 def rpc_cmd():

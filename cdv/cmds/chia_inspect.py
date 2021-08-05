@@ -25,7 +25,7 @@ from chia.util.ints import uint64, uint32
 from chia.util.condition_tools import conditions_dict_for_solution, pkm_pairs_for_conditions_dict
 from chia.util.byte_types import hexstr_to_bytes
 
-from cdv.cmds.clsp import parse_program
+from cdv.cmds.util import parse_program
 
 @click.group("inspect", short_help="Inspect various data structures")
 @click.option("-j","--json", is_flag=True, help="Output the result as JSON")
@@ -64,11 +64,6 @@ def inspect_callback(objs, ctx, id_calc=None, type='Unknown'):
             pprint([type for _ in objs])
 
 # Utility functions
-def fake_context():
-    ctx = {}
-    ctx["obj"] = {"json": True}
-    return ctx
-
 def json_and_key_strip(input):
     json_dict = json.loads(input)
     if len(json_dict.keys()) == 1:
