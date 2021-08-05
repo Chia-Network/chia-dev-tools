@@ -13,6 +13,7 @@ from clvm_tools.clvmc import compile_clvm, compile_clvm_text
 from clvm_tools.binutils import disassemble, assemble
 
 from chia.types.blockchain_format.program import Program
+from chia.util.byte_types import hexstr_to_bytes
 
 @click.group("clsp", short_help="Commands to use when developing with chialisp")
 def clsp_cmd():
@@ -28,9 +29,7 @@ def parse_program(program: str, include=[]):
     if '(' in program:
         prog = Program.to(assemble(program))
     elif '.' not in program:
-        #TODO: Replace this and the one below with sanitize_bytes (inspect) once that's not circular
-        sanitized = program[2:] if program[:2] == "0x" else program
-        prog = Program.from_bytes(bytes.fromhex(sanitized))
+        prog = Program.from_bytes(hexstr_to_bytes(program))
     else:
         with open(program, "r") as file:
             filestring = file.read()
@@ -41,8 +40,7 @@ def parse_program(program: str, include=[]):
                 else:
                     prog = Program.to(assemble(filestring))
             else:
-                sanitized = filestring[2:] if filestring[:2] == "0x" else filestring
-                prog = Program.from_bytes(bytes.fromhex(sanitized))
+                prog = Program.from_bytes(hexstr_to_bytes(filestring))
     return prog
 
 @clsp_cmd.command("build", short_help="Build all specified CLVM files (i.e mypuz.clsp or ./puzzles/*.clsp)")

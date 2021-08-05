@@ -10,10 +10,11 @@ from chia.util.default_root import DEFAULT_ROOT_PATH
 from chia.util.config import load_config
 from chia.util.ints import uint16
 from chia.util.misc import format_bytes
+from chia.util.byte_types import hexstr_to_bytes
 from chia.types.spend_bundle import SpendBundle
 from chia.types.blockchain_format.coin import Coin
 
-from cdv.cmds.chia_inspect import fake_context, do_inspect_spend_bundle_cmd, sanitize_bytes
+from cdv.cmds.chia_inspect import fake_context, do_inspect_spend_bundle_cmd
 
 @click.group("rpc", short_help="Make RPC requests to a Chia full node")
 def rpc_cmd():
@@ -56,7 +57,7 @@ def rpc_blocks_cmd(header_hash, start, end):
         try:
             node_client = await get_client()
             if header_hash:
-                blocks = [await node_client.get_block(bytes.fromhex(sanitize_bytes(header_hash)))]
+                blocks = [await node_client.get_block(hexstr_to_bytes(header_hash))]
             elif start and end:
                 blocks = await node_client.get_all_block(start, end)
             else:
@@ -79,7 +80,7 @@ def rpc_blockrecords_cmd(header_hash, height, start, end):
         try:
             node_client = await get_client()
             if header_hash:
-                block_record = await node_client.get_block_record(bytes.fromhex(sanitize_bytes(header_hash)))
+                block_record = await node_client.get_block_record(hexstr_to_bytes(header_hash))
                 block_records = block_record.to_json_dict() if block_record else []
             elif height:
                 block_record = await node_client.get_block_record_by_height(height)
@@ -124,14 +125,14 @@ def rpc_space_cmd(older, newer, start, end):
                 if start:
                     start_hash = (await node_client.get_block_record_by_height(start)).header_hash
                 elif older:
-                    start_hash = bytes.fromhex(sanitize_bytes(older))
+                    start_hash = hexstr_to_bytes(older)
                 else:
                     start_hash = (await node_client.get_block_record_by_height(0)).header_hash
 
                 if end:
                     end_hash = (await node_client.get_block_record_by_height(end)).header_hash
                 elif newer:
-                    end_hash = bytes.fromhex(sanitize_bytes(newer))
+                    end_hash = hexstr_to_bytes(newer)
                 else:
                     end_hash = (await node_client.get_block_record_by_height((await node_client.get_blockchain_state())["peak"].height)).header_hash
 
@@ -205,7 +206,7 @@ def rpc_mempool_cmd(transaction_id, ids_only):
             node_client = await get_client()
             if transaction_id:
                 items = {}
-                items[transaction_id] = await node_client.get_mempool_item_by_tx_id(bytes.fromhex(sanitize_bytes(transaction_id)))
+                items[transaction_id] = await node_client.get_mempool_item_by_tx_id(hexstr_to_bytes(transaction_id))
             else:
                 b_items = await node_client.get_all_mempool_items()
                 items = {}

@@ -23,6 +23,7 @@ from chia.wallet.puzzles.p2_delegated_puzzle_or_hidden_puzzle import (
 from chia.util.keychain import mnemonic_to_seed, bytes_to_mnemonic
 from chia.util.ints import uint64, uint32
 from chia.util.condition_tools import conditions_dict_for_solution, pkm_pairs_for_conditions_dict
+from chia.util.byte_types import hexstr_to_bytes
 
 from cdv.cmds.clsp import parse_program
 
@@ -63,9 +64,6 @@ def inspect_callback(objs, ctx, id_calc=None, type='Unknown'):
             pprint([type for _ in objs])
 
 # Utility functions
-def sanitize_bytes(bytecode):
-    return bytecode[2:] if bytecode[:2] == "0x" else bytecode
-
 def fake_context():
     ctx = {}
     ctx["obj"] = {"json": True}
@@ -110,7 +108,7 @@ def inspect_any_cmd(ctx, objects):
         # Try it as some key stuff
         for cls in [G1Element, G2Element, PrivateKey]:
             try:
-                in_obj = cls.from_bytes(bytes.fromhex(sanitize_bytes(obj)))
+                in_obj = cls.from_bytes(hexstr_to_bytes(obj))
             except:
                 pass
         # Try it as a Program
@@ -200,14 +198,14 @@ def do_inspect_coin_spend_cmd(ctx, spends, print_results=True, **kwargs):
                     bytes.fromhex(kwargs['puzzle_hash']),
                     uint64(kwargs['amount']),
                 ),
-                parse_program(sanitize_bytes(kwargs['puzzle_reveal'])),
-                parse_program(sanitize_bytes(kwargs['solution'])),
+                parse_program(kwargs['puzzle_reveal']),
+                parse_program(kwargs['solution']),
             )]
         elif kwargs['coin']:
             coin_spend_objs = [CoinSpend(
                 do_inspect_coin_cmd(ctx, [kwargs['coin']], print_results=False)[0],
-                parse_program(sanitize_bytes(kwargs['puzzle_reveal'])),
-                parse_program(sanitize_bytes(kwargs['solution'])),
+                parse_program(kwargs['puzzle_reveal']),
+                parse_program(kwargs['solution']),
             )]
         else:
             print("Invalid arguments specified.")
@@ -251,7 +249,7 @@ def inspect_spend_bundle_cmd(ctx, bundles, **kwargs):
 def do_inspect_spend_bundle_cmd(ctx, bundles, print_results=True, **kwargs):
     if kwargs and (len(kwargs['spend']) > 0):
         if (len(kwargs['aggsig']) > 0):
-            sig = AugSchemeMPL.aggregate([G2Element(bytes.fromhex(sanitize_bytes(sig))) for sig in kwargs["aggsig"]])
+            sig = AugSchemeMPL.aggregate([G2Element(hexstr_to_bytes(sig)) for sig in kwargs["aggsig"]])
         else:
             sig = G2Element()
         spend_bundle_objs = [SpendBundle(
@@ -427,9 +425,9 @@ def do_inspect_keys_cmd(ctx, print_results=True, **kwargs):
         if sum([one_or_zero(condition) for condition in condition_list]) == 1:
             if kwargs["public_key"]:
                 sk = None
-                pk = G1Element.from_bytes(bytes.fromhex(sanitize_bytes(kwargs["public_key"])))
+                pk = G1Element.from_bytes(hexstr_to_bytes(kwargs["public_key"]))
             elif kwargs["secret_key"]:
-                sk = PrivateKey.from_bytes(bytes.fromhex(sanitize_bytes(kwargs["secret_key"])))
+                sk = PrivateKey.from_bytes(hexstr_to_bytes(kwargs["secret_key"]))
                 pk = sk.get_g1()
             elif kwargs["mnemonic"]:
                 seed = mnemonic_to_seed(kwargs["mnemonic"], kwargs["passphrase"])
@@ -504,16 +502,16 @@ def do_inspect_sigs_cmd(ctx, print_results=True, **kwargs):
     sk = None
     for param, value in OrderedParamsCommand._options:
         if param.name == "secret_key":
-            sk = PrivateKey.from_bytes(bytes.fromhex(sanitize_bytes(value)))
+            sk = PrivateKey.from_bytes(hexstr_to_bytes(value))
         elif param.name == "aggsig":
-            new_sig = G2Element.from_bytes(bytes.fromhex(sanitize_bytes(value)))
+            new_sig = G2Element.from_bytes(hexstr_to_bytes(value))
             base = AugSchemeMPL.aggregate([base, new_sig])
         elif sk:
             if param.name == "utf_8":
                 new_sig = AugSchemeMPL.sign(sk, bytes(value, "utf-8"))
                 base = AugSchemeMPL.aggregate([base, new_sig])
             if param.name == "bytes":
-                new_sig = AugSchemeMPL.sign(sk, bytes.fromhex(sanitize_bytes(value)))
+                new_sig = AugSchemeMPL.sign(sk, hexstr_to_bytes(value))
                 base = AugSchemeMPL.aggregate([base, new_sig])
 
     if print_results:
