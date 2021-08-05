@@ -22,7 +22,7 @@ dev_dependencies = []
 setup(
     name="chia_dev_tools",
     version="1.0.1",
-    packages=find_packages(),
+    packages=find_packages(exclude=("tests",)),
     author="Quexington",
     entry_points={
         "console_scripts": [
