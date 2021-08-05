@@ -7,6 +7,7 @@ from pathlib import Path
 
 from cdv import __version__
 
+from chia.util.hash import std_hash
 from chia.util.bech32m import encode_puzzle_hash, decode_puzzle_hash
 
 from cdv.cmds import (
@@ -63,6 +64,15 @@ def test_cmd(tests: str, discover: bool, init: str):
         pytest.main(["--collect-only",*test_paths])
     elif not init:
         pytest.main([*test_paths])
+
+@cli.command("hash", short_help="SHA256 hash UTF-8 strings or bytes (use 0x prefix for bytes)")
+@click.argument("data", nargs=1, required=True)
+def hash_cmd(data):
+    if data[:2] == "0x":
+        hash_data = bytes.fromhex(data[2:])
+    else:
+        hash_data = bytes(data, "utf-8")
+    print(std_hash(hash_data))
 
 @cli.command("encode", short_help="Encode a puzzle hash to a bech32m address")
 @click.argument("puzzle_hash", nargs=1, required=True)
