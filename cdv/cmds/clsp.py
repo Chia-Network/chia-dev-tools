@@ -46,7 +46,7 @@ def build_cmd(files, include) -> None:
                 print("...Compilation finished")
             except Exception as e:
                 print("Couldn't build "+filename.name+": "+str(e))
-                pass
+
 
 @clsp_cmd.command("disassemble", short_help="Disassemble serialized clvm into human readable form.")
 @click.argument("programs", nargs=-1, required=True)

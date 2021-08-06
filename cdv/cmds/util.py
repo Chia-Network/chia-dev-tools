@@ -13,7 +13,9 @@ def fake_context():
 
 def append_include(search_paths):
     if search_paths:
-        list(search_paths).append("./include")
+        search_list = list(search_paths)
+        search_list.append("./include")
+        return search_list
     else:
         return ['./include']
 
