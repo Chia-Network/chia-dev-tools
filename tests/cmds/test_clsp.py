@@ -23,6 +23,10 @@ class TestCdvCommands:
             assert result.exit_code == 0
             assert Path("./include/condition_codes.clib").exists()
 
+            result = runner.invoke(cli, ["clsp", "retrieve", "sha256tree.clib"])
+            assert result.exit_code == 0
+            assert Path("./include/condition_codes.clib").exists()
+
     def test_build(self):
         runner = CliRunner()
         with runner.isolated_filesystem():
@@ -42,7 +46,7 @@ class TestCdvCommands:
             mod_file = open("mod.clsp","w")
             mod_file.write(self.mod)
             mod_file.close()
-            result = runner.invoke(cli, ["clsp","build","."])
+            result = runner.invoke(cli, ["clsp","build","./mod.clsp"])
             assert result.exit_code == 0
             assert Path("./mod.clsp.hex").exists()
             assert open("mod.clsp.hex","r").read() == "ff0133"

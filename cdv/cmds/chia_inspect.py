@@ -39,35 +39,29 @@ def inspect_cmd(ctx, **kwargs):
         ctx.obj[key] = value
 
 def inspect_callback(objs, ctx, id_calc=None, type='Unknown'):
-    if not any([value for key, value in ctx.obj.items()]):
+    if (not any([value for key, value in ctx.obj.items()])) or ctx.obj['json']:
         if getattr(objs[0], "to_json_dict", None):
             pprint([obj.to_json_dict() for obj in objs])
         else:
             pprint(f"Object of type {type} cannot be serialized to JSON")
-    else:
-        if ctx.obj['json']:
-            if getattr(obj, "to_json_dict", None):
-                pprint([obj.to_json_dict() for obj in objs])
-            else:
-                pprint(f"Object of type {type} cannot be serialized to JSON")
-        if ctx.obj['bytes']:
-            final_output = []
-            for obj in objs:
-                try:
-                    final_output.append(bytes(obj).hex())
-                except AssertionError:
-                    final_output.append(None)
-            pprint(final_output)
-        if ctx.obj['id']:
-            pprint([id_calc(obj) for obj in objs])
-        if ctx.obj['type']:
-            pprint([type for _ in objs])
+    if ctx.obj['bytes']:
+        final_output = []
+        for obj in objs:
+            try:
+                final_output.append(bytes(obj).hex())
+            except AssertionError:
+                final_output.append(None)
+        pprint(final_output)
+    if ctx.obj['id']:
+        pprint([id_calc(obj) for obj in objs])
+    if ctx.obj['type']:
+        pprint([type for _ in objs])
 
 # Utility functions
 def json_and_key_strip(input):
     json_dict = json.loads(input)
     if len(json_dict.keys()) == 1:
-        return json_dict[json_dict.keys()[0]]
+        return json_dict[list(json_dict.keys())[0]]
     else:
         return json_dict
 
@@ -131,6 +125,8 @@ def inspect_any_cmd(ctx, objects):
             do_inspect_keys_cmd(ctx, public_key=obj)
         elif type(obj) == PrivateKey:
             do_inspect_keys_cmd(ctx, secret_key=obj)
+        elif type(obj) == G2Element:
+            print("That's a BLS aggregated signature")
 
 
 @inspect_cmd.command("coins", short_help="Various methods for examining and calculating coin objects")

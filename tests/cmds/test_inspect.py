@@ -9,6 +9,27 @@ from cdv.cmds.cli import cli
 class TestInspectCommands:
     def test_any(self):
         runner = CliRunner()
+
+        # Try to inspect a program
+        result = runner.invoke(cli, ["inspect","any","ff0101"])
+        assert result.exit_code == 0
+        assert "guess" not in result.output
+
+        # Try to inspect a private key
+        result = runner.invoke(cli, ["inspect","any","05ec9428fc2841a79e96631a633b154b57a45311c0602269a6500732093a52cd"])
+        assert result.exit_code == 0
+        assert "guess" not in result.output
+
+        # Try to inspect a public key
+        result = runner.invoke(cli, ["inspect","any","b364a088d9df9423e54bff4c62e4bd854445fb8f5b8f6d80dea06773a4f828734a3a75318b180364ca8468836f0742db"])
+        assert result.exit_code == 0
+        assert "guess" not in result.output
+
+        # Try to inspect an aggsig
+        result = runner.invoke(cli, ["inspect","any","c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"])
+        assert result.exit_code == 0
+        assert "guess" not in result.output
+
         for class_type in ["coinrecord","coin","spendbundle","spend"]:
             valid_json_path = Path(__file__).parent.joinpath(f"object_files/{class_type}s/{class_type}.json")
             invalid_json_path = Path(__file__).parent.joinpath(f"object_files/{class_type}s/{class_type}_invalid.json")
@@ -24,12 +45,27 @@ class TestInspectCommands:
             assert str(invalid_json_path) in result.output
 
             # Try to load the valid json
-            result = runner.invoke(cli, ["inspect", "any", str(valid_json_path)])
+            result = runner.invoke(cli, ["inspect", "any", json.dumps(valid_json)])
             assert result.exit_code == 0
             for key in valid_json.keys():
                 key_type = type(valid_json[key])
                 if (key_type is not dict) and (key_type is not list):
                     assert str(valid_json[key]) in result.output
+
+            # Try to load bytes
+            if class_type != "coin":
+                valid_hex_path = Path(__file__).parent.joinpath(f"object_files/{class_type}s/{class_type}.hex")
+
+                # From a file
+                result = runner.invoke(cli, ["inspect","--json","any", str(valid_hex_path)])
+                assert result.exit_code == 0
+                assert "'coin':" in result.output
+
+                # From a string
+                valid_hex = open(valid_hex_path,"r").read()
+                result = runner.invoke(cli, ["inspect","--json","any", valid_hex])
+                assert result.exit_code == 0
+                assert "'coin':" in result.output
 
             # Make sure the ID calculation is correct
             result = runner.invoke(cli, ["inspect", "--id", "any", str(valid_json_path)])
@@ -157,6 +193,12 @@ class TestInspectCommands:
         assert result.exit_code == 0
         assert modified_cost in result.output
 
+        # Try to use it the programmatic way (like cdv rpc pushtx does)
+        from cdv.cmds.chia_inspect import do_inspect_spend_bundle_cmd
+        from cdv.cmds.util import fake_context
+        bundle_path = Path(__file__).parent.joinpath(f"object_files/spendbundles/spendbundle.json")
+        assert len(do_inspect_spend_bundle_cmd(fake_context(), [str(bundle_path)], print_results=False)) > 0
+
     def test_coinrecords(self):
         coin_path = Path(__file__).parent.joinpath(f"object_files/coins/coin.json")
         pid = "0x0000000000000000000000000000000000000000000000000000000000000000"
@@ -170,6 +212,12 @@ class TestInspectCommands:
         timestamp = "909469800"
 
         runner = CliRunner()
+
+        # Try to load it from a file
+        record_path = Path(__file__).parent.joinpath(f"object_files/coinrecords/coinrecord.json")
+        result = runner.invoke(cli, ["inspect","coinrecords",str(record_path)])
+        assert result.exit_code == 0
+        assert "'coin'" in result.output
 
         # Specify the coin file
         result = runner.invoke(cli, ["inspect","--id","coinrecords","-c",str(coin_path),"-cb",coinbase,"-ci",confirmed_block_index,"-s",spent,"-si",spent_block_index,"-t",timestamp])
