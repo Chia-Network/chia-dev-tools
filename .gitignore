@@ -4,3 +4,4 @@
 /.eggs
 __pycache__/
 main.sym
+.coverage

@@ -39,35 +39,29 @@ def inspect_cmd(ctx, **kwargs):
         ctx.obj[key] = value
 
 def inspect_callback(objs, ctx, id_calc=None, type='Unknown'):
-    if not any([value for key, value in ctx.obj.items()]):
+    if (not any([value for key, value in ctx.obj.items()])) or ctx.obj['json']:
         if getattr(objs[0], "to_json_dict", None):
             pprint([obj.to_json_dict() for obj in objs])
         else:
             pprint(f"Object of type {type} cannot be serialized to JSON")
-    else:
-        if ctx.obj['json']:
-            if getattr(obj, "to_json_dict", None):
-                pprint([obj.to_json_dict() for obj in objs])
-            else:
-                pprint(f"Object of type {type} cannot be serialized to JSON")
-        if ctx.obj['bytes']:
-            final_output = []
-            for obj in objs:
-                try:
-                    final_output.append(bytes(obj).hex())
-                except AssertionError:
-                    final_output.append(None)
-            pprint(final_output)
-        if ctx.obj['id']:
-            pprint([id_calc(obj) for obj in objs])
-        if ctx.obj['type']:
-            pprint([type for _ in objs])
+    if ctx.obj['bytes']:
+        final_output = []
+        for obj in objs:
+            try:
+                final_output.append(bytes(obj).hex())
+            except AssertionError:
+                final_output.append(None)
+        pprint(final_output)
+    if ctx.obj['id']:
+        pprint([id_calc(obj) for obj in objs])
+    if ctx.obj['type']:
+        pprint([type for _ in objs])
 
 # Utility functions
 def json_and_key_strip(input):
     json_dict = json.loads(input)
     if len(json_dict.keys()) == 1:
-        return json_dict[json_dict.keys()[0]]
+        return json_dict[list(json_dict.keys())[0]]
     else:
         return json_dict
 
@@ -81,9 +75,9 @@ def streamable_load(cls, inputs):
             if "{" in file_string:
                 input_objs.append(cls.from_json_dict(json_and_key_strip(file_string)))
             else:
-                input_objs.append(cls.from_bytes(bytes.fromhex(file_string)))
+                input_objs.append(cls.from_bytes(hexstr_to_bytes(file_string)))
         else:
-            input_objs.append(cls.from_bytes(bytes.fromhex(input)))
+            input_objs.append(cls.from_bytes(hexstr_to_bytes(input)))
 
     return input_objs
 
@@ -131,6 +125,8 @@ def inspect_any_cmd(ctx, objects):
             do_inspect_keys_cmd(ctx, public_key=obj)
         elif type(obj) == PrivateKey:
             do_inspect_keys_cmd(ctx, secret_key=obj)
+        elif type(obj) == G2Element:
+            print("That's a BLS aggregated signature")
 
 
 @inspect_cmd.command("coins", short_help="Various methods for examining and calculating coin objects")
@@ -144,7 +140,7 @@ def inspect_coin_cmd(ctx, coins, **kwargs):
 
 def do_inspect_coin_cmd(ctx, coins, print_results=True, **kwargs):
     if kwargs and all([kwargs[key] for key in kwargs.keys()]):
-        coin_objs = [Coin(bytes.fromhex(kwargs['parent_id']), bytes.fromhex(kwargs['puzzle_hash']), uint64(kwargs['amount']))]
+        coin_objs = [Coin(hexstr_to_bytes(kwargs['parent_id']), hexstr_to_bytes(kwargs['puzzle_hash']), uint64(kwargs['amount']))]
     elif not kwargs or not any([kwargs[key] for key in kwargs.keys()]):
         coin_objs = []
         try:
@@ -159,7 +155,7 @@ def do_inspect_coin_cmd(ctx, coins, print_results=True, **kwargs):
         return
 
     if print_results:
-        inspect_callback(coin_objs, ctx, id_calc=(lambda e: e.name()), type='Coin')
+        inspect_callback(coin_objs, ctx, id_calc=(lambda e: e.name().hex()), type='Coin')
     else:
         return coin_objs
 
@@ -189,8 +185,8 @@ def do_inspect_coin_spend_cmd(ctx, spends, print_results=True, **kwargs):
         if (not kwargs['coin']) and all([kwargs['parent_id'], kwargs['puzzle_hash'], kwargs['amount']]):
             coin_spend_objs = [CoinSpend(
                 Coin(
-                    bytes.fromhex(kwargs['parent_id']),
-                    bytes.fromhex(kwargs['puzzle_hash']),
+                    hexstr_to_bytes(kwargs['parent_id']),
+                    hexstr_to_bytes(kwargs['puzzle_hash']),
                     uint64(kwargs['amount']),
                 ),
                 parse_program(kwargs['puzzle_reveal']),
@@ -218,7 +214,7 @@ def do_inspect_coin_spend_cmd(ctx, spends, print_results=True, **kwargs):
         return
 
     if print_results:
-        inspect_callback(coin_spend_objs, ctx, id_calc=(lambda e: e.coin.name()), type='CoinSpend')
+        inspect_callback(coin_spend_objs, ctx, id_calc=(lambda e: e.coin.name().hex()), type='CoinSpend')
         if cost_flag:
             for coin_spend in coin_spend_objs:
                 program = simple_solution_generator(SpendBundle([coin_spend], G2Element()))
@@ -235,7 +231,7 @@ def do_inspect_coin_spend_cmd(ctx, spends, print_results=True, **kwargs):
 @click.option("-db","--debug", is_flag=True, help="Show debugging information about the bundles")
 @click.option("-sd","--signable_data", is_flag=True, help="Print the data that needs to be signed in the bundles")
 @click.option("-n","--network", default="mainnet", show_default=True, help="The network this spend bundle will be pushed to (for AGG_SIG_ME)")
-@click.option("-ec","--cost", is_flag=True, help="Print the CLVM cost of the spend")
+@click.option("-ec","--cost", is_flag=True, help="Print the CLVM cost of the entire bundle")
 @click.option("-bc","--cost-per-byte", default=12000, show_default=True, help="The cost per byte in the puzzle and solution reveal to use when calculating cost")
 @click.pass_context
 def inspect_spend_bundle_cmd(ctx, bundles, **kwargs):
@@ -262,7 +258,7 @@ def do_inspect_spend_bundle_cmd(ctx, bundles, print_results=True, **kwargs):
             print("One or more of the specified objects was not a spend bundle")
 
     if print_results:
-        inspect_callback(spend_bundle_objs, ctx, id_calc=(lambda e: e.name()), type='SpendBundle')
+        inspect_callback(spend_bundle_objs, ctx, id_calc=(lambda e: e.name().hex()), type='SpendBundle')
         if kwargs:
             if kwargs["cost"]:
                 for spend_bundle in spend_bundle_objs:
@@ -280,6 +276,7 @@ def do_inspect_spend_bundle_cmd(ctx, bundles, print_results=True, **kwargs):
                 print(f"")
                 print(f"Public Key/Message Pairs")
                 print(f"------------------------")
+                pkm_dict = {}
                 for obj in spend_bundle_objs:
                     for coin_spend in obj.coin_spends:
                         err, conditions_dict, _ = conditions_dict_for_solution(
@@ -292,20 +289,19 @@ def do_inspect_spend_bundle_cmd(ctx, bundles, print_results=True, **kwargs):
                             from chia.util.config import load_config
                             config = load_config(DEFAULT_ROOT_PATH, "config.yaml")
                             genesis_challenge = config["network_overrides"]["constants"][kwargs["network"]]["GENESIS_CHALLENGE"]
-                            pkm_dict = {}
                             for pk, msg in pkm_pairs_for_conditions_dict(
                                 conditions_dict,
                                 coin_spend.coin.name(),
-                                bytes.fromhex(genesis_challenge),
+                                hexstr_to_bytes(genesis_challenge),
                             ):
                                 if str(pk) in pkm_dict:
                                     pkm_dict[str(pk)].append(msg)
                                 else:
                                     pkm_dict[str(pk)] = [msg]
-                            for pk, msgs in pkm_dict.items():
-                                print(f"{pk}:")
-                                for msg in msgs:
-                                    print(f"\t- {msg.hex()}")
+                for pk, msgs in pkm_dict.items():
+                    print(f"{pk}:")
+                    for msg in msgs:
+                        print(f"\t- {msg.hex()}")
     else:
         return spend_bundle_objs
 
@@ -329,8 +325,8 @@ def do_inspect_coin_record_cmd(ctx, records, print_results=True, **kwargs):
         if (not kwargs['coin']) and all([kwargs['parent_id'], kwargs['puzzle_hash'], kwargs['amount']]):
             coin_record_objs = [CoinRecord(
                 Coin(
-                    bytes.fromhex(kwargs['parent_id']),
-                    bytes.fromhex(kwargs['puzzle_hash']),
+                    hexstr_to_bytes(kwargs['parent_id']),
+                    hexstr_to_bytes(kwargs['puzzle_hash']),
                     uint64(kwargs['amount']),
                 ),
                 kwargs["confirmed_block_index"],
@@ -364,7 +360,7 @@ def do_inspect_coin_record_cmd(ctx, records, print_results=True, **kwargs):
         return
 
     if print_results:
-        inspect_callback(coin_record_objs, ctx, id_calc=(lambda e: e.coin.name()), type='CoinRecord')
+        inspect_callback(coin_record_objs, ctx, id_calc=(lambda e: e.coin.name().hex()), type='CoinRecord')
     else:
         return coin_record_objs
 
@@ -385,11 +381,11 @@ def do_inspect_program_cmd(ctx, programs, print_results=True, **kwargs):
         print("One or more of the specified objects was not a Program")
 
     if print_results:
-        inspect_callback(program_objs, ctx, id_calc=(lambda e: e.get_tree_hash()), type='Program')
+        inspect_callback(program_objs, ctx, id_calc=(lambda e: e.get_tree_hash().hex()), type='Program')
     else:
         return program_objs
 
-@inspect_cmd.command("keys", short_help="Various methods for examining BLS Public Keys")
+@inspect_cmd.command("keys", short_help="Various methods for examining and generating BLS Keys")
 @click.option("-pk","--public-key", help="A BLS public key")
 @click.option("-sk","--secret-key", help="The secret key from which to derive the public key")
 @click.option("-m","--mnemonic", help="A 24 word mnemonic from which to derive the secret key")
@@ -457,8 +453,8 @@ def do_inspect_keys_cmd(ctx, print_results=True, **kwargs):
 
             if kwargs["synthetic"]:
                 if sk:
-                    sk = calculate_synthetic_secret_key(sk, bytes.fromhex(kwargs["hidden_puzhash"]))
-                pk = calculate_synthetic_public_key(pk, bytes.fromhex(kwargs["hidden_puzhash"]))
+                    sk = calculate_synthetic_secret_key(sk, hexstr_to_bytes(kwargs["hidden_puzhash"]))
+                pk = calculate_synthetic_public_key(pk, hexstr_to_bytes(kwargs["hidden_puzhash"]))
         else:
             print("Invalid arguments specified.")
 
@@ -483,7 +479,7 @@ class OrderedParamsCommand(click.Command):
         # return "normal" parse results
         return super().parse_args(ctx, args)
 
-@inspect_cmd.command("signatures", cls=OrderedParamsCommand, short_help="Various methods for examining BLS aggregated signatures")
+@inspect_cmd.command("signatures", cls=OrderedParamsCommand, short_help="Various methods for examining and creating BLS aggregated signatures")
 @click.option("-sk","--secret-key", multiple=True, help="A secret key to sign a message with")
 @click.option("-t","--utf-8", multiple=True, help="A UTF-8 message to be signed with the specified secret key")
 @click.option("-b","--bytes", multiple=True, help="A hex message to be signed with the specified secret key")
