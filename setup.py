@@ -14,7 +14,11 @@ dependencies = [
     "pytimeparse",
 ]
 
-dev_dependencies = []
+dev_dependencies = [
+    "flake8",
+    "mypy",
+    "black",
+]
 
 setup(
     name="chia_dev_tools",

@@ -10,6 +10,7 @@ from cdv.examples.drivers.piggybank_drivers import (
 )
 from cdv.test import setup as setup_test
 
+
 class TestStandardTransaction:
     @pytest.fixture(scope="function")
     async def setup(self):
@@ -21,11 +22,13 @@ class TestStandardTransaction:
         await network.farm_block(farmer=alice)
 
         # This will use one mojo to create our piggybank on the blockchain.
-        piggybank_coin = await alice.launch_smart_coin(create_piggybank_puzzle(1000000000000, bob.puzzle_hash))
+        piggybank_coin = await alice.launch_smart_coin(
+            create_piggybank_puzzle(1000000000000, bob.puzzle_hash)
+        )
         # This retrieves us a coin that is at least 500 mojos.
         contribution_coin = await alice.choose_coin(CONTRIBUTION_AMOUNT)
 
-        #This is the spend of the piggy bank coin.  We use the driver code to create the solution.
+        # This is the spend of the piggy bank coin.  We use the driver code to create the solution.
         piggybank_spend = await alice.spend_coin(
             piggybank_coin,
             pushtx=False,
@@ -37,9 +40,15 @@ class TestStandardTransaction:
             pushtx=False,
             amt=(contribution_coin.amount - CONTRIBUTION_AMOUNT),
             custom_conditions=[
-                [ConditionOpcode.CREATE_COIN, contribution_coin.puzzle_hash, (contribution_coin.amount - CONTRIBUTION_AMOUNT)],
-                piggybank_announcement_assertion(piggybank_coin.as_coin(), CONTRIBUTION_AMOUNT)
-            ]
+                [
+                    ConditionOpcode.CREATE_COIN,
+                    contribution_coin.puzzle_hash,
+                    (contribution_coin.amount - CONTRIBUTION_AMOUNT),
+                ],
+                piggybank_announcement_assertion(
+                    piggybank_coin.as_coin(), CONTRIBUTION_AMOUNT
+                ),
+            ],
         )
 
         # Aggregate them to make sure they are spent together
@@ -56,11 +65,18 @@ class TestStandardTransaction:
 
             assert "error" not in result
 
-            filtered_result = list(filter(
-                lambda addition:
-                    (addition.amount == 501) and
-                    (addition.puzzle_hash == create_piggybank_puzzle(1000000000000, bob.puzzle_hash).get_tree_hash())
-            ,result["additions"]))
+            filtered_result = list(
+                filter(
+                    lambda addition: (addition.amount == 501)
+                    and (
+                        addition.puzzle_hash
+                        == create_piggybank_puzzle(
+                            1000000000000, bob.puzzle_hash
+                        ).get_tree_hash()
+                    ),
+                    result["additions"],
+                )
+            )
             assert len(filtered_result) == 1
         finally:
             await network.close()
@@ -69,22 +85,33 @@ class TestStandardTransaction:
     async def test_piggybank_completion(self, setup):
         network, alice, bob = setup
         try:
-            result = await self.make_and_spend_piggybank(network, alice, bob, 1000000000000)
+            result = await self.make_and_spend_piggybank(
+                network, alice, bob, 1000000000000
+            )
 
             assert "error" not in result
 
-            filtered_result = list(filter(
-                lambda addition:
-                    (addition.amount == 0) and
-                    (addition.puzzle_hash == create_piggybank_puzzle(1000000000000, bob.puzzle_hash).get_tree_hash())
-            ,result["additions"]))
+            filtered_result = list(
+                filter(
+                    lambda addition: (addition.amount == 0)
+                    and (
+                        addition.puzzle_hash
+                        == create_piggybank_puzzle(
+                            1000000000000, bob.puzzle_hash
+                        ).get_tree_hash()
+                    ),
+                    result["additions"],
+                )
+            )
             assert len(filtered_result) == 1
 
-            filtered_result = list(filter(
-                lambda addition:
-                    (addition.amount == 1000000000001) and
-                    (addition.puzzle_hash == bob.puzzle_hash)
-            ,result["additions"]))
+            filtered_result = list(
+                filter(
+                    lambda addition: (addition.amount == 1000000000001)
+                    and (addition.puzzle_hash == bob.puzzle_hash),
+                    result["additions"],
+                )
+            )
             assert len(filtered_result) == 1
         finally:
             await network.close()
@@ -94,7 +121,7 @@ class TestStandardTransaction:
         network, alice, bob = setup
         try:
             result = await self.make_and_spend_piggybank(network, alice, bob, -100)
-            assert 'error' in result
-            assert 'GENERATOR_RUNTIME_ERROR' in result['error']
+            assert "error" in result
+            assert "GENERATOR_RUNTIME_ERROR" in result["error"]
         finally:
             await network.close()

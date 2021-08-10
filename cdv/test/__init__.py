@@ -1,12 +1,7 @@
-import io
 import datetime
 import pytimeparse
 from typing import Dict
-from unittest import TestCase
-from blspy import AugSchemeMPL, G1Element, G2Element, PrivateKey
-
-from clvm.serialize import sexp_from_stream
-from clvm import SExp
+from blspy import AugSchemeMPL, G1Element, G2Element
 
 from chia.types.blockchain_format.sized_bytes import bytes32
 from chia.types.blockchain_format.coin import Coin
@@ -14,14 +9,12 @@ from chia.types.blockchain_format.program import Program
 from chia.types.spend_bundle import SpendBundle
 from chia.types.coin_spend import CoinSpend
 from chia.util.ints import uint64
-from chia.util.condition_tools import ConditionOpcode, conditions_by_opcode
+from chia.util.condition_tools import ConditionOpcode
 from chia.util.hash import std_hash
 from chia.wallet.sign_coin_spends import sign_coin_spends
-from chia.wallet.puzzles.p2_delegated_puzzle_or_hidden_puzzle import ( # standard_transaction
+from chia.wallet.puzzles.p2_delegated_puzzle_or_hidden_puzzle import (  # standard_transaction
     puzzle_for_pk,
-    solution_for_delegated_puzzle,
     calculate_synthetic_secret_key,
-    DEFAULT_HIDDEN_PUZZLE,
     DEFAULT_HIDDEN_PUZZLE_HASH,
 )
 from chia.clvm.spend_sim import SpendSim, SimClient
@@ -33,8 +26,9 @@ duration_div = 86400.0
 block_time = (600.0 / 32.0) / duration_div
 # Allowed subdivisions of 1 coin
 
+
 class SpendResult:
-    def __init__(self,result):
+    def __init__(self, result):
         """Constructor for internal use.
 
         error - a string describing the error or None
@@ -42,25 +36,29 @@ class SpendResult:
         outputs - a list of new Coin objects surviving the transaction
         """
         self.result = result
-        if 'error' in result:
-            self.error = result['error']
+        if "error" in result:
+            self.error = result["error"]
             self.outputs = []
         else:
             self.error = None
-            self.outputs = result['additions']
+            self.outputs = result["additions"]
 
-    def find_standard_coins(self,puzzle_hash):
+    def find_standard_coins(self, puzzle_hash):
         """Given a Wallet's puzzle_hash, find standard coins usable by it.
 
         These coins are recognized as changing the Wallet's chia balance and are
         usable for any purpose."""
         return list(filter(lambda x: x.puzzle_hash == puzzle_hash, self.outputs))
 
+
 class CoinWrapper(Coin):
     """A class that provides some useful methods on coins."""
-    def __init__(self, parent : Coin, puzzle_hash : bytes32, amt : uint64, source : Program):
+
+    def __init__(
+        self, parent: Coin, puzzle_hash: bytes32, amt: uint64, source: Program
+    ):
         """Given parent, puzzle_hash and amount, give an object representing the coin"""
-        super().__init__(parent,puzzle_hash,amt)
+        super().__init__(parent, puzzle_hash, amt)
         self.source = source
 
     def puzzle(self) -> Program:
@@ -104,10 +102,15 @@ class CoinWrapper(Coin):
         # Create a signature for each of these.  We'll aggregate them at the end.
         signature = AugSchemeMPL.sign(
             calculate_synthetic_secret_key(priv, DEFAULT_HIDDEN_PUZZLE_HASH),
-            (delegated_puzzle_solution.get_tree_hash() + self.name() + DEFAULT_CONSTANTS.AGG_SIG_ME_ADDITIONAL_DATA)
+            (
+                delegated_puzzle_solution.get_tree_hash()
+                + self.name()
+                + DEFAULT_CONSTANTS.AGG_SIG_ME_ADDITIONAL_DATA
+            ),
         )
 
         return coin_solution_object, signature
+
 
 # We have two cases for coins:
 # - Wallet coins which contribute to the "wallet balance" of the user.
@@ -121,7 +124,7 @@ class CoinWrapper(Coin):
 #   into wallet coins.  We should ensure that value contained in a smart coin
 #   coin is never destroyed.
 class ContractWrapper:
-    def __init__(self,genesis_challenge,source):
+    def __init__(self, genesis_challenge, source):
         """A wrapper for a smart coin carrying useful methods for interacting with chia."""
         self.genesis_challenge = genesis_challenge
         self.source = source
@@ -134,17 +137,18 @@ class ContractWrapper:
         """Give this smart coin's puzzle hash"""
         return self.source.get_tree_hash()
 
-    def custom_coin(self, parent : Coin, amt : uint64):
+    def custom_coin(self, parent: Coin, amt: uint64):
         """Given a parent and an amount, create the Coin object representing this
         smart coin as it would exist post launch"""
         return CoinWrapper(parent.name(), self.puzzle_hash(), amt, self.source)
+
 
 # Used internally to accumulate a search for coins we can combine to the
 # target amount.
 # Result is the smallest set of coins whose sum of amounts is greater
 # than target_amount.
 class CoinPairSearch:
-    def __init__(self,target_amount):
+    def __init__(self, target_amount):
         self.target = target_amount
         self.total = 0
         self.max_coins = []
@@ -152,7 +156,7 @@ class CoinPairSearch:
     def get_result(self):
         return self.max_coins, self.total
 
-    def insort(self,coin,s,e):
+    def insort(self, coin, s, e):
         for i in range(len(self.max_coins)):
             if self.max_coins[i].amount < coin.amount:
                 self.max_coins.insert(i, coin)
@@ -160,26 +164,32 @@ class CoinPairSearch:
         else:
             self.max_coins.append(coin)
 
-    def process_coin_for_combine_search(self,coin):
+    def process_coin_for_combine_search(self, coin):
         if self.target == 0:
             breakpoint()
         self.total += coin.amount
         if len(self.max_coins) == 0:
             self.max_coins.append(coin)
         else:
-            self.insort(coin,0,len(self.max_coins)-1)
-            while (len(self.max_coins) > 0) and \
-            (self.total - self.max_coins[-1].amount >= self.target) and \
-            ((self.total - self.max_coins[-1].amount > 0) or (len(self.max_coins) > 1)):
+            self.insort(coin, 0, len(self.max_coins) - 1)
+            while (
+                (len(self.max_coins) > 0)
+                and (self.total - self.max_coins[-1].amount >= self.target)
+                and (
+                    (self.total - self.max_coins[-1].amount > 0)
+                    or (len(self.max_coins) > 1)
+                )
+            ):
                 self.total -= self.max_coins[-1].amount
                 self.max_coins = self.max_coins[:-1]
+
 
 # A basic wallet that knows about standard coins.
 # We can use this to track our balance as an end user and keep track of
 # chia that is released by smart coins, if the smart coins interact
 # meaningfully with them, as many likely will.
 class Wallet:
-    def __init__(self,parent,name,pk,priv):
+    def __init__(self, parent, name, pk, priv):
         """Internal use constructor, use Network::make_wallet
 
         Fields:
@@ -204,23 +214,25 @@ class Wallet:
         self.pk_to_sk_dict = {str(self.pk_): self.sk_, str(synth_sk.get_g1()): synth_sk}
 
     def __repr__(self):
-        return f'<Wallet(name={self.name},puzzle_hash={self.puzzle_hash},pk={self.pk_})>'
+        return (
+            f"<Wallet(name={self.name},puzzle_hash={self.puzzle_hash},pk={self.pk_})>"
+        )
 
     # Make this coin available to the user it goes with.
-    def add_coin(self,coin):
+    def add_coin(self, coin):
         self.usable_coins[coin.name()] = coin
 
     def pk_to_sk(self, pk: G1Element):
         assert str(pk) in self.pk_to_sk_dict
         return self.pk_to_sk_dict[str(pk)]
 
-    def compute_combine_action(self,amt,actions,usable_coins):
+    def compute_combine_action(self, amt, actions, usable_coins):
         # No one coin is enough, try to find a best fit pair, otherwise combine the two
         # maximum coins.
         searcher = CoinPairSearch(amt)
 
         # Process coins for this round.
-        for k,c in usable_coins.items():
+        for k, c in usable_coins.items():
             searcher.process_coin_for_combine_search(c)
 
         max_coins, total = searcher.get_result()
@@ -248,10 +260,10 @@ class Wallet:
     #   - A list of signatures.  Each coin has its own signature requirements, but standard
     #     coins are signed like this:
     #
-    #             AugSchemeMPL.sign(
-    #               calculate_synthetic_secret_key(self.sk_,DEFAULT_HIDDEN_PUZZLE_HASH),
-    #               (delegated_puzzle_solution.get_tree_hash() + c.name() + DEFAULT_CONSTANTS.AGG_SIG_ME_ADDITIONAL_DATA)
-    #             )
+    #       AugSchemeMPL.sign(
+    #         calculate_synthetic_secret_key(self.sk_,DEFAULT_HIDDEN_PUZZLE_HASH),
+    #         (delegated_puzzle_solution.get_tree_hash() + c.name() + DEFAULT_CONSTANTS.AGG_SIG_ME_ADDITIONAL_DATA)
+    #       )
     #
     #     where c.name is the coin's "name" (in the code) or coinID (in the
     #     chialisp docs). delegated_puzzle_solution is a clvm program that
@@ -290,7 +302,7 @@ class Wallet:
     #         signature = AugSchemeMPL.aggregate(signatures)
     #         spend_bundle = SpendBundle(coin_solutions, signature)
     #
-    async def combine_coins(self,coins):
+    async def combine_coins(self, coins):
         # Overall structure:
         # Create len-1 spends that just assert that the final coin is created with full value.
         # Create 1 spend for the final coin that asserts the other spends occurred and
@@ -304,7 +316,7 @@ class Wallet:
             coins[-1].name(),
             self.puzzle_hash,
             sum(map(lambda x: x.amount, coins)),
-            self.puzzle
+            self.puzzle,
         )
 
         destroyed_coin_solutions = []
@@ -317,26 +329,24 @@ class Wallet:
                 # Each coin expects the final coin creation announcement
                 [
                     ConditionOpcode.ASSERT_COIN_ANNOUNCEMENT,
-                    std_hash(coins[-1].name() + final_coin.name())
+                    std_hash(coins[-1].name() + final_coin.name()),
                 ]
             ]
 
-            coin_solution, signature = c.create_standard_spend(self.sk_, announce_conditions)
+            coin_solution, signature = c.create_standard_spend(
+                self.sk_, announce_conditions
+            )
             destroyed_coin_solutions.append(coin_solution)
             signatures.append(signature)
 
         final_coin_creation = [
-            [
-                ConditionOpcode.CREATE_COIN_ANNOUNCEMENT,
-                final_coin.name()
-            ],
-            [
-                ConditionOpcode.CREATE_COIN,
-                self.puzzle_hash, final_coin.amount
-            ],
+            [ConditionOpcode.CREATE_COIN_ANNOUNCEMENT, final_coin.name()],
+            [ConditionOpcode.CREATE_COIN, self.puzzle_hash, final_coin.amount],
         ]
 
-        coin_solution, signature = coins[-1].create_standard_spend(self.sk_, final_coin_creation)
+        coin_solution, signature = coins[-1].create_standard_spend(
+            self.sk_, final_coin_creation
+        )
         destroyed_coin_solutions.append(coin_solution)
         signatures.append(signature)
 
@@ -354,7 +364,7 @@ class Wallet:
 
     # Find a coin containing amt we can use as a parent.
     # Synthesize a coin with sufficient funds if possible.
-    async def choose_coin(self,amt) -> CoinWrapper:
+    async def choose_coin(self, amt) -> CoinWrapper:
         """Given an amount requirement, find a coin that contains at least that much chia"""
         start_balance = self.balance()
         coins_to_spend = self.compute_combine_action(amt, [], dict(self.usable_coins))
@@ -371,13 +381,10 @@ class Wallet:
         result = await self.combine_coins(
             list(
                 map(
-                    lambda x:CoinWrapper(
-                        x.parent_coin_info,
-                        x.puzzle_hash,
-                        x.amount,
-                        self.puzzle
+                    lambda x: CoinWrapper(
+                        x.parent_coin_info, x.puzzle_hash, x.amount, self.puzzle
                     ),
-                    coins_to_spend
+                    coins_to_spend,
                 )
             )
         )
@@ -393,16 +400,16 @@ class Wallet:
     #  - allow use of more than one coin to launch smart coin
     #  - ensure input chia = output chia.  it'd be dumb to just allow somebody
     #    to lose their chia without telling them.
-    async def launch_smart_coin(self,source,**kwargs) -> CoinWrapper:
+    async def launch_smart_coin(self, source, **kwargs) -> CoinWrapper:
         """Create a new smart coin based on a parent coin and return the smart coin's living
         coin to the user or None if the spend failed."""
         amt = 1
-        if 'amt' in kwargs:
-            amt = kwargs['amt']
+        if "amt" in kwargs:
+            amt = kwargs["amt"]
 
         found_coin = await self.choose_coin(amt)
         if found_coin is None:
-            raise ValueError(f'could not find available coin containing {amt} mojo')
+            raise ValueError(f"could not find available coin containing {amt} mojo")
 
         # Create a puzzle based on the incoming smart coin
         cw = ContractWrapper(DEFAULT_CONSTANTS.GENESIS_CHALLENGE, source)
@@ -411,11 +418,7 @@ class Wallet:
         ]
         if amt < found_coin.amount:
             condition_args.append(
-                [
-                    ConditionOpcode.CREATE_COIN,
-                    self.puzzle_hash,
-                    found_coin.amount - amt
-                ]
+                [ConditionOpcode.CREATE_COIN, self.puzzle_hash, found_coin.amount - amt]
             )
 
         delegated_puzzle_solution = Program.to((1, condition_args))
@@ -423,22 +426,26 @@ class Wallet:
 
         # Sign the (delegated_puzzle_hash + coin_name) with synthetic secret key
         signature = AugSchemeMPL.sign(
-            calculate_synthetic_secret_key(self.sk_,DEFAULT_HIDDEN_PUZZLE_HASH),
-            (delegated_puzzle_solution.get_tree_hash() + found_coin.name() + DEFAULT_CONSTANTS.AGG_SIG_ME_ADDITIONAL_DATA)
+            calculate_synthetic_secret_key(self.sk_, DEFAULT_HIDDEN_PUZZLE_HASH),
+            (
+                delegated_puzzle_solution.get_tree_hash()
+                + found_coin.name()
+                + DEFAULT_CONSTANTS.AGG_SIG_ME_ADDITIONAL_DATA
+            ),
         )
 
         spend_bundle = SpendBundle(
             [
                 CoinSpend(
-                    found_coin.as_coin(), # Coin to spend
-                    self.puzzle, # Puzzle used for found_coin
-                    solution, # The solution to the puzzle locking found_coin
+                    found_coin.as_coin(),  # Coin to spend
+                    self.puzzle,  # Puzzle used for found_coin
+                    solution,  # The solution to the puzzle locking found_coin
                 )
-            ]
-            , signature
+            ],
+            signature,
         )
         pushed = await self.parent.push_tx(spend_bundle)
-        if 'error' not in pushed:
+        if "error" not in pushed:
             return cw.custom_coin(found_coin, amt)
         else:
             return None
@@ -466,32 +473,40 @@ class Wallet:
     # Automatically takes care of signing, etc.
     # Result is an object representing the actions taken when the block
     # with this transaction was farmed.
-    async def spend_coin(self, coin : CoinWrapper, pushtx=True, **kwargs):
+    async def spend_coin(self, coin: CoinWrapper, pushtx=True, **kwargs):
         """Given a coin object, invoke it on the blockchain, either as a standard
         coin if no arguments are given or with custom arguments in args="""
         amt = 1
-        if 'amt' in kwargs:
-            amt = kwargs['amt']
+        if "amt" in kwargs:
+            amt = kwargs["amt"]
 
         delegated_puzzle_solution = None
-        if not 'args' in kwargs:
+        if "args" not in kwargs:
             target_puzzle_hash = self.puzzle_hash
             # Allow the user to 'give this much chia' to another user.
-            if 'to' in kwargs:
-                target_puzzle_hash = kwargs['to'].puzzle_hash
+            if "to" in kwargs:
+                target_puzzle_hash = kwargs["to"].puzzle_hash
 
             # Automatic arguments from the user's intention.
-            if not 'custom_conditions' in kwargs:
+            if "custom_conditions" not in kwargs:
                 solution_list = [[ConditionOpcode.CREATE_COIN, target_puzzle_hash, amt]]
             else:
-                solution_list = kwargs['custom_conditions']
-            if 'remain' in kwargs:
-                remainer = kwargs['remain']
+                solution_list = kwargs["custom_conditions"]
+            if "remain" in kwargs:
+                remainer = kwargs["remain"]
                 remain_amt = coin.amount - amt
                 if isinstance(remainer, ContractWrapper):
-                    solution_list.append([ConditionOpcode.CREATE_COIN, remainer.puzzle_hash(), remain_amt])
+                    solution_list.append(
+                        [
+                            ConditionOpcode.CREATE_COIN,
+                            remainer.puzzle_hash(),
+                            remain_amt,
+                        ]
+                    )
                 elif isinstance(remainer, Wallet):
-                    solution_list.append([ConditionOpcode.CREATE_COIN, remainer.puzzle_hash, remain_amt])
+                    solution_list.append(
+                        [ConditionOpcode.CREATE_COIN, remainer.puzzle_hash, remain_amt]
+                    )
                 else:
                     raise ValueError("remainer is not a wallet or a smart coin")
 
@@ -499,7 +514,7 @@ class Wallet:
             # Solution is the solution for the old coin.
             solution = Program.to([[], delegated_puzzle_solution, []])
         else:
-            delegated_puzzle_solution = Program.to(kwargs['args'])
+            delegated_puzzle_solution = Program.to(kwargs["args"])
             solution = delegated_puzzle_solution
 
         solution_for_coin = CoinSpend(
@@ -516,9 +531,9 @@ class Wallet:
                 [solution_for_coin],
                 self.pk_to_sk,
                 DEFAULT_CONSTANTS.AGG_SIG_ME_ADDITIONAL_DATA,
-                DEFAULT_CONSTANTS.MAX_BLOCK_COST_CLVM
+                DEFAULT_CONSTANTS.MAX_BLOCK_COST_CLVM,
             )
-        except:
+        except ValueError:
             spend_bundle = SpendBundle(
                 [solution_for_coin],
                 G2Element(),
@@ -529,6 +544,7 @@ class Wallet:
             return SpendResult(pushed)
         else:
             return spend_bundle
+
 
 # A user oriented (domain specific) view of the chia network.
 class Network:
@@ -543,11 +559,13 @@ class Network:
     @classmethod
     async def create(cls):
         self = cls()
-        self.time = datetime.timedelta(days=18750, seconds=61201) # Past the initial transaction freeze
+        self.time = datetime.timedelta(
+            days=18750, seconds=61201
+        )  # Past the initial transaction freeze
         self.sim = await SpendSim.create()
         self.sim_client = SimClient(self.sim)
         self.wallets = {}
-        self.nobody = self.make_wallet('nobody')
+        self.nobody = self.make_wallet("nobody")
         self.wallets[str(self.nobody.pk())] = self.nobody
         return self
 
@@ -555,15 +573,15 @@ class Network:
         await self.sim.close()
 
     # Have the system farm one block with a specific beneficiary (nobody if not specified).
-    async def farm_block(self,**kwargs):
+    async def farm_block(self, **kwargs):
         """Given a farmer, farm a block with that actor as the beneficiary of the farm
         reward.
 
         Used for causing chia balance to exist so the system can do things.
         """
         farmer = self.nobody
-        if 'farmer' in kwargs:
-            farmer = kwargs['farmer']
+        if "farmer" in kwargs:
+            farmer = kwargs["farmer"]
 
         farm_duration = datetime.timedelta(block_time)
         farmed = await self.sim.farm_block(farmer.puzzle_hash)
@@ -572,9 +590,11 @@ class Network:
             w._clear_coins()
 
         for kw, w in self.wallets.items():
-            coin_records = await self.sim_client.get_coin_records_by_puzzle_hash(w.puzzle_hash)
+            coin_records = await self.sim_client.get_coin_records_by_puzzle_hash(
+                w.puzzle_hash
+            )
             for coin_record in coin_records:
-                if coin_record.spent == False:
+                if coin_record.spent is False:
                     w.add_coin(CoinWrapper.from_coin(coin_record.coin, w.puzzle))
 
         self.time += farm_duration
@@ -589,7 +609,7 @@ class Network:
     # Allow the user to create a wallet identity to whom standard coins may be targeted.
     # This results in the creation of a wallet that tracks balance and standard coins.
     # Public and private key from here are used in signing.
-    def make_wallet(self,name):
+    def make_wallet(self, name):
         """Create a wallet for an actor.  This causes the actor's chia balance in standard
         coin to be tracked during the simulation.  Wallets have some domain specific methods
         that behave in similar ways to other blockchains."""
@@ -599,10 +619,12 @@ class Network:
         return w
 
     # Skip real time by farming blocks until the target duration is achieved.
-    async def skip_time(self,target_duration,**kwargs):
+    async def skip_time(self, target_duration, **kwargs):
         """Skip a duration of simulated time, causing blocks to be farmed.  If a farmer
         is specified, they win each block"""
-        target_time = self.time + datetime.timedelta(pytimeparse.parse(target_duration) / duration_div)
+        target_time = self.time + datetime.timedelta(
+            pytimeparse.parse(target_duration) / duration_div
+        )
         while target_time > self.get_timestamp():
             await self.farm_block(**kwargs)
             self.sim.pass_time(20)
@@ -612,27 +634,28 @@ class Network:
 
     def get_timestamp(self):
         """Return the current simualtion time in seconds."""
-        return datetime.timedelta(seconds = self.sim.timestamp)
+        return datetime.timedelta(seconds=self.sim.timestamp)
 
     # Given a spend bundle, farm a block and analyze the result.
-    async def push_tx(self,bundle):
+    async def push_tx(self, bundle):
         """Given a spend bundle, try to farm a block containing it.  If the spend bundle
         didn't validate, then a result containing an 'error' key is returned.  The reward
         for the block goes to Network::nobody"""
 
         status, error = await self.sim_client.push_tx(bundle)
         if error:
-            return { "error": str(error) }
+            return {"error": str(error)}
 
         # Common case that we want to farm this right away.
         additions, removals = await self.farm_block()
         return {
-            'additions': additions,
-            'removals':removals,
+            "additions": additions,
+            "removals": removals,
         }
+
 
 async def setup():
     network = await Network.create()
-    alice = network.make_wallet('alice')
-    bob = network.make_wallet('bob')
+    alice = network.make_wallet("alice")
+    bob = network.make_wallet("bob")
     return network, alice, bob
