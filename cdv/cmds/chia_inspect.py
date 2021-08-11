@@ -1,6 +1,8 @@
+import sys
 import click
 import json
 
+from typing import List, Any, Callable, Dict, Iterable, Union, Optional, Tuple
 from pprint import pprint
 from secrets import token_bytes
 
@@ -11,7 +13,8 @@ from chia.types.blockchain_format.coin import Coin
 from chia.types.coin_spend import CoinSpend
 from chia.types.coin_record import CoinRecord
 from chia.types.spend_bundle import SpendBundle
-from chia.consensus.cost_calculator import calculate_cost_of_program
+from chia.types.generator_types import BlockGenerator
+from chia.consensus.cost_calculator import calculate_cost_of_program, NPCResult
 from chia.full_node.mempool_check_conditions import get_name_puzzle_conditions
 from chia.full_node.bundle_tools import simple_solution_generator
 from chia.wallet.derive_keys import _derive_path
@@ -37,13 +40,18 @@ from cdv.cmds.util import parse_program
 @click.option("-id", "--id", is_flag=True, help="Output the id of the object")
 @click.option("-t", "--type", is_flag=True, help="Output the type of the object")
 @click.pass_context
-def inspect_cmd(ctx, **kwargs):
+def inspect_cmd(ctx: click.Context, **kwargs):
     ctx.ensure_object(dict)
     for key, value in kwargs.items():
         ctx.obj[key] = value
 
 
-def inspect_callback(objs, ctx, id_calc=None, type="Unknown"):
+def inspect_callback(
+    objs: List[Any],
+    ctx: click.Context,
+    id_calc: Callable = (lambda: None),
+    type: str = "Unknown",
+):
     if (not any([value for key, value in ctx.obj.items()])) or ctx.obj["json"]:
         if getattr(objs[0], "to_json_dict", None):
             pprint([obj.to_json_dict() for obj in objs])
@@ -55,7 +63,7 @@ def inspect_callback(objs, ctx, id_calc=None, type="Unknown"):
             try:
                 final_output.append(bytes(obj).hex())
             except AssertionError:
-                final_output.append(None)
+                final_output.append("None")
         pprint(final_output)
     if ctx.obj["id"]:
         pprint([id_calc(obj) for obj in objs])
@@ -64,7 +72,7 @@ def inspect_callback(objs, ctx, id_calc=None, type="Unknown"):
 
 
 # Utility functions
-def json_and_key_strip(input):
+def json_and_key_strip(input: str) -> Dict:
     json_dict = json.loads(input)
     if len(json_dict.keys()) == 1:
         return json_dict[list(json_dict.keys())[0]]
@@ -72,8 +80,13 @@ def json_and_key_strip(input):
         return json_dict
 
 
-def streamable_load(cls, inputs):
-    input_objs = []
+def streamable_load(cls: Any, inputs: Iterable[Any]) -> List[Any]:
+    if inputs and not isinstance(list(inputs)[0], str):
+        for inst in inputs:
+            assert isinstance(inst, cls)
+        return list(inputs)
+
+    input_objs: List[Any] = []
     for input in inputs:
         if "{" in input:
             input_objs.append(cls.from_json_dict(json_and_key_strip(input)))
@@ -94,10 +107,10 @@ def streamable_load(cls, inputs):
 )
 @click.argument("objects", nargs=-1, required=False)
 @click.pass_context
-def inspect_any_cmd(ctx, objects):
+def inspect_any_cmd(ctx: click.Context, objects: Tuple[str]):
     input_objects = []
     for obj in objects:
-        in_obj = obj
+        in_obj: Any = obj
         # Try it as Streamable types
         for cls in [Coin, CoinSpend, SpendBundle, CoinRecord]:
             try:
@@ -107,7 +120,7 @@ def inspect_any_cmd(ctx, objects):
         # Try it as some key stuff
         for cls in [G1Element, G2Element, PrivateKey]:
             try:
-                in_obj = cls.from_bytes(hexstr_to_bytes(obj))
+                in_obj = cls.from_bytes(hexstr_to_bytes(obj))  # type: ignore
             except Exception:
                 pass
         # Try it as a Program
@@ -149,13 +162,18 @@ def inspect_any_cmd(ctx, objects):
 )
 @click.option("-a", "--amount", help="The amount of the coin")
 @click.pass_context
-def inspect_coin_cmd(ctx, coins, **kwargs):
+def inspect_coin_cmd(ctx: click.Context, coins: Tuple[str], **kwargs):
     do_inspect_coin_cmd(ctx, coins, **kwargs)
 
 
-def do_inspect_coin_cmd(ctx, coins, print_results=True, **kwargs):
+def do_inspect_coin_cmd(
+    ctx: click.Context,
+    coins: Union[Tuple[str], List[Coin]],
+    print_results: bool = True,
+    **kwargs,
+) -> List[Coin]:
     if kwargs and all([kwargs[key] for key in kwargs.keys()]):
-        coin_objs = [
+        coin_objs: List[Coin] = [
             Coin(
                 hexstr_to_bytes(kwargs["parent_id"]),
                 hexstr_to_bytes(kwargs["puzzle_hash"]),
@@ -163,24 +181,20 @@ def do_inspect_coin_cmd(ctx, coins, print_results=True, **kwargs):
             )
         ]
     elif not kwargs or not any([kwargs[key] for key in kwargs.keys()]):
-        coin_objs = []
         try:
-            if type(coins[0]) == str:
-                coin_objs = streamable_load(Coin, coins)
-            else:
-                coin_objs = coins
+            coin_objs = streamable_load(Coin, coins)
         except Exception:
             print("One or more of the specified objects was not a coin")
     else:
         print("Invalid arguments specified.")
-        return
+        sys.exit(1)
 
     if print_results:
         inspect_callback(
             coin_objs, ctx, id_calc=(lambda e: e.name().hex()), type="Coin"
         )
-    else:
-        return coin_objs
+
+    return coin_objs
 
 
 @inspect_cmd.command(
@@ -209,13 +223,18 @@ def do_inspect_coin_cmd(ctx, coins, print_results=True, **kwargs):
     help="The cost per byte in the puzzle and solution reveal to use when calculating cost",
 )
 @click.pass_context
-def inspect_coin_spend_cmd(ctx, spends, **kwargs):
+def inspect_coin_spend_cmd(ctx: click.Context, spends: Tuple[str], **kwargs):
     do_inspect_coin_spend_cmd(ctx, spends, **kwargs)
 
 
-def do_inspect_coin_spend_cmd(ctx, spends, print_results=True, **kwargs):
-    cost_flag = False
-    cost_per_byte = 12000
+def do_inspect_coin_spend_cmd(
+    ctx: click.Context,
+    spends: Union[Tuple[str], List[CoinSpend]],
+    print_results: bool = True,
+    **kwargs,
+) -> List[CoinSpend]:
+    cost_flag: bool = False
+    cost_per_byte: int = 12000
     if kwargs:
         cost_flag = kwargs["cost"]
         cost_per_byte = kwargs["cost_per_byte"]
@@ -225,7 +244,7 @@ def do_inspect_coin_spend_cmd(ctx, spends, print_results=True, **kwargs):
         if (not kwargs["coin"]) and all(
             [kwargs["parent_id"], kwargs["puzzle_hash"], kwargs["amount"]]
         ):
-            coin_spend_objs = [
+            coin_spend_objs: List[CoinSpend] = [
                 CoinSpend(
                     Coin(
                         hexstr_to_bytes(kwargs["parent_id"]),
@@ -247,17 +266,14 @@ def do_inspect_coin_spend_cmd(ctx, spends, print_results=True, **kwargs):
         else:
             print("Invalid arguments specified.")
     elif not kwargs or not any([kwargs[key] for key in kwargs.keys()]):
-        coin_spend_objs = []
         try:
-            if type(spends[0]) == str:
-                coin_spend_objs = streamable_load(CoinSpend, spends)
-            else:
-                coin_spend_objs = spends
+            coin_spend_objs = streamable_load(CoinSpend, spends)
         except Exception:
             print("One or more of the specified objects was not a coin spend")
+            sys.exit(1)
     else:
         print("Invalid arguments specified.")
-        return
+        sys.exit(1)
 
     if print_results:
         inspect_callback(
@@ -268,16 +284,18 @@ def do_inspect_coin_spend_cmd(ctx, spends, print_results=True, **kwargs):
         )
         if cost_flag:
             for coin_spend in coin_spend_objs:
-                program = simple_solution_generator(
+                program: BlockGenerator = simple_solution_generator(
                     SpendBundle([coin_spend], G2Element())
                 )
-                npc_result = get_name_puzzle_conditions(
+                npc_result: NPCResult = get_name_puzzle_conditions(
                     program, INFINITE_COST, cost_per_byte=cost_per_byte, safe_mode=True
                 )
-                cost = calculate_cost_of_program(program, npc_result, cost_per_byte)
+                cost: int = calculate_cost_of_program(
+                    program.program, npc_result, cost_per_byte
+                )
                 print(f"Cost: {cost}")
-    else:
-        return coin_spend_objs
+
+    return coin_spend_objs
 
 
 @inspect_cmd.command(
@@ -321,31 +339,32 @@ def do_inspect_coin_spend_cmd(ctx, spends, print_results=True, **kwargs):
     help="The cost per byte in the puzzle and solution reveal to use when calculating cost",
 )
 @click.pass_context
-def inspect_spend_bundle_cmd(ctx, bundles, **kwargs):
+def inspect_spend_bundle_cmd(ctx: click.Context, bundles: Tuple[str], **kwargs):
     do_inspect_spend_bundle_cmd(ctx, bundles, **kwargs)
 
 
-def do_inspect_spend_bundle_cmd(ctx, bundles, print_results=True, **kwargs):
+def do_inspect_spend_bundle_cmd(
+    ctx: click.Context,
+    bundles: Union[Tuple[str], List[SpendBundle]],
+    print_results: bool = True,
+    **kwargs,
+) -> List[SpendBundle]:
     if kwargs and (len(kwargs["spend"]) > 0):
         if len(kwargs["aggsig"]) > 0:
-            sig = AugSchemeMPL.aggregate(
+            sig: G2Element = AugSchemeMPL.aggregate(
                 [G2Element(hexstr_to_bytes(sig)) for sig in kwargs["aggsig"]]
             )
         else:
             sig = G2Element()
-        spend_bundle_objs = [
+        spend_bundle_objs: List[SpendBundle] = [
             SpendBundle(
                 do_inspect_coin_spend_cmd(ctx, kwargs["spend"], print_results=False),
                 sig,
             )
         ]
     else:
-        spend_bundle_objs = []
         try:
-            if type(bundles[0]) == str:
-                spend_bundle_objs = streamable_load(SpendBundle, bundles)
-            else:
-                spend_bundle_objs = bundles
+            spend_bundle_objs = streamable_load(SpendBundle, bundles)
         except Exception:
             print("One or more of the specified objects was not a spend bundle")
 
@@ -359,15 +378,15 @@ def do_inspect_spend_bundle_cmd(ctx, bundles, print_results=True, **kwargs):
         if kwargs:
             if kwargs["cost"]:
                 for spend_bundle in spend_bundle_objs:
-                    program = simple_solution_generator(spend_bundle)
-                    npc_result = get_name_puzzle_conditions(
+                    program: BlockGenerator = simple_solution_generator(spend_bundle)
+                    npc_result: NPCResult = get_name_puzzle_conditions(
                         program,
                         INFINITE_COST,
                         cost_per_byte=kwargs["cost_per_byte"],
                         safe_mode=True,
                     )
-                    cost = calculate_cost_of_program(
-                        program, npc_result, kwargs["cost_per_byte"]
+                    cost: int = calculate_cost_of_program(
+                        program.program, npc_result, kwargs["cost_per_byte"]
                     )
                     print(f"Cost: {cost}")
             if kwargs["debug"]:
@@ -380,7 +399,7 @@ def do_inspect_spend_bundle_cmd(ctx, bundles, print_results=True, **kwargs):
                 print("")
                 print("Public Key/Message Pairs")
                 print("------------------------")
-                pkm_dict = {}
+                pkm_dict: Dict[str, List[bytes]] = {}
                 for obj in spend_bundle_objs:
                     for coin_spend in obj.coin_spends:
                         err, conditions_dict, _ = conditions_dict_for_solution(
@@ -394,8 +413,8 @@ def do_inspect_spend_bundle_cmd(ctx, bundles, print_results=True, **kwargs):
                             from chia.util.default_root import DEFAULT_ROOT_PATH
                             from chia.util.config import load_config
 
-                            config = load_config(DEFAULT_ROOT_PATH, "config.yaml")
-                            genesis_challenge = config["network_overrides"][
+                            config: Dict = load_config(DEFAULT_ROOT_PATH, "config.yaml")
+                            genesis_challenge: str = config["network_overrides"][
                                 "constants"
                             ][kwargs["network"]]["GENESIS_CHALLENGE"]
                             for pk, msg in pkm_pairs_for_conditions_dict(
@@ -411,8 +430,8 @@ def do_inspect_spend_bundle_cmd(ctx, bundles, print_results=True, **kwargs):
                     print(f"{pk}:")
                     for msg in msgs:
                         print(f"\t- {msg.hex()}")
-    else:
-        return spend_bundle_objs
+
+    return spend_bundle_objs
 
 
 @inspect_cmd.command(
@@ -454,16 +473,21 @@ def do_inspect_spend_bundle_cmd(ctx, bundles, print_results=True, **kwargs):
     help="The timestamp of the block in which this coin was created",
 )
 @click.pass_context
-def inspect_coin_record_cmd(ctx, records, **kwargs):
+def inspect_coin_record_cmd(ctx: click.Context, records: Tuple[str], **kwargs):
     do_inspect_coin_record_cmd(ctx, records, **kwargs)
 
 
-def do_inspect_coin_record_cmd(ctx, records, print_results=True, **kwargs):
+def do_inspect_coin_record_cmd(
+    ctx: click.Context,
+    records: Union[Tuple[str], List[CoinRecord]],
+    print_results: bool = True,
+    **kwargs,
+) -> List[CoinRecord]:
     if kwargs and all([kwargs["confirmed_block_index"], kwargs["timestamp"]]):
         if (not kwargs["coin"]) and all(
             [kwargs["parent_id"], kwargs["puzzle_hash"], kwargs["amount"]]
         ):
-            coin_record_objs = [
+            coin_record_objs: List[CoinRecord] = [
                 CoinRecord(
                     Coin(
                         hexstr_to_bytes(kwargs["parent_id"]),
@@ -480,7 +504,7 @@ def do_inspect_coin_record_cmd(ctx, records, print_results=True, **kwargs):
         elif kwargs["coin"]:
             coin_record_objs = [
                 CoinRecord(
-                    do_inspect_coin_cmd(ctx, [kwargs["coin"]], print_results=False)[0],
+                    do_inspect_coin_cmd(ctx, (kwargs["coin"],), print_results=False)[0],
                     kwargs["confirmed_block_index"],
                     kwargs["spent_block_index"],
                     kwargs["spent"],
@@ -491,17 +515,13 @@ def do_inspect_coin_record_cmd(ctx, records, print_results=True, **kwargs):
         else:
             print("Invalid arguments specified.")
     elif not kwargs or not any([kwargs[key] for key in kwargs.keys()]):
-        coin_record_objs = []
         try:
-            if type(records[0]) == str:
-                coin_record_objs = streamable_load(CoinRecord, records)
-            else:
-                coin_record_objs = records
+            coin_record_objs = streamable_load(CoinRecord, records)
         except Exception:
             print("One or more of the specified objects was not a coin record")
     else:
         print("Invalid arguments specified.")
-        return
+        sys.exit(1)
 
     if print_results:
         inspect_callback(
@@ -510,8 +530,8 @@ def do_inspect_coin_record_cmd(ctx, records, print_results=True, **kwargs):
             id_calc=(lambda e: e.coin.name().hex()),
             type="CoinRecord",
         )
-    else:
-        return coin_record_objs
+
+    return coin_record_objs
 
 
 @inspect_cmd.command(
@@ -519,19 +539,21 @@ def do_inspect_coin_record_cmd(ctx, records, print_results=True, **kwargs):
 )
 @click.argument("programs", nargs=-1, required=False)
 @click.pass_context
-def inspect_program_cmd(ctx, programs, **kwargs):
+def inspect_program_cmd(ctx: click.Context, programs: Tuple[str], **kwargs):
     do_inspect_program_cmd(ctx, programs, **kwargs)
 
 
-def do_inspect_program_cmd(ctx, programs, print_results=True, **kwargs):
-    program_objs = []
+def do_inspect_program_cmd(
+    ctx: click.Context,
+    programs: Union[Tuple[str], List[Program]],
+    print_results: bool = True,
+    **kwargs,
+) -> List[Program]:
     try:
-        if type(programs[0]) == str:
-            program_objs = [parse_program(prog) for prog in programs]
-        else:
-            program_objs = programs
+        program_objs: List[Program] = [parse_program(prog) for prog in programs]
     except Exception:
         print("One or more of the specified objects was not a Program")
+        sys.exit(1)
 
     if print_results:
         inspect_callback(
@@ -540,8 +562,8 @@ def do_inspect_program_cmd(ctx, programs, print_results=True, **kwargs):
             id_calc=(lambda e: e.get_tree_hash().hex()),
             type="Program",
         )
-    else:
-        return program_objs
+
+    return program_objs
 
 
 @inspect_cmd.command(
@@ -585,14 +607,15 @@ def do_inspect_program_cmd(ctx, programs, print_results=True, **kwargs):
     help="The hidden puzzle to use when calculating a synthetic key",
 )
 @click.pass_context
-def inspect_keys_cmd(ctx, **kwargs):
+def inspect_keys_cmd(ctx: click.Context, **kwargs):
     do_inspect_keys_cmd(ctx, **kwargs)
 
 
-def do_inspect_keys_cmd(ctx, print_results=True, **kwargs):
-    sk = None
-    pk = None
-    path = "m"
+def do_inspect_keys_cmd(ctx: click.Context, print_results: bool = True, **kwargs):
+    sk: Optional[PrivateKey] = None
+    pk: G1Element = G1Element()
+    path: str = "m"
+    # If we're receiving this from the any command
     if len(kwargs) == 1:
         if "secret_key" in kwargs:
             sk = kwargs["secret_key"]
@@ -627,28 +650,29 @@ def do_inspect_keys_cmd(ctx, print_results=True, **kwargs):
                 )
                 pk = sk.get_g1()
 
+            list_path: List[int] = []
             if kwargs["hd_path"] and (kwargs["hd_path"] != "m"):
-                path = [
+                list_path = [
                     uint32(int(i)) for i in kwargs["hd_path"].split("/") if i != "m"
                 ]
             elif kwargs["key_type"]:
                 case = kwargs["key_type"]
                 if case == "farmer":
-                    path = [12381, 8444, 0, 0]
+                    list_path = [12381, 8444, 0, 0]
                 if case == "pool":
-                    path = [12381, 8444, 1, 0]
+                    list_path = [12381, 8444, 1, 0]
                 if case == "wallet":
-                    path = [12381, 8444, 2, 0]
+                    list_path = [12381, 8444, 2, 0]
                 if case == "local":
-                    path = [12381, 8444, 3, 0]
+                    list_path = [12381, 8444, 3, 0]
                 if case == "backup":
-                    path = [12381, 8444, 4, 0]
+                    list_path = [12381, 8444, 4, 0]
                 if case == "owner":
-                    path = [12381, 8444, 5, 0]
+                    list_path = [12381, 8444, 5, 0]
                 if case == "auth":
-                    path = [12381, 8444, 6, 0]
-            if path != "m":
-                sk = _derive_path(sk, path)
+                    list_path = [12381, 8444, 6, 0]
+            if list_path:
+                sk = _derive_path(sk, list_path)
                 pk = sk.get_g1()
                 path = "m/" + "/".join([str(e) for e in path])
 
@@ -671,7 +695,7 @@ def do_inspect_keys_cmd(ctx, print_results=True, **kwargs):
 
 
 class OrderedParamsCommand(click.Command):
-    _options = []
+    _options: List = []
 
     def parse_args(self, ctx, args):
         # run the parser for ourselves to preserve the passed order
@@ -707,13 +731,15 @@ class OrderedParamsCommand(click.Command):
 )
 @click.option("-sig", "--aggsig", multiple=True, help="A signature to be aggregated")
 @click.pass_context
-def inspect_sigs_cmd(ctx, **kwargs):
+def inspect_sigs_cmd(ctx: click.Context, **kwargs):
     do_inspect_sigs_cmd(ctx, **kwargs)
 
 
-def do_inspect_sigs_cmd(ctx, print_results=True, **kwargs):
+def do_inspect_sigs_cmd(
+    ctx: click.Context, print_results: bool = True, **kwargs
+) -> G2Element:
     base = G2Element()
-    sk = None
+    sk: Optional[PrivateKey] = None
     for param, value in OrderedParamsCommand._options:
         if param.name == "secret_key":
             sk = PrivateKey.from_bytes(hexstr_to_bytes(value))
@@ -730,5 +756,5 @@ def do_inspect_sigs_cmd(ctx, print_results=True, **kwargs):
 
     if print_results:
         print(str(base))
-    else:
-        return base
+
+    return base

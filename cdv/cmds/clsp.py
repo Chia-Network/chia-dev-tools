@@ -2,7 +2,10 @@ import click
 import os
 import shutil
 
+from typing import Tuple, List
 from pathlib import Path
+
+from chia.types.blockchain_format.program import Program
 
 from clvm_tools.clvmc import compile_clvm
 from clvm_tools.binutils import disassemble, assemble
@@ -27,7 +30,7 @@ def clsp_cmd():
     multiple=True,
     help="Paths to search for include files (./include will be searched automatically)",
 )
-def build_cmd(files, include) -> None:
+def build_cmd(files: Tuple[str], include: Tuple[str]) -> None:
     project_path = Path.cwd()
     clvm_files = []
     for glob in files:
@@ -39,7 +42,7 @@ def build_cmd(files, include) -> None:
                 clvm_files.append(path)
 
     for filename in clvm_files:
-        hex_file_name = filename.name + ".hex"
+        hex_file_name: str = filename.name + ".hex"
         full_hex_file_name = Path(filename.parent).joinpath(hex_file_name)
         if not (
             full_hex_file_name.exists()
@@ -60,7 +63,7 @@ def build_cmd(files, include) -> None:
     "disassemble", short_help="Disassemble serialized clvm into human readable form."
 )
 @click.argument("programs", nargs=-1, required=True)
-def disassemble_cmd(programs):
+def disassemble_cmd(programs: Tuple[str]):
     for program in programs:
         print(disassemble(parse_program(program)))
 
@@ -76,7 +79,7 @@ def disassemble_cmd(programs):
     multiple=True,
     help="Paths to search for include files (./include will be searched automatically)",
 )
-def treehash_cmd(program: str, include):
+def treehash_cmd(program: str, include: Tuple[str]):
     print(parse_program(program, include).get_tree_hash())
 
 
@@ -104,11 +107,13 @@ def treehash_cmd(program: str, include):
     multiple=True,
     help="Paths to search for include files (./include will be searched automatically)",
 )
-def curry_cmd(program, args, treehash, dump, include):
-    prog = parse_program(program, include)
-    curry_args = [assemble(arg) for arg in args]
+def curry_cmd(
+    program: str, args: Tuple[str], treehash: bool, dump: bool, include: Tuple[str]
+):
+    prog: Program = parse_program(program, include)
+    curry_args: List[Program] = [assemble(arg) for arg in args]
 
-    prog_final = prog.curry(*curry_args)
+    prog_final: Program = prog.curry(*curry_args)
     if treehash:
         print(prog_final.get_tree_hash())
     elif dump:
@@ -122,7 +127,7 @@ def curry_cmd(program, args, treehash, dump, include):
     short_help="Copy the specified .clib file to the current directory (for example sha256tree)",
 )
 @click.argument("libraries", nargs=-1, required=True)
-def retrieve_cmd(libraries):
+def retrieve_cmd(libraries: Tuple[str]):
     import cdv.clibs as clibs
 
     for lib in libraries:

@@ -2,6 +2,8 @@ import click
 import pytest
 import os
 import shutil
+
+from typing import List
 from pathlib import Path
 
 from cdv import __version__
@@ -50,29 +52,27 @@ def cli(ctx: click.Context) -> None:
     "-d",
     "--discover",
     is_flag=True,
-    type=bool,
     help="List the tests without running them",
 )
 @click.option(
     "-i",
     "--init",
     is_flag=True,
-    type=bool,
     help="Create the test directory and/or add a new test skeleton",
 )
 def test_cmd(tests: str, discover: bool, init: str):
-    test_paths = Path.cwd().glob(tests)
-    test_paths = list(map(lambda e: str(e), test_paths))
+    test_paths: List[str] = list(map(lambda e: str(e), Path.cwd().glob(tests)))
     if init:
         test_dir = Path(os.getcwd()).joinpath("tests")
         if not test_dir.exists():
             os.mkdir("tests")
+
         import cdv.test as testlib
 
         src_path = Path(testlib.__file__).parent.joinpath("test_skeleton.py")
-        dest_path = test_dir.joinpath("test_skeleton.py")
+        dest_path: Path = test_dir.joinpath("test_skeleton.py")
         shutil.copyfile(src_path, dest_path)
-        dest_path_init = test_dir.joinpath("__init__.py")
+        dest_path_init: Path = test_dir.joinpath("__init__.py")
         open(dest_path_init, "w")
     if discover:
         pytest.main(["--collect-only", *test_paths])
@@ -84,7 +84,7 @@ def test_cmd(tests: str, discover: bool, init: str):
     "hash", short_help="SHA256 hash UTF-8 strings or bytes (use 0x prefix for bytes)"
 )
 @click.argument("data", nargs=1, required=True)
-def hash_cmd(data):
+def hash_cmd(data: str):
     if data[:2] == "0x":
         hash_data = bytes.fromhex(data[2:])
     else:
@@ -97,19 +97,18 @@ def hash_cmd(data):
 @click.option(
     "-p",
     "--prefix",
-    type=str,
     default="xch",
     show_default=True,
     required=False,
     help="The prefix to encode with",
 )
-def encode_cmd(puzzle_hash, prefix):
+def encode_cmd(puzzle_hash: str, prefix: str):
     print(encode_puzzle_hash(bytes.fromhex(puzzle_hash), prefix))
 
 
 @cli.command("decode", short_help="Decode a bech32m address to a puzzle hash")
 @click.argument("address", nargs=1, required=True)
-def decode_cmd(address):
+def decode_cmd(address: str):
     print(decode_puzzle_hash(address).hex())
 
 
