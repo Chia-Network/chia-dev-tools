@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 
 from setuptools import setup, find_packages
-from glob import glob
-from pathlib import Path
 
 with open("README.md", "rt") as fh:
     long_description = fh.read()
@@ -14,7 +12,11 @@ dependencies = [
     "pytimeparse",
 ]
 
-dev_dependencies = []
+dev_dependencies = [
+    "flake8",
+    "mypy",
+    "black",
+]
 
 setup(
     name="chia_dev_tools",
@@ -22,9 +24,7 @@ setup(
     packages=find_packages(exclude=("tests",)),
     author="Quexington",
     entry_points={
-        "console_scripts": [
-            "cdv = cdv.cmds.cli:main"
-        ],
+        "console_scripts": ["cdv = cdv.cmds.cli:main"],
     },
     package_data={
         "": ["*.clvm", "*.clvm.hex", "*.clib", "*.clsp", "*.clsp.hex"],
@@ -44,7 +44,9 @@ setup(
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Security :: Cryptography",
     ],
-    extras_require=dict(dev=dev_dependencies,),
+    extras_require=dict(
+        dev=dev_dependencies,
+    ),
     project_urls={
         "Bug Reports": "https://github.com/Chia-Network/chia-dev-tools",
         "Source": "https://github.com/Chia-Network/chia-dev-tools",

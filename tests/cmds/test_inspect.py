@@ -2,41 +2,65 @@ import json
 
 from pathlib import Path
 
-from click.testing import CliRunner
+from typing import Dict, List
+from click.testing import CliRunner, Result
 
 from cdv.cmds.cli import cli
+
+EMPTY_SIG = "c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"  # noqa
+
 
 class TestInspectCommands:
     def test_any(self):
         runner = CliRunner()
 
         # Try to inspect a program
-        result = runner.invoke(cli, ["inspect","any","ff0101"])
+        result: Result = runner.invoke(cli, ["inspect", "any", "ff0101"])
         assert result.exit_code == 0
         assert "guess" not in result.output
 
         # Try to inspect a private key
-        result = runner.invoke(cli, ["inspect","any","05ec9428fc2841a79e96631a633b154b57a45311c0602269a6500732093a52cd"])
+        result = runner.invoke(
+            cli,
+            [
+                "inspect",
+                "any",
+                "05ec9428fc2841a79e96631a633b154b57a45311c0602269a6500732093a52cd",
+            ],
+        )
         assert result.exit_code == 0
         assert "guess" not in result.output
 
         # Try to inspect a public key
-        result = runner.invoke(cli, ["inspect","any","b364a088d9df9423e54bff4c62e4bd854445fb8f5b8f6d80dea06773a4f828734a3a75318b180364ca8468836f0742db"])
+        result = runner.invoke(
+            cli,
+            [
+                "inspect",
+                "any",
+                "b364a088d9df9423e54bff4c62e4bd854445fb8f5b8f6d80dea06773a4f828734a3a75318b180364ca8468836f0742db",
+            ],
+        )
         assert result.exit_code == 0
         assert "guess" not in result.output
 
         # Try to inspect an aggsig
-        result = runner.invoke(cli, ["inspect","any","c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"])
+        result = runner.invoke(
+            cli,
+            [
+                "inspect",
+                "any",
+                EMPTY_SIG,
+            ],
+        )
         assert result.exit_code == 0
         assert "guess" not in result.output
 
-        for class_type in ["coinrecord","coin","spendbundle","spend"]:
+        for class_type in ["coinrecord", "coin", "spendbundle", "spend"]:
             valid_json_path = Path(__file__).parent.joinpath(f"object_files/{class_type}s/{class_type}.json")
             invalid_json_path = Path(__file__).parent.joinpath(f"object_files/{class_type}s/{class_type}_invalid.json")
             metadata_path = Path(__file__).parent.joinpath(f"object_files/{class_type}s/{class_type}_metadata.json")
-            valid_json = json.loads(open(valid_json_path,"r").read())
-            invalid_json = json.loads(open(invalid_json_path,"r").read())
-            metadata_json = json.loads(open(metadata_path,"r").read())
+            valid_json: Dict = json.loads(open(valid_json_path, "r").read())
+            metadata_json: Dict = json.loads(open(metadata_path, "r").read())
 
             # Try to load the invalid and make sure it fails
             result = runner.invoke(cli, ["inspect", "any", str(invalid_json_path)])
@@ -57,13 +81,13 @@ class TestInspectCommands:
                 valid_hex_path = Path(__file__).parent.joinpath(f"object_files/{class_type}s/{class_type}.hex")
 
                 # From a file
-                result = runner.invoke(cli, ["inspect","--json","any", str(valid_hex_path)])
+                result = runner.invoke(cli, ["inspect", "--json", "any", str(valid_hex_path)])
                 assert result.exit_code == 0
                 assert "'coin':" in result.output
 
                 # From a string
-                valid_hex = open(valid_hex_path,"r").read()
-                result = runner.invoke(cli, ["inspect","--json","any", valid_hex])
+                valid_hex: str = open(valid_hex_path, "r").read()
+                result = runner.invoke(cli, ["inspect", "--json", "any", valid_hex])
                 assert result.exit_code == 0
                 assert "'coin':" in result.output
 
@@ -83,37 +107,64 @@ class TestInspectCommands:
             assert metadata_json["type"] in result.output
 
     def test_coins(self):
-        pid = "0x0000000000000000000000000000000000000000000000000000000000000000"
-        ph = "0000000000000000000000000000000000000000000000000000000000000000"
-        amount = "0"
-        id = "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b"
+        pid: str = "0x0000000000000000000000000000000000000000000000000000000000000000"
+        ph: str = "0000000000000000000000000000000000000000000000000000000000000000"
+        amount: str = "0"
+        id: str = "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b"
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["inspect","--id","coins","-pid",pid,"-ph",ph,"-a",amount])
+        result: Result = runner.invoke(cli, ["inspect", "--id", "coins", "-pid", pid, "-ph", ph, "-a", amount])
         assert result.exit_code == 0
         assert id in result.output
 
     def test_spends(self):
-        coin_path = Path(__file__).parent.joinpath(f"object_files/coins/coin.json")
-        pid = "0x0000000000000000000000000000000000000000000000000000000000000000"
-        ph = "0000000000000000000000000000000000000000000000000000000000000000"
-        amount = "0"
-        id = "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b"
-        puzzle_reveal = "ff0101"
-        solution = "80"
-        cost = "63600"
-        cost_modifier = "1"
-        modified_cost = "53"
+        coin_path = Path(__file__).parent.joinpath("object_files/coins/coin.json")
+        pid: str = "0x0000000000000000000000000000000000000000000000000000000000000000"
+        ph: str = "0000000000000000000000000000000000000000000000000000000000000000"
+        amount: str = "0"
+        id: str = "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b"
+        puzzle_reveal: str = "ff0101"
+        solution: str = "80"
+        cost: str = "588000"
+        cost_modifier: str = "1"
+        modified_cost: str = "49"
 
         runner = CliRunner()
 
         # Specify the coin file
-        result = runner.invoke(cli, ["inspect","--id","spends","-c",str(coin_path),"-pr",puzzle_reveal,"-s",solution])
+        result: Result = runner.invoke(
+            cli,
+            [
+                "inspect",
+                "--id",
+                "spends",
+                "-c",
+                str(coin_path),
+                "-pr",
+                puzzle_reveal,
+                "-s",
+                solution,
+            ],
+        )
         assert result.exit_code == 0
         assert id in result.output
 
         # Specify all of the arguments
-        base_command = ["inspect","--id","spends","-pid",pid,"-ph",ph,"-a",amount,"-pr",puzzle_reveal,"-s",solution]
+        base_command: List[str] = [
+            "inspect",
+            "--id",
+            "spends",
+            "-pid",
+            pid,
+            "-ph",
+            ph,
+            "-a",
+            amount,
+            "-pr",
+            puzzle_reveal,
+            "-s",
+            solution,
+        ]
         result = runner.invoke(cli, base_command)
         assert result.exit_code == 0
         assert id in result.output
@@ -134,28 +185,48 @@ class TestInspectCommands:
         assert modified_cost in result.output
 
     def test_spendbundles(self):
-        spend_path = Path(__file__).parent.joinpath(f"object_files/spends/spend.json")
-        pubkey = "80df54b2a616f5c79baaed254134ae5dfc6e24e2d8e1165b251601ceb67b1886db50aacf946eb20f00adc303e7534dd0"
-        signable_data = "24f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4bccd5bb71183532bff220ba46c268991a3ff07eb358e8255a65c30a2dce0e5fbb"
-        signed_data = "b77c3f7dbbc694a77ff3739c1f4ade1df6a3936fcb352005e4ca74ac4ed21009ad02ac98f2ecd6eacba2a007011471d508f29ee6456c6a7f13e15c81b4d0772351eb62770be47175a9a7f843698540761537ad1696ea0f7132bfa2710fb78f09"
-        agg_sig = "b83fe374efbc5776735df7cbfb7e27ede5079b41cd282091450e4de21c4b772e254ce906508834b0c2dcd3d58c47a96914c782f0baf8eaff7ece3b070d2035cd878f744deadcd6c6625c1d0a1b418437ee3f25c2df08ffe08bdfe06b8a83b514"
-        id_no_sig = "3ac222f0e8f19afcad367b3068273801ca21fe515311dae8d399a5baad9c3c73"
-        id_with_sig = "bd9acfbb344c006cf520f1265a9b611a20cd478f234f51cd31a978b2d3ad9bbb"
-        network_modifier = "testnet7"
-        modified_signable_data = "24f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b117816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015af"
-        cost = "4868283"
-        cost_modifier = "0"
-        modified_cost = "2408283"
+        spend_path = Path(__file__).parent.joinpath("object_files/spends/spend.json")
+        pubkey: str = "80df54b2a616f5c79baaed254134ae5dfc6e24e2d8e1165b251601ceb67b1886db50aacf946eb20f00adc303e7534dd0"
+        signable_data: str = "24f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4bccd5bb71183532bff220ba46c268991a3ff07eb358e8255a65c30a2dce0e5fbb"  # noqa
+        agg_sig: str = "b83fe374efbc5776735df7cbfb7e27ede5079b41cd282091450e4de21c4b772e254ce906508834b0c2dcd3d58c47a96914c782f0baf8eaff7ece3b070d2035cd878f744deadcd6c6625c1d0a1b418437ee3f25c2df08ffe08bdfe06b8a83b514"  # noqa
+        id_no_sig: str = "3ac222f0e8f19afcad367b3068273801ca21fe515311dae8d399a5baad9c3c73"
+        id_with_sig: str = "bd9acfbb344c006cf520f1265a9b611a20cd478f234f51cd31a978b2d3ad9bbb"
+        network_modifier: str = "testnet7"
+        modified_signable_data: str = "24f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b117816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015af"  # noqa
+        cost: str = "4820283"
+        cost_modifier: str = "0"
+        modified_cost: str = "2408283"
 
         runner = CliRunner()
 
         # Build with only the spends
-        result = runner.invoke(cli, ["inspect","--id","spendbundles","-s",str(spend_path),"-s",str(spend_path)])
+        result: Result = runner.invoke(
+            cli,
+            [
+                "inspect",
+                "--id",
+                "spendbundles",
+                "-s",
+                str(spend_path),
+                "-s",
+                str(spend_path),
+            ],
+        )
         assert result.exit_code == 0
         assert id_no_sig in result.output
 
         # Build with the aggsig as well
-        base_command = ["inspect","--id","spendbundles","-s",str(spend_path),"-s",str(spend_path),"-as",agg_sig]
+        base_command: List[str] = [
+            "inspect",
+            "--id",
+            "spendbundles",
+            "-s",
+            str(spend_path),
+            "-s",
+            str(spend_path),
+            "-as",
+            agg_sig,
+        ]
         result = runner.invoke(cli, base_command)
         assert result.exit_code == 0
         assert id_with_sig in result.output
@@ -196,123 +267,181 @@ class TestInspectCommands:
         # Try to use it the programmatic way (like cdv rpc pushtx does)
         from cdv.cmds.chia_inspect import do_inspect_spend_bundle_cmd
         from cdv.cmds.util import fake_context
-        bundle_path = Path(__file__).parent.joinpath(f"object_files/spendbundles/spendbundle.json")
+
+        bundle_path = Path(__file__).parent.joinpath("object_files/spendbundles/spendbundle.json")
         assert len(do_inspect_spend_bundle_cmd(fake_context(), [str(bundle_path)], print_results=False)) > 0
 
     def test_coinrecords(self):
-        coin_path = Path(__file__).parent.joinpath(f"object_files/coins/coin.json")
-        pid = "0x0000000000000000000000000000000000000000000000000000000000000000"
-        ph = "0000000000000000000000000000000000000000000000000000000000000000"
-        amount = "0"
-        id = "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b"
-        coinbase = "False"
-        confirmed_block_index = "500"
-        spent = "True"
-        spent_block_index = "501"
-        timestamp = "909469800"
+        coin_path = Path(__file__).parent.joinpath("object_files/coins/coin.json")
+        pid: str = "0x0000000000000000000000000000000000000000000000000000000000000000"
+        ph: str = "0000000000000000000000000000000000000000000000000000000000000000"
+        amount: str = "0"
+        id: str = "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b"
+        coinbase: str = "False"
+        confirmed_block_index: str = "500"
+        spent: str = "True"
+        spent_block_index: str = "501"
+        timestamp: str = "909469800"
 
         runner = CliRunner()
 
         # Try to load it from a file
-        record_path = Path(__file__).parent.joinpath(f"object_files/coinrecords/coinrecord.json")
-        result = runner.invoke(cli, ["inspect","coinrecords",str(record_path)])
+        record_path = Path(__file__).parent.joinpath("object_files/coinrecords/coinrecord.json")
+        result: Result = runner.invoke(cli, ["inspect", "coinrecords", str(record_path)])
         assert result.exit_code == 0
         assert "'coin'" in result.output
 
         # Specify the coin file
-        result = runner.invoke(cli, ["inspect","--id","coinrecords","-c",str(coin_path),"-cb",coinbase,"-ci",confirmed_block_index,"-s",spent,"-si",spent_block_index,"-t",timestamp])
+        result = runner.invoke(
+            cli,
+            [
+                "inspect",
+                "--id",
+                "coinrecords",
+                "-c",
+                str(coin_path),
+                "-cb",
+                coinbase,
+                "-ci",
+                confirmed_block_index,
+                "-s",
+                spent,
+                "-si",
+                spent_block_index,
+                "-t",
+                timestamp,
+            ],
+        )
         assert result.exit_code == 0
         assert id in result.output
 
         # Specify all of the arguments
-        result = runner.invoke(cli, ["inspect","--id","coinrecords","-pid",pid,"-ph",ph,"-a",amount,"-cb",coinbase,"-ci",confirmed_block_index,"-s",spent,"-si",spent_block_index,"-t",timestamp])
+        result = runner.invoke(
+            cli,
+            [
+                "inspect",
+                "--id",
+                "coinrecords",
+                "-pid",
+                pid,
+                "-ph",
+                ph,
+                "-a",
+                amount,
+                "-cb",
+                coinbase,
+                "-ci",
+                confirmed_block_index,
+                "-s",
+                spent,
+                "-si",
+                spent_block_index,
+                "-t",
+                timestamp,
+            ],
+        )
         assert result.exit_code == 0
         assert id in result.output
 
     def test_programs(self):
-        program = "ff0101"
-        id = "69ae360134b1fae04326e5546f25dc794a19192a1f22a44a46d038e7f0d1ecbb"
+        program: str = "ff0101"
+        id: str = "69ae360134b1fae04326e5546f25dc794a19192a1f22a44a46d038e7f0d1ecbb"
 
         runner = CliRunner()
 
-        result = runner.invoke(cli, ["inspect","--id","programs",program])
+        result: Result = runner.invoke(cli, ["inspect", "--id", "programs", program])
         assert result.exit_code == 0
         assert id in result.output
 
     def test_keys(self):
-        mnemonic = "chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia"
-        passphrase = "chia"
-        sk = "68cbc26a245903f3d20a405c0673a9f32b2382174abeeabadb7ba1478b162326"
-        pk = "b7531990662d3fbff22d073a08123ddeae70e0a118cecebf8f207b373da5a90aaefcfed2d9cab8fbe711d6b4f5c72e89"
-        hd_modifier = "m/12381/8444/0/0"
-        type_modifier = "farmer" # Should be same as above HD Path
-        farmer_sk = "5729513405cb68999711618aa02e317335cecdea63d666886bbb39c0fc487dae"
-        synthetic_sk = "6124dbc2580cbdc2f3c716572950434ecdb42f952ec2e947bd393643c13e8ec2"
-        ph_modifier = "69ae360134b1fae04326e5546f25dc794a19192a1f22a44a46d038e7f0d1ecbb"
-        modified_synthetic_sk = "66dff9a8d49d90029e5fb42378562d459e375965150bc72c3a7ea2c523ab49f5"
+        mnemonic: str = "chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia"  # noqa
+        passphrase: str = "chia"
+        sk: str = "68cbc26a245903f3d20a405c0673a9f32b2382174abeeabadb7ba1478b162326"
+        pk: str = "b7531990662d3fbff22d073a08123ddeae70e0a118cecebf8f207b373da5a90aaefcfed2d9cab8fbe711d6b4f5c72e89"
+        hd_modifier: str = "m/12381/8444/0/0"
+        type_modifier: str = "farmer"  # Should be same as above HD Path
+        farmer_sk: str = "5729513405cb68999711618aa02e317335cecdea63d666886bbb39c0fc487dae"
+        synthetic_sk: str = "6124dbc2580cbdc2f3c716572950434ecdb42f952ec2e947bd393643c13e8ec2"
+        ph_modifier: str = "69ae360134b1fae04326e5546f25dc794a19192a1f22a44a46d038e7f0d1ecbb"
+        modified_synthetic_sk: str = "66dff9a8d49d90029e5fb42378562d459e375965150bc72c3a7ea2c523ab49f5"
 
         runner = CliRunner()
 
         # Build the key from secret key
-        result = runner.invoke(cli, ["inspect","keys","-sk",sk])
+        result: Result = runner.invoke(cli, ["inspect", "keys", "-sk", sk])
         assert result.exit_code == 0
         assert sk in result.output
         assert pk in result.output
-        key_output = result.output
+        key_output: str = result.output
 
         # Build the key from mnemonic
-        result = runner.invoke(cli, ["inspect","keys","-m",mnemonic,"-pw",passphrase])
+        result = runner.invoke(cli, ["inspect", "keys", "-m", mnemonic, "-pw", passphrase])
         assert result.exit_code == 0
         assert result.output == key_output
 
         # Use only the public key
-        result = runner.invoke(cli, ["inspect","keys","-pk",pk])
+        result = runner.invoke(cli, ["inspect", "keys", "-pk", pk])
         assert result.exit_code == 0
         assert result.output in key_output
 
         # Generate a random one
-        result = runner.invoke(cli, ["inspect","keys","--random"])
+        result = runner.invoke(cli, ["inspect", "keys", "--random"])
         assert result.exit_code == 0
         assert "Secret Key" in result.output
         assert "Public Key" in result.output
 
         # Check the HD derivation is working
-        result = runner.invoke(cli, ["inspect","keys","-sk",sk,"-hd",hd_modifier])
+        result = runner.invoke(cli, ["inspect", "keys", "-sk", sk, "-hd", hd_modifier])
         assert result.exit_code == 0
         assert farmer_sk in result.output
 
         # Check the type derivation is working
-        result = runner.invoke(cli, ["inspect","keys","-sk",sk,"-t",type_modifier])
+        result = runner.invoke(cli, ["inspect", "keys", "-sk", sk, "-t", type_modifier])
         assert result.exit_code == 0
         assert farmer_sk in result.output
 
         # Check that synthetic calculation is working
-        result = runner.invoke(cli, ["inspect","keys","-sk",sk,"-sy"])
+        result = runner.invoke(cli, ["inspect", "keys", "-sk", sk, "-sy"])
         assert result.exit_code == 0
         assert synthetic_sk in result.output
 
         # Check that using a non default puzzle hash is working
-        result = runner.invoke(cli, ["inspect","keys","-sk",sk,"-sy","-ph",ph_modifier])
+        result = runner.invoke(cli, ["inspect", "keys", "-sk", sk, "-sy", "-ph", ph_modifier])
         assert result.exit_code == 0
         assert modified_synthetic_sk in result.output
 
     def test_signatures(self):
-        empty_sig = "c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-        secret_key_1 = "70432627e84c13c1a6e6007bf6d9a7a0342018fdef7fc911757aad5a6929d20a"
-        secret_key_2 = "0f01f7f68935f8594548bca3892fec419c6b2aa7cff54c3353a2e9b1011f09c7"
-        text_message = "cafe food"
-        bytes_message = "0xcafef00d"
-        extra_signature = "b5d4e653ec9a737d19abe9af7050d37b0f464f9570ec66a8457fbdabdceb50a77c6610eb442ed1e4ace39d9ecc6d40560de239c1c8f7a115e052438385d594be7394df9287cf30c3254d39f0ae21daefc38d3d07ba3e373628bf8ed73f074a80"
-        final_signature = "b7a6ab2c825068eb40298acab665f95c13779e828d900b8056215b54e47d8b8314e8b61fbb9c98a23ef8a134155a35b109ba284bd5f1f90f96e0d41427132b3ca6a83faae0806daa632ee6b1602a0b4bad92f2743fdeb452822f0599dfa147c0"
+        secret_key_1: str = "70432627e84c13c1a6e6007bf6d9a7a0342018fdef7fc911757aad5a6929d20a"
+        secret_key_2: str = "0f01f7f68935f8594548bca3892fec419c6b2aa7cff54c3353a2e9b1011f09c7"
+        text_message: str = "cafe food"
+        bytes_message: str = "0xcafef00d"
+        extra_signature: str = "b5d4e653ec9a737d19abe9af7050d37b0f464f9570ec66a8457fbdabdceb50a77c6610eb442ed1e4ace39d9ecc6d40560de239c1c8f7a115e052438385d594be7394df9287cf30c3254d39f0ae21daefc38d3d07ba3e373628bf8ed73f074a80"  # noqa
+        final_signature: str = "b7a6ab2c825068eb40298acab665f95c13779e828d900b8056215b54e47d8b8314e8b61fbb9c98a23ef8a134155a35b109ba284bd5f1f90f96e0d41427132b3ca6a83faae0806daa632ee6b1602a0b4bad92f2743fdeb452822f0599dfa147c0"  # noqa
 
         runner = CliRunner()
 
         # Test that an empty command returns an empty signature
-        result = runner.invoke(cli,["inspect","signatures"])
+        result = runner.invoke(cli, ["inspect", "signatures"])
         assert result.exit_code == 0
-        assert empty_sig in result.output
+        assert EMPTY_SIG in result.output
 
         # Test a complex signature calculation
-        result = runner.invoke(cli, ["inspect","signatures","-sk",secret_key_1,"-t",text_message,"-sk",secret_key_2,"-b",bytes_message,"-sig",extra_signature])
+        result = runner.invoke(
+            cli,
+            [
+                "inspect",
+                "signatures",
+                "-sk",
+                secret_key_1,
+                "-t",
+                text_message,
+                "-sk",
+                secret_key_2,
+                "-b",
+                bytes_message,
+                "-sig",
+                extra_signature,
+            ],
+        )
         assert result.exit_code == 0
         assert final_signature in result.output

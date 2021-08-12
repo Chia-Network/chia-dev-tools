@@ -2,6 +2,7 @@ import pytest
 
 from cdv.test import setup as setup_test
 
+
 class TestSomething:
     @pytest.fixture(scope="function")
     async def setup(self):
