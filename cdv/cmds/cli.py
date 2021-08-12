@@ -69,6 +69,8 @@ def test_cmd(tests: str, discover: bool, init: str):
 
         import cdv.test as testlib
 
+        # It finds these files relative to its position in the venv
+        # If the cdv/test/__init__.py file or any of the relvant files move, this will break
         src_path = Path(testlib.__file__).parent.joinpath("test_skeleton.py")
         dest_path: Path = test_dir.joinpath("test_skeleton.py")
         shutil.copyfile(src_path, dest_path)

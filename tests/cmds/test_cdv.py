@@ -10,6 +10,7 @@ class TestCdvCommands:
         runner = CliRunner()
         puzhash: str = "3d4237d9383a7b6e60d1bfe551139ec2d6e5468205bf179ed381e66bed7b9788"
 
+        # Without prefix
         result: Result = runner.invoke(cli, ["encode", puzhash])
         address: str = "xch184pr0kfc8fakucx3hlj4zyu7cttw235zqkl308kns8nxhmtmj7yqxsnauc"
         assert result.exit_code == 0
@@ -18,6 +19,7 @@ class TestCdvCommands:
         assert result.exit_code == 0
         assert puzhash in result.output
 
+        # With prefix
         result = runner.invoke(cli, ["encode", puzhash, "--prefix", "txch"])
         test_address: str = "txch184pr0kfc8fakucx3hlj4zyu7cttw235zqkl308kns8nxhmtmj7yqth5tat"
         assert result.exit_code == 0

@@ -33,6 +33,11 @@ from chia.util.byte_types import hexstr_to_bytes
 
 from cdv.cmds.util import parse_program
 
+"""
+This group of commands is for guessing the types of objects when you don't know what they are,
+but also for building them from scratch and for modifying them once you have them completely loaded/built.
+"""
+
 
 @click.group("inspect", short_help="Inspect various data structures")
 @click.option("-j", "--json", is_flag=True, help="Output the result as JSON")
@@ -46,12 +51,15 @@ def inspect_cmd(ctx: click.Context, **kwargs):
         ctx.obj[key] = value
 
 
+# Every inspect command except the key related ones will call this when they're done
+# The function allows the flags on "inspect" apply AFTER the objects have been successfully loaded
 def inspect_callback(
     objs: List[Any],
     ctx: click.Context,
     id_calc: Callable = (lambda: None),
     type: str = "Unknown",
 ):
+    # By default we return JSON
     if (not any([value for key, value in ctx.obj.items()])) or ctx.obj["json"]:
         if getattr(objs[0], "to_json_dict", None):
             pprint([obj.to_json_dict() for obj in objs])
@@ -63,7 +71,7 @@ def inspect_callback(
             try:
                 final_output.append(bytes(obj).hex())
             except AssertionError:
-                final_output.append("None")
+                final_output.append("None")  # This is for coins since coins overload the __bytes__ method
         pprint(final_output)
     if ctx.obj["id"]:
         pprint([id_calc(obj) for obj in objs])
@@ -72,6 +80,8 @@ def inspect_callback(
 
 
 # Utility functions
+
+# If there's only one key, return the data on that key instead (for things like {'spend_bundle': {...}})
 def json_and_key_strip(input: str) -> Dict:
     json_dict = json.loads(input)
     if len(json_dict.keys()) == 1:
@@ -80,7 +90,9 @@ def json_and_key_strip(input: str) -> Dict:
         return json_dict
 
 
+# Streamable objects can be in either bytes or JSON and we'll take them via CLI or file
 def streamable_load(cls: Any, inputs: Iterable[Any]) -> List[Any]:
+    # If we're receiving a group of objects rather than strings to parse, we're going to return them back as a list
     if inputs and not isinstance(list(inputs)[0], str):
         for inst in inputs:
             assert isinstance(inst, cls)
@@ -88,20 +100,21 @@ def streamable_load(cls: Any, inputs: Iterable[Any]) -> List[Any]:
 
     input_objs: List[Any] = []
     for input in inputs:
-        if "{" in input:
+        if "{" in input:  # If it's a JSON string
             input_objs.append(cls.from_json_dict(json_and_key_strip(input)))
-        elif "." in input:
+        elif "." in input:  # If it's a filename
             file_string = open(input, "r").read()
-            if "{" in file_string:
+            if "{" in file_string:  # If it's a JSON file
                 input_objs.append(cls.from_json_dict(json_and_key_strip(file_string)))
-            else:
+            else:  # If it's bytes in a file
                 input_objs.append(cls.from_bytes(hexstr_to_bytes(file_string)))
-        else:
+        else:  # If it's a byte string
             input_objs.append(cls.from_bytes(hexstr_to_bytes(input)))
 
     return input_objs
 
 
+# Theoretically, every type of data should have it's command called if it's passed through this function
 @inspect_cmd.command("any", short_help="Attempt to guess the type of the object before inspecting it")
 @click.argument("objects", nargs=-1, required=False)
 @click.pass_context
@@ -147,7 +160,14 @@ def inspect_any_cmd(ctx: click.Context, objects: Tuple[str]):
         elif type(obj) == PrivateKey:
             do_inspect_keys_cmd(ctx, secret_key=obj)
         elif type(obj) == G2Element:
-            print("That's a BLS aggregated signature")
+            print("That's a BLS aggregated signature")  # This is more helpful than just printing it back to them
+
+
+"""
+Most of the following commands are designed to also be available as importable functions and usable by the "any" cmd.
+This is why there's the cmd/do_cmd pattern in all of them.
+The objects they are inspecting can be a list of strings (from the cmd line), or a list of the object being inspected.
+"""
 
 
 @inspect_cmd.command("coins", short_help="Various methods for examining and calculating coin objects")
@@ -166,6 +186,7 @@ def do_inspect_coin_cmd(
     print_results: bool = True,
     **kwargs,
 ) -> List[Coin]:
+    # If this is built from the command line and all relevant arguments are there
     if kwargs and all([kwargs[key] for key in kwargs.keys()]):
         coin_objs: List[Coin] = [
             Coin(
@@ -226,11 +247,14 @@ def do_inspect_coin_spend_cmd(
     cost_flag: bool = False
     cost_per_byte: int = 12000
     if kwargs:
+        # These args don't really fit with the logic below so we're going to store and delete them
         cost_flag = kwargs["cost"]
         cost_per_byte = kwargs["cost_per_byte"]
         del kwargs["cost"]
         del kwargs["cost_per_byte"]
+    # If this is being built from the command line and the two required args are there
     if kwargs and all([kwargs["puzzle_reveal"], kwargs["solution"]]):
+        # If they specified the coin components
         if (not kwargs["coin"]) and all([kwargs["parent_id"], kwargs["puzzle_hash"], kwargs["amount"]]):
             coin_spend_objs: List[CoinSpend] = [
                 CoinSpend(
@@ -243,6 +267,7 @@ def do_inspect_coin_spend_cmd(
                     parse_program(kwargs["solution"]),
                 )
             ]
+        # If they specifed a coin object to parse
         elif kwargs["coin"]:
             coin_spend_objs = [
                 CoinSpend(
@@ -270,6 +295,7 @@ def do_inspect_coin_spend_cmd(
             id_calc=(lambda e: e.coin.name().hex()),
             type="CoinSpend",
         )
+        # We're going to print some extra stuff if they wanted to see the cost
         if cost_flag:
             for coin_spend in coin_spend_objs:
                 program: BlockGenerator = simple_solution_generator(SpendBundle([coin_spend], G2Element()))
@@ -327,6 +353,7 @@ def do_inspect_spend_bundle_cmd(
     print_results: bool = True,
     **kwargs,
 ) -> List[SpendBundle]:
+    # If this is from the command line and they've specified at lease one spend to parse
     if kwargs and (len(kwargs["spend"]) > 0):
         if len(kwargs["aggsig"]) > 0:
             sig: G2Element = AugSchemeMPL.aggregate([G2Element(hexstr_to_bytes(sig)) for sig in kwargs["aggsig"]])
@@ -351,6 +378,7 @@ def do_inspect_spend_bundle_cmd(
             id_calc=(lambda e: e.name().hex()),
             type="SpendBundle",
         )
+        # We're going to print some extra stuff if they've asked for it.
         if kwargs:
             if kwargs["cost"]:
                 for spend_bundle in spend_bundle_objs:
@@ -398,6 +426,7 @@ def do_inspect_spend_bundle_cmd(
                                     pkm_dict[str(pk)].append(msg)
                                 else:
                                     pkm_dict[str(pk)] = [msg]
+                # This very deliberately prints identical messages multiple times
                 for pk, msgs in pkm_dict.items():
                     print(f"{pk}:")
                     for msg in msgs:
@@ -455,7 +484,9 @@ def do_inspect_coin_record_cmd(
     print_results: bool = True,
     **kwargs,
 ) -> List[CoinRecord]:
+    # If we're building this from the command line and we have the two arguements we forsure need
     if kwargs and all([kwargs["confirmed_block_index"], kwargs["timestamp"]]):
+        # If they've specified the components of a coin
         if (not kwargs["coin"]) and all([kwargs["parent_id"], kwargs["puzzle_hash"], kwargs["amount"]]):
             coin_record_objs: List[CoinRecord] = [
                 CoinRecord(
@@ -471,6 +502,7 @@ def do_inspect_coin_record_cmd(
                     kwargs["timestamp"],
                 )
             ]
+        # If they've specified a coin to parse
         elif kwargs["coin"]:
             coin_record_objs = [
                 CoinRecord(
@@ -590,6 +622,7 @@ def do_inspect_keys_cmd(ctx: click.Context, print_results: bool = True, **kwargs
             kwargs["random"],
         ]
 
+        # This a construct to ensure there is exactly one of these conditions set
         def one_or_zero(value):
             return 1 if value else 0
 
@@ -646,6 +679,7 @@ def do_inspect_keys_cmd(ctx: click.Context, print_results: bool = True, **kwargs
     print(f"HD Path: {path}")
 
 
+# This class is necessary for being able to handle parameters in order, rather than grouped by name
 class OrderedParamsCommand(click.Command):
     _options: List = []
 
@@ -685,6 +719,9 @@ def inspect_sigs_cmd(ctx: click.Context, **kwargs):
     do_inspect_sigs_cmd(ctx, **kwargs)
 
 
+# This command sort of works like a script:
+# Whenever you use a parameter, it changes some state,
+# at the end it returns the result of running those parameters in that order.
 def do_inspect_sigs_cmd(ctx: click.Context, print_results: bool = True, **kwargs) -> G2Element:
     base = G2Element()
     sk: Optional[PrivateKey] = None
