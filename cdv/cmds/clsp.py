@@ -44,33 +44,24 @@ def build_cmd(files: Tuple[str], include: Tuple[str]) -> None:
     for filename in clvm_files:
         hex_file_name: str = filename.name + ".hex"
         full_hex_file_name = Path(filename.parent).joinpath(hex_file_name)
-        if not (
-            full_hex_file_name.exists()
-            and full_hex_file_name.stat().st_mtime > filename.stat().st_mtime
-        ):
+        if not (full_hex_file_name.exists() and full_hex_file_name.stat().st_mtime > filename.stat().st_mtime):
             outfile = str(filename) + ".hex"
             try:
                 print("Beginning compilation of " + filename.name + "...")
-                compile_clvm(
-                    str(filename), outfile, search_paths=append_include(include)
-                )
+                compile_clvm(str(filename), outfile, search_paths=append_include(include))
                 print("...Compilation finished")
             except Exception as e:
                 print("Couldn't build " + filename.name + ": " + str(e))
 
 
-@clsp_cmd.command(
-    "disassemble", short_help="Disassemble serialized clvm into human readable form."
-)
+@clsp_cmd.command("disassemble", short_help="Disassemble serialized clvm into human readable form.")
 @click.argument("programs", nargs=-1, required=True)
 def disassemble_cmd(programs: Tuple[str]):
     for program in programs:
         print(disassemble(parse_program(program)))
 
 
-@clsp_cmd.command(
-    "treehash", short_help="Return the tree hash of a clvm file or string"
-)
+@clsp_cmd.command("treehash", short_help="Return the tree hash of a clvm file or string")
 @click.argument("program", nargs=1, required=True)
 @click.option(
     "-i",
@@ -91,9 +82,7 @@ def treehash_cmd(program: str, include: Tuple[str]):
     multiple=True,
     help="An argument to be curried in (i.e. -a 0xdeadbeef -a '(a 2 3)')",
 )
-@click.option(
-    "-H", "--treehash", is_flag=True, help="Output the tree hash of the curried puzzle"
-)
+@click.option("-H", "--treehash", is_flag=True, help="Output the tree hash of the curried puzzle")
 @click.option(
     "-x",
     "--dump",
@@ -107,9 +96,7 @@ def treehash_cmd(program: str, include: Tuple[str]):
     multiple=True,
     help="Paths to search for include files (./include will be searched automatically)",
 )
-def curry_cmd(
-    program: str, args: Tuple[str], treehash: bool, dump: bool, include: Tuple[str]
-):
+def curry_cmd(program: str, args: Tuple[str], treehash: bool, dump: bool, include: Tuple[str]):
     prog: Program = parse_program(program, include)
     curry_args: List[Program] = [assemble(arg) for arg in args]
 
@@ -140,6 +127,4 @@ def retrieve_cmd(libraries: Tuple[str]):
         if src_path.exists():
             shutil.copyfile(src_path, include_path.joinpath(f"{lib}.clib"))
         else:
-            print(
-                f"Could not find {lib}.clib. You can always create it in ./include yourself."
-            )
+            print(f"Could not find {lib}.clib. You can always create it in ./include yourself.")

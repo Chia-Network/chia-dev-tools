@@ -23,9 +23,7 @@ class TestStandardTransaction:
         network, alice, bob = await setup_test()
         yield network, alice, bob
 
-    async def make_and_spend_piggybank(
-        self, network, alice, bob, CONTRIBUTION_AMOUNT
-    ) -> Dict[str, List[Coin]]:
+    async def make_and_spend_piggybank(self, network, alice, bob, CONTRIBUTION_AMOUNT) -> Dict[str, List[Coin]]:
         # Get our alice wallet some money
         await network.farm_block(farmer=alice)
 
@@ -34,9 +32,7 @@ class TestStandardTransaction:
             create_piggybank_puzzle(uint64(1000000000000), bob.puzzle_hash)
         )
         # This retrieves us a coin that is at least 500 mojos.
-        contribution_coin: Optional[CoinWrapper] = await alice.choose_coin(
-            CONTRIBUTION_AMOUNT
-        )
+        contribution_coin: Optional[CoinWrapper] = await alice.choose_coin(CONTRIBUTION_AMOUNT)
 
         # Make sure everything succeeded
         if not piggybank_coin or not contribution_coin:
@@ -59,9 +55,7 @@ class TestStandardTransaction:
                     contribution_coin.puzzle_hash,
                     (contribution_coin.amount - CONTRIBUTION_AMOUNT),
                 ],
-                piggybank_announcement_assertion(
-                    piggybank_coin.as_coin(), CONTRIBUTION_AMOUNT
-                ),
+                piggybank_announcement_assertion(piggybank_coin.as_coin(), CONTRIBUTION_AMOUNT),
             ],
         )
 
@@ -75,9 +69,7 @@ class TestStandardTransaction:
     async def test_piggybank_contribution(self, setup):
         network, alice, bob = setup
         try:
-            result: Dict[str, List[Coin]] = await self.make_and_spend_piggybank(
-                network, alice, bob, 500
-            )
+            result: Dict[str, List[Coin]] = await self.make_and_spend_piggybank(network, alice, bob, 500)
 
             assert "error" not in result
 
@@ -85,10 +77,7 @@ class TestStandardTransaction:
                 filter(
                     lambda addition: (addition.amount == 501)
                     and (
-                        addition.puzzle_hash
-                        == create_piggybank_puzzle(
-                            1000000000000, bob.puzzle_hash
-                        ).get_tree_hash()
+                        addition.puzzle_hash == create_piggybank_puzzle(1000000000000, bob.puzzle_hash).get_tree_hash()
                     ),
                     result["additions"],
                 )
@@ -101,9 +90,7 @@ class TestStandardTransaction:
     async def test_piggybank_completion(self, setup):
         network, alice, bob = setup
         try:
-            result: Dict[str, List[Coin]] = await self.make_and_spend_piggybank(
-                network, alice, bob, 1000000000000
-            )
+            result: Dict[str, List[Coin]] = await self.make_and_spend_piggybank(network, alice, bob, 1000000000000)
 
             assert "error" not in result
 
@@ -111,10 +98,7 @@ class TestStandardTransaction:
                 filter(
                     lambda addition: (addition.amount == 0)
                     and (
-                        addition.puzzle_hash
-                        == create_piggybank_puzzle(
-                            1000000000000, bob.puzzle_hash
-                        ).get_tree_hash()
+                        addition.puzzle_hash == create_piggybank_puzzle(1000000000000, bob.puzzle_hash).get_tree_hash()
                     ),
                     result["additions"],
                 )
@@ -123,8 +107,7 @@ class TestStandardTransaction:
 
             filtered_result: List[Coin] = list(
                 filter(
-                    lambda addition: (addition.amount == 1000000000001)
-                    and (addition.puzzle_hash == bob.puzzle_hash),
+                    lambda addition: (addition.amount == 1000000000001) and (addition.puzzle_hash == bob.puzzle_hash),
                     result["additions"],
                 )
             )
@@ -136,9 +119,7 @@ class TestStandardTransaction:
     async def test_piggybank_stealing(self, setup):
         network, alice, bob = setup
         try:
-            result: Dict[str, List[Coin]] = await self.make_and_spend_piggybank(
-                network, alice, bob, -100
-            )
+            result: Dict[str, List[Coin]] = await self.make_and_spend_piggybank(network, alice, bob, -100)
             assert "error" in result
             assert "GENERATOR_RUNTIME_ERROR" in result["error"]
         finally:

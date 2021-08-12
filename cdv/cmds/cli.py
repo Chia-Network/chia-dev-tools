@@ -80,9 +80,7 @@ def test_cmd(tests: str, discover: bool, init: str):
         pytest.main([*test_paths])
 
 
-@cli.command(
-    "hash", short_help="SHA256 hash UTF-8 strings or bytes (use 0x prefix for bytes)"
-)
+@cli.command("hash", short_help="SHA256 hash UTF-8 strings or bytes (use 0x prefix for bytes)")
 @click.argument("data", nargs=1, required=True)
 def hash_cmd(data: str):
     if data[:2] == "0x":

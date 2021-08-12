@@ -21,9 +21,7 @@ def create_piggybank_puzzle(amount: uint64, cash_out_puzhash: bytes32) -> Progra
 
 # Generate a solution to contribute to a piggybank
 def solution_for_piggybank(pb_coin: Coin, contrib_amount: uint64) -> Program:
-    return Program.to(
-        [pb_coin.puzzle_hash, pb_coin.amount, (pb_coin.amount + contrib_amount)]
-    )
+    return Program.to([pb_coin.puzzle_hash, pb_coin.amount, (pb_coin.amount + contrib_amount)])
 
 
 # Return the condition to assert the announcement

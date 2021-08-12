@@ -102,9 +102,7 @@ def streamable_load(cls: Any, inputs: Iterable[Any]) -> List[Any]:
     return input_objs
 
 
-@inspect_cmd.command(
-    "any", short_help="Attempt to guess the type of the object before inspecting it"
-)
+@inspect_cmd.command("any", short_help="Attempt to guess the type of the object before inspecting it")
 @click.argument("objects", nargs=-1, required=False)
 @click.pass_context
 def inspect_any_cmd(ctx: click.Context, objects: Tuple[str]):
@@ -152,14 +150,10 @@ def inspect_any_cmd(ctx: click.Context, objects: Tuple[str]):
             print("That's a BLS aggregated signature")
 
 
-@inspect_cmd.command(
-    "coins", short_help="Various methods for examining and calculating coin objects"
-)
+@inspect_cmd.command("coins", short_help="Various methods for examining and calculating coin objects")
 @click.argument("coins", nargs=-1, required=False)
 @click.option("-pid", "--parent-id", help="The parent coin's ID")
-@click.option(
-    "-ph", "--puzzle-hash", help="The tree hash of the CLVM puzzle that locks this coin"
-)
+@click.option("-ph", "--puzzle-hash", help="The tree hash of the CLVM puzzle that locks this coin")
 @click.option("-a", "--amount", help="The amount of the coin")
 @click.pass_context
 def inspect_coin_cmd(ctx: click.Context, coins: Tuple[str], **kwargs):
@@ -190,9 +184,7 @@ def do_inspect_coin_cmd(
         sys.exit(1)
 
     if print_results:
-        inspect_callback(
-            coin_objs, ctx, id_calc=(lambda e: e.name().hex()), type="Coin"
-        )
+        inspect_callback(coin_objs, ctx, id_calc=(lambda e: e.name().hex()), type="Coin")
 
     return coin_objs
 
@@ -210,9 +202,7 @@ def do_inspect_coin_cmd(
     help="The tree hash of the CLVM puzzle that locks the coin being spent",
 )
 @click.option("-a", "--amount", help="The amount of the coin being spent")
-@click.option(
-    "-pr", "--puzzle-reveal", help="The program that is hashed into this coin"
-)
+@click.option("-pr", "--puzzle-reveal", help="The program that is hashed into this coin")
 @click.option("-s", "--solution", help="The attempted solution to the puzzle")
 @click.option("-ec", "--cost", is_flag=True, help="Print the CLVM cost of the spend")
 @click.option(
@@ -241,9 +231,7 @@ def do_inspect_coin_spend_cmd(
         del kwargs["cost"]
         del kwargs["cost_per_byte"]
     if kwargs and all([kwargs["puzzle_reveal"], kwargs["solution"]]):
-        if (not kwargs["coin"]) and all(
-            [kwargs["parent_id"], kwargs["puzzle_hash"], kwargs["amount"]]
-        ):
+        if (not kwargs["coin"]) and all([kwargs["parent_id"], kwargs["puzzle_hash"], kwargs["amount"]]):
             coin_spend_objs: List[CoinSpend] = [
                 CoinSpend(
                     Coin(
@@ -284,15 +272,11 @@ def do_inspect_coin_spend_cmd(
         )
         if cost_flag:
             for coin_spend in coin_spend_objs:
-                program: BlockGenerator = simple_solution_generator(
-                    SpendBundle([coin_spend], G2Element())
-                )
+                program: BlockGenerator = simple_solution_generator(SpendBundle([coin_spend], G2Element()))
                 npc_result: NPCResult = get_name_puzzle_conditions(
                     program, INFINITE_COST, cost_per_byte=cost_per_byte, safe_mode=True
                 )
-                cost: int = calculate_cost_of_program(
-                    program.program, npc_result, cost_per_byte
-                )
+                cost: int = calculate_cost_of_program(program.program, npc_result, cost_per_byte)
                 print(f"Cost: {cost}")
 
     return coin_spend_objs
@@ -303,18 +287,14 @@ def do_inspect_coin_spend_cmd(
     short_help="Various methods for examining and calculating SpendBundle objects",
 )
 @click.argument("bundles", nargs=-1, required=False)
-@click.option(
-    "-s", "--spend", multiple=True, help="A coin spend object to add to the bundle"
-)
+@click.option("-s", "--spend", multiple=True, help="A coin spend object to add to the bundle")
 @click.option(
     "-as",
     "--aggsig",
     multiple=True,
     help="A BLS signature to aggregate into the bundle (can be used more than once)",
 )
-@click.option(
-    "-db", "--debug", is_flag=True, help="Show debugging information about the bundles"
-)
+@click.option("-db", "--debug", is_flag=True, help="Show debugging information about the bundles")
 @click.option(
     "-sd",
     "--signable_data",
@@ -328,9 +308,7 @@ def do_inspect_coin_spend_cmd(
     show_default=True,
     help="The network this spend bundle will be pushed to (for AGG_SIG_ME)",
 )
-@click.option(
-    "-ec", "--cost", is_flag=True, help="Print the CLVM cost of the entire bundle"
-)
+@click.option("-ec", "--cost", is_flag=True, help="Print the CLVM cost of the entire bundle")
 @click.option(
     "-bc",
     "--cost-per-byte",
@@ -351,9 +329,7 @@ def do_inspect_spend_bundle_cmd(
 ) -> List[SpendBundle]:
     if kwargs and (len(kwargs["spend"]) > 0):
         if len(kwargs["aggsig"]) > 0:
-            sig: G2Element = AugSchemeMPL.aggregate(
-                [G2Element(hexstr_to_bytes(sig)) for sig in kwargs["aggsig"]]
-            )
+            sig: G2Element = AugSchemeMPL.aggregate([G2Element(hexstr_to_bytes(sig)) for sig in kwargs["aggsig"]])
         else:
             sig = G2Element()
         spend_bundle_objs: List[SpendBundle] = [
@@ -385,9 +361,7 @@ def do_inspect_spend_bundle_cmd(
                         cost_per_byte=kwargs["cost_per_byte"],
                         safe_mode=True,
                     )
-                    cost: int = calculate_cost_of_program(
-                        program.program, npc_result, kwargs["cost_per_byte"]
-                    )
+                    cost: int = calculate_cost_of_program(program.program, npc_result, kwargs["cost_per_byte"])
                     print(f"Cost: {cost}")
             if kwargs["debug"]:
                 print("")
@@ -406,17 +380,15 @@ def do_inspect_spend_bundle_cmd(
                             coin_spend.puzzle_reveal, coin_spend.solution, INFINITE_COST
                         )
                         if err or conditions_dict is None:
-                            print(
-                                f"Generating conditions failed, con:{conditions_dict}, error: {err}"
-                            )
+                            print(f"Generating conditions failed, con:{conditions_dict}, error: {err}")
                         else:
                             from chia.util.default_root import DEFAULT_ROOT_PATH
                             from chia.util.config import load_config
 
                             config: Dict = load_config(DEFAULT_ROOT_PATH, "config.yaml")
-                            genesis_challenge: str = config["network_overrides"][
-                                "constants"
-                            ][kwargs["network"]]["GENESIS_CHALLENGE"]
+                            genesis_challenge: str = config["network_overrides"]["constants"][kwargs["network"]][
+                                "GENESIS_CHALLENGE"
+                            ]
                             for pk, msg in pkm_pairs_for_conditions_dict(
                                 conditions_dict,
                                 coin_spend.coin.name(),
@@ -484,9 +456,7 @@ def do_inspect_coin_record_cmd(
     **kwargs,
 ) -> List[CoinRecord]:
     if kwargs and all([kwargs["confirmed_block_index"], kwargs["timestamp"]]):
-        if (not kwargs["coin"]) and all(
-            [kwargs["parent_id"], kwargs["puzzle_hash"], kwargs["amount"]]
-        ):
+        if (not kwargs["coin"]) and all([kwargs["parent_id"], kwargs["puzzle_hash"], kwargs["amount"]]):
             coin_record_objs: List[CoinRecord] = [
                 CoinRecord(
                     Coin(
@@ -534,9 +504,7 @@ def do_inspect_coin_record_cmd(
     return coin_record_objs
 
 
-@inspect_cmd.command(
-    "programs", short_help="Various methods for examining CLVM Program objects"
-)
+@inspect_cmd.command("programs", short_help="Various methods for examining CLVM Program objects")
 @click.argument("programs", nargs=-1, required=False)
 @click.pass_context
 def inspect_program_cmd(ctx: click.Context, programs: Tuple[str], **kwargs):
@@ -566,16 +534,10 @@ def do_inspect_program_cmd(
     return program_objs
 
 
-@inspect_cmd.command(
-    "keys", short_help="Various methods for examining and generating BLS Keys"
-)
+@inspect_cmd.command("keys", short_help="Various methods for examining and generating BLS Keys")
 @click.option("-pk", "--public-key", help="A BLS public key")
-@click.option(
-    "-sk", "--secret-key", help="The secret key from which to derive the public key"
-)
-@click.option(
-    "-m", "--mnemonic", help="A 24 word mnemonic from which to derive the secret key"
-)
+@click.option("-sk", "--secret-key", help="The secret key from which to derive the public key")
+@click.option("-m", "--mnemonic", help="A 24 word mnemonic from which to derive the secret key")
 @click.option(
     "-pw",
     "--passphrase",
@@ -584,9 +546,7 @@ def do_inspect_program_cmd(
     help="A passphrase to use when deriving a secret key from mnemonic",
 )
 @click.option("-r", "--random", is_flag=True, help="Generate a random set of keys")
-@click.option(
-    "-hd", "--hd-path", help="Enter the HD path in the form 'm/12381/8444/n/n'"
-)
+@click.option("-hd", "--hd-path", help="Enter the HD path in the form 'm/12381/8444/n/n'")
 @click.option(
     "-t",
     "--key-type",
@@ -645,16 +605,12 @@ def do_inspect_keys_cmd(ctx: click.Context, print_results: bool = True, **kwargs
                 sk = AugSchemeMPL.key_gen(seed)
                 pk = sk.get_g1()
             elif kwargs["random"]:
-                sk = AugSchemeMPL.key_gen(
-                    mnemonic_to_seed(bytes_to_mnemonic(token_bytes(32)), "")
-                )
+                sk = AugSchemeMPL.key_gen(mnemonic_to_seed(bytes_to_mnemonic(token_bytes(32)), ""))
                 pk = sk.get_g1()
 
             list_path: List[int] = []
             if kwargs["hd_path"] and (kwargs["hd_path"] != "m"):
-                list_path = [
-                    uint32(int(i)) for i in kwargs["hd_path"].split("/") if i != "m"
-                ]
+                list_path = [uint32(int(i)) for i in kwargs["hd_path"].split("/") if i != "m"]
             elif kwargs["key_type"]:
                 case = kwargs["key_type"]
                 if case == "farmer":
@@ -678,12 +634,8 @@ def do_inspect_keys_cmd(ctx: click.Context, print_results: bool = True, **kwargs
 
             if kwargs["synthetic"]:
                 if sk:
-                    sk = calculate_synthetic_secret_key(
-                        sk, hexstr_to_bytes(kwargs["hidden_puzhash"])
-                    )
-                pk = calculate_synthetic_public_key(
-                    pk, hexstr_to_bytes(kwargs["hidden_puzhash"])
-                )
+                    sk = calculate_synthetic_secret_key(sk, hexstr_to_bytes(kwargs["hidden_puzhash"]))
+                pk = calculate_synthetic_public_key(pk, hexstr_to_bytes(kwargs["hidden_puzhash"]))
         else:
             print("Invalid arguments specified.")
 
@@ -714,9 +666,7 @@ class OrderedParamsCommand(click.Command):
     cls=OrderedParamsCommand,
     short_help="Various methods for examining and creating BLS aggregated signatures",
 )
-@click.option(
-    "-sk", "--secret-key", multiple=True, help="A secret key to sign a message with"
-)
+@click.option("-sk", "--secret-key", multiple=True, help="A secret key to sign a message with")
 @click.option(
     "-t",
     "--utf-8",
@@ -735,9 +685,7 @@ def inspect_sigs_cmd(ctx: click.Context, **kwargs):
     do_inspect_sigs_cmd(ctx, **kwargs)
 
 
-def do_inspect_sigs_cmd(
-    ctx: click.Context, print_results: bool = True, **kwargs
-) -> G2Element:
+def do_inspect_sigs_cmd(ctx: click.Context, print_results: bool = True, **kwargs) -> G2Element:
     base = G2Element()
     sk: Optional[PrivateKey] = None
     for param, value in OrderedParamsCommand._options:

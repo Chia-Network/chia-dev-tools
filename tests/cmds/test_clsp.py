@@ -57,9 +57,7 @@ class TestClspCommands:
             os.remove(Path("./mod.clsp.hex"))
             shutil.copytree("./include", "./include_test")
             shutil.rmtree("./include")
-            result = runner.invoke(
-                cli, ["clsp", "build", ".", "--include", "./include_test"]
-            )
+            result = runner.invoke(cli, ["clsp", "build", ".", "--include", "./include_test"])
             assert result.exit_code == 0
             assert Path("./mod.clsp.hex").exists()
             assert open("mod.clsp.hex", "r").read() == "ff0133"
@@ -122,9 +120,7 @@ class TestClspCommands:
         runner = CliRunner()
         program: str = "(a 2 3)"
         program_as_mod: str = "(mod (arg . arg2) (a arg arg2))"
-        program_hash: str = (
-            "530d1b3283c802be3a7bdb34b788c1898475ed76c89ecb2224e4b4f40c32d1a4"
-        )
+        program_hash: str = "530d1b3283c802be3a7bdb34b788c1898475ed76c89ecb2224e4b4f40c32d1a4"
         result: Result = runner.invoke(cli, ["clsp", "treehash", program])
         assert result.exit_code == 0
         assert program_hash in result.output

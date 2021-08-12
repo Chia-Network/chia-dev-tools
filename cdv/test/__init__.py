@@ -56,9 +56,7 @@ class SpendResult:
 class CoinWrapper(Coin):
     """A class that provides some useful methods on coins."""
 
-    def __init__(
-        self, parent: Coin, puzzle_hash: bytes32, amt: uint64, source: Program
-    ):
+    def __init__(self, parent: Coin, puzzle_hash: bytes32, amt: uint64, source: Program):
         """Given parent, puzzle_hash and amount, give an object representing the coin"""
         super().__init__(parent, puzzle_hash, amt)
         self.source = source
@@ -104,11 +102,7 @@ class CoinWrapper(Coin):
         # Create a signature for each of these.  We'll aggregate them at the end.
         signature: G2Element = AugSchemeMPL.sign(
             calculate_synthetic_secret_key(priv, DEFAULT_HIDDEN_PUZZLE_HASH),
-            (
-                delegated_puzzle_solution.get_tree_hash()
-                + self.name()
-                + DEFAULT_CONSTANTS.AGG_SIG_ME_ADDITIONAL_DATA
-            ),
+            (delegated_puzzle_solution.get_tree_hash() + self.name() + DEFAULT_CONSTANTS.AGG_SIG_ME_ADDITIONAL_DATA),
         )
 
         return coin_solution_object, signature
@@ -177,10 +171,7 @@ class CoinPairSearch:
             while (
                 (len(self.max_coins) > 0)
                 and (self.total - self.max_coins[-1].amount >= self.target)
-                and (
-                    (self.total - self.max_coins[-1].amount > 0)
-                    or (len(self.max_coins) > 1)
-                )
+                and ((self.total - self.max_coins[-1].amount > 0) or (len(self.max_coins) > 1))
             ):
                 self.total = uint64(self.total - self.max_coins[-1].amount)
                 self.max_coins = self.max_coins[:-1]
@@ -212,18 +203,14 @@ class Wallet:
         self.puzzle: Program = puzzle_for_pk(self.pk())
         self.puzzle_hash: bytes32 = self.puzzle.get_tree_hash()
 
-        synth_sk: PrivateKey = calculate_synthetic_secret_key(
-            self.sk_, DEFAULT_HIDDEN_PUZZLE_HASH
-        )
+        synth_sk: PrivateKey = calculate_synthetic_secret_key(self.sk_, DEFAULT_HIDDEN_PUZZLE_HASH)
         self.pk_to_sk_dict: Dict[str, PrivateKey] = {
             str(self.pk_): self.sk_,
             str(synth_sk.get_g1()): synth_sk,
         }
 
     def __repr__(self) -> str:
-        return (
-            f"<Wallet(name={self.name},puzzle_hash={self.puzzle_hash},pk={self.pk_})>"
-        )
+        return f"<Wallet(name={self.name},puzzle_hash={self.puzzle_hash},pk={self.pk_})>"
 
     # Make this coin available to the user it goes with.
     def add_coin(self, coin: Coin):
@@ -342,9 +329,7 @@ class Wallet:
                 ]
             ]
 
-            coin_solution, signature = c.create_standard_spend(
-                self.sk_, announce_conditions
-            )
+            coin_solution, signature = c.create_standard_spend(self.sk_, announce_conditions)
             destroyed_coin_solutions.append(coin_solution)
             signatures.append(signature)
 
@@ -353,18 +338,14 @@ class Wallet:
             [ConditionOpcode.CREATE_COIN, self.puzzle_hash, final_coin.amount],
         ]
 
-        coin_solution, signature = coins[-1].create_standard_spend(
-            self.sk_, final_coin_creation
-        )
+        coin_solution, signature = coins[-1].create_standard_spend(self.sk_, final_coin_creation)
         destroyed_coin_solutions.append(coin_solution)
         signatures.append(signature)
 
         signature = AugSchemeMPL.aggregate(signatures)
         spend_bundle = SpendBundle(destroyed_coin_solutions, signature)
 
-        pushed: Dict[str, Union[str, List[Coin]]] = await self.parent.push_tx(
-            spend_bundle
-        )
+        pushed: Dict[str, Union[str, List[Coin]]] = await self.parent.push_tx(spend_bundle)
 
         # We should have the same amount of money.
         assert beginning_balance == self.balance()
@@ -378,9 +359,7 @@ class Wallet:
     async def choose_coin(self, amt) -> Optional[CoinWrapper]:
         """Given an amount requirement, find a coin that contains at least that much chia"""
         start_balance: uint64 = self.balance()
-        coins_to_spend: Optional[List[Coin]] = self.compute_combine_action(
-            amt, [], dict(self.usable_coins)
-        )
+        coins_to_spend: Optional[List[Coin]] = self.compute_combine_action(amt, [], dict(self.usable_coins))
 
         # Couldn't find a working combination.
         if coins_to_spend is None:
@@ -400,9 +379,7 @@ class Wallet:
         result: Optional[SpendResult] = await self.combine_coins(
             list(
                 map(
-                    lambda x: CoinWrapper(
-                        x.parent_coin_info, x.puzzle_hash, x.amount, self.puzzle
-                    ),
+                    lambda x: CoinWrapper(x.parent_coin_info, x.puzzle_hash, x.amount, self.puzzle),
                     coins_to_spend,
                 )
             )
@@ -419,9 +396,7 @@ class Wallet:
     #  - allow use of more than one coin to launch smart coin
     #  - ensure input chia = output chia.  it'd be dumb to just allow somebody
     #    to lose their chia without telling them.
-    async def launch_smart_coin(
-        self, source: Program, **kwargs
-    ) -> Optional[CoinWrapper]:
+    async def launch_smart_coin(self, source: Program, **kwargs) -> Optional[CoinWrapper]:
         """Create a new smart coin based on a parent coin and return the smart coin's living
         coin to the user or None if the spend failed."""
         amt = uint64(1)
@@ -438,9 +413,7 @@ class Wallet:
             [ConditionOpcode.CREATE_COIN, cw.puzzle_hash(), amt],
         ]
         if amt < found_coin.amount:
-            condition_args.append(
-                [ConditionOpcode.CREATE_COIN, self.puzzle_hash, found_coin.amount - amt]
-            )
+            condition_args.append([ConditionOpcode.CREATE_COIN, self.puzzle_hash, found_coin.amount - amt])
 
         delegated_puzzle_solution = Program.to((1, condition_args))
         solution = Program.to([[], delegated_puzzle_solution, []])
@@ -465,9 +438,7 @@ class Wallet:
             ],
             signature,
         )
-        pushed: Dict[str, Union[str, List[Coin]]] = await self.parent.push_tx(
-            spend_bundle
-        )
+        pushed: Dict[str, Union[str, List[Coin]]] = await self.parent.push_tx(spend_bundle)
         if "error" not in pushed:
             return cw.custom_coin(found_coin, amt)
         else:
@@ -496,9 +467,7 @@ class Wallet:
     # Automatically takes care of signing, etc.
     # Result is an object representing the actions taken when the block
     # with this transaction was farmed.
-    async def spend_coin(
-        self, coin: CoinWrapper, pushtx: bool = True, **kwargs
-    ) -> Union[SpendResult, SpendBundle]:
+    async def spend_coin(self, coin: CoinWrapper, pushtx: bool = True, **kwargs) -> Union[SpendResult, SpendBundle]:
         """Given a coin object, invoke it on the blockchain, either as a standard
         coin if no arguments are given or with custom arguments in args="""
         amt = uint64(1)
@@ -514,9 +483,7 @@ class Wallet:
 
             # Automatic arguments from the user's intention.
             if "custom_conditions" not in kwargs:
-                solution_list: List[List] = [
-                    [ConditionOpcode.CREATE_COIN, target_puzzle_hash, amt]
-                ]
+                solution_list: List[List] = [[ConditionOpcode.CREATE_COIN, target_puzzle_hash, amt]]
             else:
                 solution_list = kwargs["custom_conditions"]
             if "remain" in kwargs:
@@ -531,9 +498,7 @@ class Wallet:
                         ]
                     )
                 elif isinstance(remainer, Wallet):
-                    solution_list.append(
-                        [ConditionOpcode.CREATE_COIN, remainer.puzzle_hash, remain_amt]
-                    )
+                    solution_list.append([ConditionOpcode.CREATE_COIN, remainer.puzzle_hash, remain_amt])
                 else:
                     raise ValueError("remainer is not a wallet or a smart coin")
 
@@ -567,9 +532,7 @@ class Wallet:
             )
 
         if pushtx:
-            pushed: Dict[str, Union[str, List[Coin]]] = await self.parent.push_tx(
-                spend_bundle
-            )
+            pushed: Dict[str, Union[str, List[Coin]]] = await self.parent.push_tx(spend_bundle)
             return SpendResult(pushed)
         else:
             return spend_bundle
@@ -589,9 +552,7 @@ class Network:
     @classmethod
     async def create(cls) -> "Network":
         self = cls()
-        self.time = datetime.timedelta(
-            days=18750, seconds=61201
-        )  # Past the initial transaction freeze
+        self.time = datetime.timedelta(days=18750, seconds=61201)  # Past the initial transaction freeze
         self.sim = await SpendSim.create()
         self.sim_client = SimClient(self.sim)
         self.wallets = {}
@@ -614,17 +575,13 @@ class Network:
             farmer = kwargs["farmer"]
 
         farm_duration = datetime.timedelta(block_time)
-        farmed: Tuple[List[Coin], List[Coin]] = await self.sim.farm_block(
-            farmer.puzzle_hash
-        )
+        farmed: Tuple[List[Coin], List[Coin]] = await self.sim.farm_block(farmer.puzzle_hash)
 
         for k, w in self.wallets.items():
             w._clear_coins()
 
         for kw, w in self.wallets.items():
-            coin_records: List[
-                CoinRecord
-            ] = await self.sim_client.get_coin_records_by_puzzle_hash(w.puzzle_hash)
+            coin_records: List[CoinRecord] = await self.sim_client.get_coin_records_by_puzzle_hash(w.puzzle_hash)
             for coin_record in coin_records:
                 if coin_record.spent is False:
                     w.add_coin(CoinWrapper.from_coin(coin_record.coin, w.puzzle))
@@ -654,9 +611,7 @@ class Network:
     async def skip_time(self, target_duration: str, **kwargs):
         """Skip a duration of simulated time, causing blocks to be farmed.  If a farmer
         is specified, they win each block"""
-        target_time = self.time + datetime.timedelta(
-            pytimeparse.parse(target_duration) / duration_div
-        )
+        target_time = self.time + datetime.timedelta(pytimeparse.parse(target_duration) / duration_div)
         while target_time > self.get_timestamp():
             await self.farm_block(**kwargs)
             self.sim.pass_time(uint64(20))

@@ -38,9 +38,7 @@ def parse_program(program: Union[str, Program], include: Iterable = []) -> Progr
                 if "(" in filestring:
                     # TODO: This should probably be more robust
                     if re.compile(r"\(mod\s").search(filestring):
-                        prog = Program.to(
-                            compile_clvm_text(filestring, append_include(include))
-                        )
+                        prog = Program.to(compile_clvm_text(filestring, append_include(include)))
                     else:
                         prog = Program.to(assemble(filestring))
                 else:
