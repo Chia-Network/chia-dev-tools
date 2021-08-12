@@ -71,6 +71,7 @@ class TestClspCommands:
         curried_mod: Program = mod.curry(integer, hexadecimal, string, program)
 
         runner = CliRunner()
+        # Curry one of each kind of argument
         cmd: List[str] = [
             "clsp",
             "curry",

@@ -44,6 +44,7 @@ def build_cmd(files: Tuple[str], include: Tuple[str]) -> None:
     for filename in clvm_files:
         hex_file_name: str = filename.name + ".hex"
         full_hex_file_name = Path(filename.parent).joinpath(hex_file_name)
+        # We only rebuild the file if the .hex is older
         if not (full_hex_file_name.exists() and full_hex_file_name.stat().st_mtime > filename.stat().st_mtime):
             outfile = str(filename) + ".hex"
             try:
@@ -118,7 +119,7 @@ def retrieve_cmd(libraries: Tuple[str]):
     import cdv.clibs as clibs
 
     for lib in libraries:
-        if lib[-5:] == ".clib":
+        if lib[-5:] == ".clib":  # We'll take it with or without the extension
             lib = lib[:-5]
         src_path = Path(clibs.__file__).parent.joinpath(f"{lib}.clib")
         include_path = Path(os.getcwd()).joinpath("include")

@@ -73,6 +73,7 @@ class TestStandardTransaction:
 
             assert "error" not in result
 
+            # Make sure there is exactly one piggybank with the new amount
             filtered_result: List[Coin] = list(
                 filter(
                     lambda addition: (addition.amount == 501)
@@ -94,6 +95,7 @@ class TestStandardTransaction:
 
             assert "error" not in result
 
+            # Make sure there is exactly one piggybank with value 0
             filtered_result: List[Coin] = list(
                 filter(
                     lambda addition: (addition.amount == 0)
@@ -105,6 +107,7 @@ class TestStandardTransaction:
             )
             assert len(filtered_result) == 1
 
+            # Make sure there is exactly one coin that has been cashed out to bob
             filtered_result: List[Coin] = list(
                 filter(
                     lambda addition: (addition.amount == 1000000000001) and (addition.puzzle_hash == bob.puzzle_hash),
@@ -121,6 +124,8 @@ class TestStandardTransaction:
         try:
             result: Dict[str, List[Coin]] = await self.make_and_spend_piggybank(network, alice, bob, -100)
             assert "error" in result
-            assert "GENERATOR_RUNTIME_ERROR" in result["error"]
+            assert (
+                "GENERATOR_RUNTIME_ERROR" in result["error"]
+            )  # This fails during puzzle execution, not in driver code
         finally:
             await network.close()
