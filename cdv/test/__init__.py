@@ -93,7 +93,7 @@ class CoinWrapper(Coin):
         delegated_puzzle_solution = Program.to((1, conditions))
         solution = Program.to([[], delegated_puzzle_solution, []])
 
-        coin_solution_object = CoinSpend(
+        coin_spend_object = CoinSpend(
             self.as_coin(),
             self.puzzle(),
             solution,
@@ -105,7 +105,7 @@ class CoinWrapper(Coin):
             (delegated_puzzle_solution.get_tree_hash() + self.name() + DEFAULT_CONSTANTS.AGG_SIG_ME_ADDITIONAL_DATA),
         )
 
-        return coin_solution_object, signature
+        return coin_spend_object, signature
 
 
 # We have two cases for coins:
@@ -161,8 +161,6 @@ class CoinPairSearch:
             self.max_coins.append(coin)
 
     def process_coin_for_combine_search(self, coin: Coin):
-        if self.target == 0:
-            breakpoint()
         self.total = uint64(self.total + coin.amount)
         if len(self.max_coins) == 0:
             self.max_coins.append(coin)
@@ -296,7 +294,7 @@ class Wallet:
     # Now to spend them at once:
     #
     #         signature = AugSchemeMPL.aggregate(signatures)
-    #         spend_bundle = SpendBundle(coin_solutions, signature)
+    #         spend_bundle = SpendBundle(coin_spends, signature)
     #
     async def combine_coins(self, coins: List[CoinWrapper]) -> Optional[SpendResult]:
         # Overall structure:
@@ -315,7 +313,7 @@ class Wallet:
             self.puzzle,
         )
 
-        destroyed_coin_solutions: List[CoinSpend] = []
+        destroyed_coin_spends: List[CoinSpend] = []
 
         # Each coin wants agg_sig_me so we aggregate them at the end.
         signatures: List[G2Element] = []
@@ -329,8 +327,8 @@ class Wallet:
                 ]
             ]
 
-            coin_solution, signature = c.create_standard_spend(self.sk_, announce_conditions)
-            destroyed_coin_solutions.append(coin_solution)
+            coin_spend, signature = c.create_standard_spend(self.sk_, announce_conditions)
+            destroyed_coin_spends.append(coin_spend)
             signatures.append(signature)
 
         final_coin_creation: List[List] = [
@@ -338,12 +336,12 @@ class Wallet:
             [ConditionOpcode.CREATE_COIN, self.puzzle_hash, final_coin.amount],
         ]
 
-        coin_solution, signature = coins[-1].create_standard_spend(self.sk_, final_coin_creation)
-        destroyed_coin_solutions.append(coin_solution)
+        coin_spend, signature = coins[-1].create_standard_spend(self.sk_, final_coin_creation)
+        destroyed_coin_spends.append(coin_spend)
         signatures.append(signature)
 
         signature = AugSchemeMPL.aggregate(signatures)
-        spend_bundle = SpendBundle(destroyed_coin_solutions, signature)
+        spend_bundle = SpendBundle(destroyed_coin_spends, signature)
 
         pushed: Dict[str, Union[str, List[Coin]]] = await self.parent.push_tx(spend_bundle)
 
