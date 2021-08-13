@@ -1,6 +1,7 @@
 /chia_dev_tools.egg-info
 /venv
 /dist
+/include
 /.eggs
 __pycache__/
 main.sym

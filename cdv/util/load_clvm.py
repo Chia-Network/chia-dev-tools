@@ -6,7 +6,7 @@ from clvm_tools.clvmc import compile_clvm
 from chia.types.blockchain_format.program import Program, SerializedProgram
 
 
-def load_serialized_clvm(clvm_filename, package_or_requirement=__name__) -> SerializedProgram:
+def load_serialized_clvm(clvm_filename, package_or_requirement=__name__, search_paths=[]) -> SerializedProgram:
     """
     This function takes a .clvm file in the given package and compiles it to a
     .clvm.hex file if the .hex file is missing or older than the .clvm file, then
@@ -25,7 +25,7 @@ def load_serialized_clvm(clvm_filename, package_or_requirement=__name__) -> Seri
             compile_clvm(
                 full_path,
                 output,
-                search_paths=[full_path.parent, pathlib.Path.cwd().joinpath("include")],
+                search_paths=[full_path.parent, pathlib.Path.cwd().joinpath("include"), *search_paths],
             )
     except NotImplementedError:
         # pyinstaller doesn't support `pkg_resources.resource_exists`
@@ -37,5 +37,11 @@ def load_serialized_clvm(clvm_filename, package_or_requirement=__name__) -> Seri
     return SerializedProgram.from_bytes(clvm_blob)
 
 
-def load_clvm(clvm_filename, package_or_requirement=__name__) -> Program:
-    return Program.from_bytes(bytes(load_serialized_clvm(clvm_filename, package_or_requirement=package_or_requirement)))
+def load_clvm(clvm_filename, package_or_requirement=__name__, search_paths=[]) -> Program:
+    return Program.from_bytes(
+        bytes(
+            load_serialized_clvm(
+                clvm_filename, package_or_requirement=package_or_requirement, search_paths=search_paths
+            )
+        )
+    )

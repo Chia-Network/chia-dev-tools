@@ -7,6 +7,7 @@ class TestSomething:
     @pytest.fixture(scope="function")
     async def setup(self):
         network, alice, bob = await setup_test()
+        await network.farm_block()
         yield network, alice, bob
 
     @pytest.mark.asyncio
