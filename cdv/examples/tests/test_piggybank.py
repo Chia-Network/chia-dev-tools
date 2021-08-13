@@ -21,6 +21,7 @@ class TestStandardTransaction:
     @pytest.fixture(scope="function")
     async def setup(self):
         network, alice, bob = await setup_test()
+        await network.farm_block()
         yield network, alice, bob
 
     async def make_and_spend_piggybank(self, network, alice, bob, CONTRIBUTION_AMOUNT) -> Dict[str, List[Coin]]:

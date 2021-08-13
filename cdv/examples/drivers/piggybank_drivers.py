@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List
 
 from chia.types.blockchain_format.coin import Coin
@@ -9,9 +10,11 @@ from chia.util.hash import std_hash
 
 from clvm.casts import int_to_bytes
 
+import cdv.clibs as std_lib
 from cdv.util.load_clvm import load_clvm
 
-PIGGYBANK_MOD: Program = load_clvm("piggybank.clsp", "cdv.examples.clsp")
+clibs_path: Path = Path(std_lib.__file__).parent
+PIGGYBANK_MOD: Program = load_clvm("piggybank.clsp", "cdv.examples.clsp", search_paths=[clibs_path])
 
 
 # Create a piggybank
