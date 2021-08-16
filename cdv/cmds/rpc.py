@@ -321,6 +321,7 @@ def rpc_coinrecords_cmd(values: Tuple[str], by: str, as_name_dict: bool, **kwarg
                 coin_records: List[CoinRecord] = [
                     await node_client.get_coin_record_by_name(value) for value in clean_values
                 ]
+                coin_records = list(filter(lambda record: record is not None, coin_records))
                 if not kwargs["include_spent_coins"]:
                     coin_records: List[CoinRecord] = list(filter(lambda record: record.spent is False, coin_records))
                 if kwargs["start_height"] is not None:
