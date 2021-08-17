@@ -398,10 +398,16 @@ class Wallet:
         """Create a new smart coin based on a parent coin and return the smart coin's living
         coin to the user or None if the spend failed."""
         amt = uint64(1)
+        found_coin: Optional[CoinWrapper] = None
+
         if "amt" in kwargs:
             amt = kwargs["amt"]
 
-        found_coin: Optional[CoinWrapper] = await self.choose_coin(amt)
+        if "launcher" in kwargs:
+            found_coin = kwargs["launcher"]
+        else:
+            found_coin = await self.choose_coin(amt)
+
         if found_coin is None:
             raise ValueError(f"could not find available coin containing {amt} mojo")
 
