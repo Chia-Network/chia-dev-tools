@@ -1,0 +1,8 @@
+{"coin": {"amount": 0,
+           "parent_coin_info": "0x0000000000000000000000000000000000000000000000000000000000000000",
+           "puzzle_hash": "0000000000000000000000000000000000000000000000000000000000000000"},
+  "coinbase": true,
+  "confirmed_block_index": 1,
+  "spent": true,
+  "spent_block_index": 1,
+  "timestamp": 909469800}

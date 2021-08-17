@@ -1,0 +1,46 @@
+name: Run Test Suite
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    tags:
+        - '**'
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  build:
+    name: All tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+
+    steps:
+    - name: Cancel previous runs on the same branch
+      if: ${{ github.ref != 'refs/heads/main' }}
+      uses: styfle/cancel-workflow-action@0.9.1
+      with:
+        access_token: ${{ github.token }}
+
+    - name: Checkout Code
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Setup Python environment
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+
+    - name: Test code with pytest
+      run: |
+        python3 -m venv venv
+        . ./venv/bin/activate
+        pip install .
+        ./venv/bin/chia init
+        ./venv/bin/py.test tests/ cdv/examples/tests -s -v --durations 0
