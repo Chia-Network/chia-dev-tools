@@ -1,8 +1,6 @@
 Chia Dev Tools
 =======
 
-(This project has been moved to an [official Chia repository](https://github.com/Chia-Network/chia-dev-tools/) and will be improved there from now on.)
-
 Install
 -------
 

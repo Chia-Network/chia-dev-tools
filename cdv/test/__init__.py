@@ -644,6 +644,7 @@ class Network:
             "removals": removals,
         }
 
+
 async def setup() -> Tuple[Network, Wallet, Wallet]:
     network: Network = await Network.create()
     alice: Wallet = network.make_wallet("alice")
