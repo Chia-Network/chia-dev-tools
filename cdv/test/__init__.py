@@ -400,7 +400,6 @@ class Wallet:
         amt = uint64(1)
         found_coin: Optional[CoinWrapper] = None
 
-        amt = 1
         if 'amt' in kwargs:
             amt = kwargs['amt']
 
