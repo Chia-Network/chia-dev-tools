@@ -396,11 +396,17 @@ class Wallet:
     async def launch_smart_coin(self,source,**kwargs) -> CoinWrapper:
         """Create a new smart coin based on a parent coin and return the smart coin's living
         coin to the user or None if the spend failed."""
+        found_coin = None
+
         amt = 1
         if 'amt' in kwargs:
             amt = kwargs['amt']
 
-        found_coin = await self.choose_coin(amt)
+        if 'launcher' in kwargs:
+            found_coin = kwargs['launcher']
+        else:
+            found_coin = await self.choose_coin(amt)
+
         if found_coin is None:
             raise ValueError(f'could not find available coin containing {amt} mojo')
 
