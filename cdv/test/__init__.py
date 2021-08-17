@@ -400,11 +400,11 @@ class Wallet:
         amt = uint64(1)
         found_coin: Optional[CoinWrapper] = None
 
-        if 'amt' in kwargs:
-            amt = kwargs['amt']
+        if "amt" in kwargs:
+            amt = kwargs["amt"]
 
-        if 'launcher' in kwargs:
-            found_coin = kwargs['launcher']
+        if "launcher" in kwargs:
+            found_coin = kwargs["launcher"]
         else:
             found_coin = await self.choose_coin(amt)
 
