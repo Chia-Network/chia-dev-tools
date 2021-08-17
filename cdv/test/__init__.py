@@ -591,7 +591,6 @@ class Network:
                     w.add_coin(CoinWrapper.from_coin(coin_record.coin, w.puzzle))
 
         self.time += farm_duration
-
         return farmed
 
     # Pass through the most recent block height
