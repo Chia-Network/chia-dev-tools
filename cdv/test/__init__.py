@@ -10,7 +10,7 @@ from chia.types.blockchain_format.program import Program
 from chia.types.spend_bundle import SpendBundle
 from chia.types.coin_spend import CoinSpend
 from chia.types.coin_record import CoinRecord
-from chia.util.ints import uint64
+from chia.util.ints import uint32, uint64
 from chia.util.condition_tools import ConditionOpcode
 from chia.util.hash import std_hash
 from chia.wallet.sign_coin_spends import sign_coin_spends
@@ -591,7 +591,20 @@ class Network:
                     w.add_coin(CoinWrapper.from_coin(coin_record.coin, w.puzzle))
 
         self.time += farm_duration
+
         return farmed
+
+    # Pass through the most recent block height
+    def get_height(self) -> uint32:
+        return self.sim.get_height()
+
+    # Allow us to get the full block record so we can write infrastructure to
+    # examine it.
+    async def get_block_record_by_height(self, height: uint32) -> "SimBlockRecord":
+        return await self.sim_client.get_block_record_by_height(height)
+
+    async def get_all_block(self, height_min: uint32, height_max: uint32) -> List["SimFullBlock"]:
+        return await self.sim_client.get_all_block(height_min, height_max)
 
     def _alloc_key(self) -> Tuple[G1Element, PrivateKey]:
         key_idx: int = len(self.wallets)
