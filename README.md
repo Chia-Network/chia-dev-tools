@@ -91,7 +91,7 @@ There are also commands for interacting with the full node's RPC endpoints (in d
 ```
 cdv rpc state
 cdv rpc blocks -s 0 -e 1
-cdv rpc coinrecords --by id e16dbc782f500aa24891886779067792b3305cff8b873ae1e77273ad0b7e6c05
+cdv rpc coinrecords --by id 6ce8fa56321d954f54ba27e58f4a025eb1081d2e1f38fc089a2e72927bcde0d1
 cdv rpc pushtx .\spend_bundle.json
 ```
 
