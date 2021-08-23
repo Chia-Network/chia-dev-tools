@@ -74,7 +74,7 @@ class TestInspectCommands:
             for key in valid_json.keys():
                 key_type = type(valid_json[key])
                 if (key_type is not dict) and (key_type is not list):
-                    assert str(valid_json[key]) in result.output
+                    assert (str(valid_json[key]) in result.output) or (str(valid_json[key]).lower() in result.output)
 
             # Try to load bytes
             if class_type != "coin":
@@ -83,13 +83,13 @@ class TestInspectCommands:
                 # From a file
                 result = runner.invoke(cli, ["inspect", "--json", "any", str(valid_hex_path)])
                 assert result.exit_code == 0
-                assert "'coin':" in result.output
+                assert '"coin":' in result.output
 
                 # From a string
                 valid_hex: str = open(valid_hex_path, "r").read()
                 result = runner.invoke(cli, ["inspect", "--json", "any", valid_hex])
                 assert result.exit_code == 0
-                assert "'coin':" in result.output
+                assert '"coin":' in result.output
 
             # Make sure the ID calculation is correct
             result = runner.invoke(cli, ["inspect", "--id", "any", str(valid_json_path)])
@@ -289,7 +289,7 @@ class TestInspectCommands:
         record_path = Path(__file__).parent.joinpath("object_files/coinrecords/coinrecord.json")
         result: Result = runner.invoke(cli, ["inspect", "coinrecords", str(record_path)])
         assert result.exit_code == 0
-        assert "'coin'" in result.output
+        assert '"coin":' in result.output
 
         # Specify the coin file
         result = runner.invoke(
