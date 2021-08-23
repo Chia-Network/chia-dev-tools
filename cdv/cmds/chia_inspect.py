@@ -62,7 +62,7 @@ def inspect_callback(
     # By default we return JSON
     if (not any([value for key, value in ctx.obj.items()])) or ctx.obj["json"]:
         if getattr(objs[0], "to_json_dict", None):
-            pprint([obj.to_json_dict() for obj in objs])
+            pprint([json.dumps(obj.to_json_dict()) for obj in objs])
         else:
             pprint(f"Object of type {type} cannot be serialized to JSON")
     if ctx.obj["bytes"]:
