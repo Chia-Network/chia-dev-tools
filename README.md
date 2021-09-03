@@ -13,6 +13,7 @@ python3 -m venv venv
 pip install chia-dev-tools
 cdv --version
 ```
+(If you're on an M1 Mac, make sure you are running an ARM64 native python virtual environment)
 
 **Windows Powershell**
 ```
