@@ -200,6 +200,7 @@ def do_inspect_coin_cmd(
             coin_objs = streamable_load(Coin, coins)
         except Exception:
             print("One or more of the specified objects was not a coin")
+            sys.exit(1)
     else:
         print("Invalid arguments specified.")
         sys.exit(1)
@@ -300,7 +301,7 @@ def do_inspect_coin_spend_cmd(
             for coin_spend in coin_spend_objs:
                 program: BlockGenerator = simple_solution_generator(SpendBundle([coin_spend], G2Element()))
                 npc_result: NPCResult = get_name_puzzle_conditions(
-                    program, INFINITE_COST, cost_per_byte=cost_per_byte, safe_mode=True
+                    program, INFINITE_COST, cost_per_byte=cost_per_byte, safe_mode=True, rust_checker=False
                 )
                 cost: int = calculate_cost_of_program(program.program, npc_result, cost_per_byte)
                 print(f"Cost: {cost}")
@@ -388,6 +389,7 @@ def do_inspect_spend_bundle_cmd(
                         INFINITE_COST,
                         cost_per_byte=kwargs["cost_per_byte"],
                         safe_mode=True,
+                        rust_checker=False,
                     )
                     cost: int = calculate_cost_of_program(program.program, npc_result, kwargs["cost_per_byte"])
                     print(f"Cost: {cost}")

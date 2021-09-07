@@ -231,11 +231,11 @@ class TestInspectCommands:
         assert result.exit_code == 0
         assert id_with_sig in result.output
 
-        # Test that debugging info comes up (disabled until breakpoints are removed from debug)
-        # base_command.append("-db")
-        # result = runner.invoke(cli, base_command)
-        # assert result.exit_code == 0
-        # assert "Debugging Information" in result.output
+        # Test that debugging info comes up
+        base_command.append("-db")
+        result = runner.invoke(cli, base_command)
+        assert result.exit_code == 0
+        assert "Debugging Information" in result.output
 
         # Make sure our signable data comes out
         base_command.append("-sd")
