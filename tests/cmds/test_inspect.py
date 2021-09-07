@@ -123,11 +123,11 @@ class TestInspectCommands:
         ph: str = "0000000000000000000000000000000000000000000000000000000000000000"
         amount: str = "0"
         id: str = "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b"
-        puzzle_reveal: str = "ff0101"
+        puzzle_reveal: str = "01"
         solution: str = "80"
-        cost: str = "588000"
+        cost: str = "569056"
         cost_modifier: str = "1"
-        modified_cost: str = "49"
+        modified_cost: str = "5103"
 
         runner = CliRunner()
 
@@ -186,16 +186,17 @@ class TestInspectCommands:
 
     def test_spendbundles(self):
         spend_path = Path(__file__).parent.joinpath("object_files/spends/spend.json")
+        spend_path_2 = Path(__file__).parent.joinpath("object_files/spends/spend_2.json")
         pubkey: str = "80df54b2a616f5c79baaed254134ae5dfc6e24e2d8e1165b251601ceb67b1886db50aacf946eb20f00adc303e7534dd0"
         signable_data: str = "24f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4bccd5bb71183532bff220ba46c268991a3ff07eb358e8255a65c30a2dce0e5fbb"  # noqa
         agg_sig: str = "b83fe374efbc5776735df7cbfb7e27ede5079b41cd282091450e4de21c4b772e254ce906508834b0c2dcd3d58c47a96914c782f0baf8eaff7ece3b070d2035cd878f744deadcd6c6625c1d0a1b418437ee3f25c2df08ffe08bdfe06b8a83b514"  # noqa
-        id_no_sig: str = "3ac222f0e8f19afcad367b3068273801ca21fe515311dae8d399a5baad9c3c73"
-        id_with_sig: str = "bd9acfbb344c006cf520f1265a9b611a20cd478f234f51cd31a978b2d3ad9bbb"
+        id_no_sig: str = "3fc441c1048a4e0b9fd1648d7647fdebd220cf7dd51b6967dcaf76f7043e83d6"
+        id_with_sig: str = "7d6f0da915deed117ad5589aa8bd6bf99beb69f48724b14b2134f6f8af6d8afc"
         network_modifier: str = "testnet7"
         modified_signable_data: str = "24f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b117816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015af"  # noqa
-        cost: str = "4820283"
+        cost: str = "6692283"
         cost_modifier: str = "0"
-        modified_cost: str = "2408283"
+        modified_cost: str = "3608283"
 
         runner = CliRunner()
 
@@ -209,7 +210,7 @@ class TestInspectCommands:
                 "-s",
                 str(spend_path),
                 "-s",
-                str(spend_path),
+                str(spend_path_2),
             ],
         )
         assert result.exit_code == 0
@@ -223,7 +224,7 @@ class TestInspectCommands:
             "-s",
             str(spend_path),
             "-s",
-            str(spend_path),
+            str(spend_path_2),
             "-as",
             agg_sig,
         ]
