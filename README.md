@@ -100,4 +100,4 @@ Python Packages
 ---------------
 
 Being in a virtual environment with this tool will also give your python programs access to all of the chia repository packages.
-It also comes with a package of its own that lives in the `cdv` namespace with some helpful utilities.  Of particular interest is the `cdv.test` package which comes with all sorts of tools to help you write lifecycle tests of smart coins.  Check out [the examples](https://github.com/Quexington/chialisp_dev_utility/tree/main/cdv/examples) to see it in action.
+It also comes with a package of its own that lives in the `cdv` namespace with some helpful utilities.  Of particular interest is the `cdv.test` package which comes with all sorts of tools to help you write lifecycle tests of smart coins.  Check out [the examples](https://github.com/Chia-Network/chia-dev-tools/tree/main/cdv/examples) to see it in action.
