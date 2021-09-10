@@ -6,7 +6,7 @@ with open("README.md", "rt") as fh:
     long_description = fh.read()
 
 dependencies = [
-    "chia-blockchain==1.2.5",
+    "chia-blockchain==1.2.6",
     "pytest",
     "pytest-asyncio",
     "pytimeparse",
