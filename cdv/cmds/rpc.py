@@ -319,26 +319,7 @@ def rpc_coinrecords_cmd(values: Tuple[str], by: str, as_name_dict: bool, **kwarg
             clean_values: bytes32 = map(lambda hex: hexstr_to_bytes(hex), values)
             if by in ["name", "id"]:
                 # TODO: When a by-multiple-names rpc exits, use it instead
-                coin_records: List[CoinRecord] = [
-                    await node_client.get_coin_record_by_name(value) for value in clean_values
-                ]
-                coin_records = list(filter(lambda record: record is not None, coin_records))
-                if not kwargs["include_spent_coins"]:
-                    coin_records: List[CoinRecord] = list(filter(lambda record: record.spent is False, coin_records))
-                if kwargs["start_height"] is not None:
-                    coin_records: List[CoinRecord] = list(
-                        filter(
-                            lambda record: record.confirmed_block_index >= kwargs["start_height"],
-                            coin_records,
-                        )
-                    )
-                if kwargs["end_height"] is not None:
-                    coin_records: List[CoinRecord] = list(
-                        filter(
-                            lambda record: record.confirmed_block_index < kwargs["end_height"],
-                            coin_records,
-                        )
-                    )
+                coin_records: List[CoinRecord] = await node_client.get_coin_records_by_names(clean_values, **kwargs)
             elif by in ["puzhash", "puzzle_hash", "puzzlehash"]:
                 coin_records: List[CoinRecord] = await node_client.get_coin_records_by_puzzle_hashes(
                     clean_values, **kwargs
