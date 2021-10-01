@@ -201,9 +201,9 @@ def rpc_addrem_cmd(headerhash: str):
         try:
             node_client: FullNodeRpcClient = await get_client()
             additions, removals = await node_client.get_additions_and_removals(hexstr_to_bytes(headerhash))
-            additions: List[Dict] = json.dumps([rec.to_json_dict() for rec in additions], sort_keys=True, indent=4)
-            removals: List[Dict] = json.dumps([rec.to_json_dict() for rec in removals], sort_keys=True, indent=4)
-            print({"additions": additions, "removals": removals})
+            additions: List[Dict] = [rec.to_json_dict() for rec in additions]
+            removals: List[Dict] = [rec.to_json_dict() for rec in removals]
+            print(json.dumps({"additions": additions, "removals": removals}, sort_keys=True, indent=4))
         finally:
             node_client.close()
             await node_client.await_closed()
@@ -282,7 +282,7 @@ def rpc_mempool_cmd(transaction_id: str, ids_only: bool):
                     items[key.hex()] = b_items[key]
 
             if ids_only:
-                pprint(list(items.keys()))
+                print(json.dumps(list(items.keys()), sort_keys=True, indent=4))
             else:
                 print(json.dumps(items, sort_keys=True, indent=4))
         finally:
