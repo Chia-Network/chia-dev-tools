@@ -1,3 +1,10 @@
+; Note that this puzzle is "insecure" as it stands
+; The person who owns the CASH_OUT_PUZHASH can take out a flash loan to:
+; - fill the piggybank
+; - receive their funds
+; - return the flash loan
+;
+; This effectively lets someone access the money whenever they want if they have access to a flash loan
 (mod (
        TARGET_AMOUNT
        CASH_OUT_PUZHASH

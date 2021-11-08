@@ -1,4 +1,4 @@
-Chialisp Dev Utility
+Chia Dev Tools
 =======
 
 (This project has been moved to an [official Chia repository](https://github.com/Chia-Network/chia-dev-tools/) and will be improved there from now on.)
@@ -93,8 +93,8 @@ There are also commands for interacting with the full node's RPC endpoints (in d
 ```
 cdv rpc state
 cdv rpc blocks -s 0 -e 1
-cdv coinrecords --by id e16dbc782f500aa24891886779067792b3305cff8b873ae1e77273ad0b7e6c05
-cdv pushtx .\spend_bundle.json
+cdv rpc coinrecords --by id e16dbc782f500aa24891886779067792b3305cff8b873ae1e77273ad0b7e6c05
+cdv rpc pushtx .\spend_bundle.json
 ```
 
 Python Packages
