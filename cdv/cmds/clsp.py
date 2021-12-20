@@ -109,6 +109,7 @@ def curry_cmd(program: str, args: Tuple[str], treehash: bool, dump: bool, includ
     else:
         print(disassemble(prog_final))
 
+
 @clsp_cmd.command("uncurry", short_help="Uncurry a program and list the arguments")
 @click.argument("program", required=True)
 @click.option("-H", "--treehash", is_flag=True, help="Output the tree hash of the curried puzzle")
@@ -136,6 +137,7 @@ def uncurry_cmd(program: str, treehash: bool, dump: bool):
         print("--- Curried Args ---")
         for arg in curried_args.as_iter():
             print("- " + disassemble(arg))
+
 
 @clsp_cmd.command(
     "retrieve",
