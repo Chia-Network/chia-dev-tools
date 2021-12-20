@@ -303,7 +303,7 @@ def do_inspect_coin_spend_cmd(
             for coin_spend in coin_spend_objs:
                 program: BlockGenerator = simple_solution_generator(SpendBundle([coin_spend], G2Element()))
                 npc_result: NPCResult = get_name_puzzle_conditions(
-                    program, INFINITE_COST, cost_per_byte=cost_per_byte, safe_mode=True, rust_checker=True
+                    program, INFINITE_COST, cost_per_byte=cost_per_byte, safe_mode=True
                 )
                 cost: int = calculate_cost_of_program(program.program, npc_result, cost_per_byte)
                 print(f"Cost: {cost}")
@@ -391,7 +391,6 @@ def do_inspect_spend_bundle_cmd(
                         INFINITE_COST,
                         cost_per_byte=kwargs["cost_per_byte"],
                         safe_mode=True,
-                        rust_checker=True,
                     )
                     cost: int = calculate_cost_of_program(program.program, npc_result, kwargs["cost_per_byte"])
                     print(f"Cost: {cost}")
