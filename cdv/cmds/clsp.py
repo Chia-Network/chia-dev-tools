@@ -109,6 +109,33 @@ def curry_cmd(program: str, args: Tuple[str], treehash: bool, dump: bool, includ
     else:
         print(disassemble(prog_final))
 
+@clsp_cmd.command("uncurry", short_help="Uncurry a program and list the arguments")
+@click.argument("program", required=True)
+@click.option("-H", "--treehash", is_flag=True, help="Output the tree hash of the curried puzzle")
+@click.option(
+    "-x",
+    "--dump",
+    is_flag=True,
+    help="Output the hex serialized program rather that the CLVM form",
+)
+def uncurry_cmd(program: str, treehash: bool, dump: bool):
+    prog: Program = parse_program(program)
+
+    prog_final, curried_args = prog.uncurry()
+    if treehash:
+        print(prog_final.get_tree_hash())
+    elif dump:
+        print("--- Uncurried Module ---")
+        print(prog_final)
+        print("--- Curried Args ---")
+        for arg in curried_args.as_iter():
+            print("- " + str(arg))
+    else:
+        print("--- Uncurried Module ---")
+        print(disassemble(prog_final))
+        print("--- Curried Args ---")
+        for arg in curried_args.as_iter():
+            print("- " + disassemble(arg))
 
 @clsp_cmd.command(
     "retrieve",

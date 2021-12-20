@@ -100,6 +100,35 @@ class TestClspCommands:
         assert result.exit_code == 0
         assert curried_mod.get_tree_hash().hex() in result.output
 
+    def test_uncurry(self):
+        hexadecimal = bytes.fromhex("aabbccddeeff")
+        mod = Program.from_bytes(bytes.fromhex(self.serialized))
+        curried_mod: Program = mod.curry(hexadecimal)
+
+        runner = CliRunner()
+        # Curry one of each kind of argument
+        cmd: List[str] = [
+            "clsp",
+            "uncurry",
+            str(curried_mod),
+        ]
+
+        result: Result = runner.invoke(cli, cmd)
+        assert result.exit_code == 0
+        assert disassemble(mod) in result.output
+        assert disassemble(curried_mod) not in result.output
+
+        cmd.append("-x")
+        result = runner.invoke(cli, cmd)
+        assert result.exit_code == 0
+        assert str(mod) in result.output
+        assert str(curried_mod) not in result.output
+
+        cmd.append("-H")
+        result = runner.invoke(cli, cmd)
+        assert result.exit_code == 0
+        assert mod.get_tree_hash().hex() in result.output
+
     # The following two functions aim to test every branch of the parse_program utility function between them
     def test_disassemble(self):
         runner = CliRunner()
