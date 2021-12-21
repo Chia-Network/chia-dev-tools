@@ -10,7 +10,7 @@ from chia.types.blockchain_format.program import Program
 from chia.types.spend_bundle import SpendBundle
 from chia.types.coin_spend import CoinSpend
 from chia.types.coin_record import CoinRecord
-from chia.util.ints import uint64
+from chia.util.ints import uint32, uint64
 from chia.util.condition_tools import ConditionOpcode
 from chia.util.hash import std_hash
 from chia.wallet.sign_coin_spends import sign_coin_spends
@@ -43,7 +43,10 @@ class SpendResult:
             self.outputs: List[Coin] = []
         else:
             self.error = None
-            self.outputs = result["additions"]
+            if "additions" in result:
+                self.outputs = result["additions"]
+            else:
+                self.outputs = []
 
     def find_standard_coins(self, puzzle_hash: bytes32) -> List[Coin]:
         """Given a Wallet's puzzle_hash, find standard coins usable by it.
@@ -592,6 +595,24 @@ class Network:
 
         self.time += farm_duration
         return farmed
+
+    # Pass through the most recent block height
+    def get_height(self) -> uint32:
+        return self.sim.get_height()
+
+    # Allow us to get the full block record so we can write infrastructure to
+    # examine it.
+    async def get_block_record_by_height(self, height: uint32) -> "SimBlockRecord":
+        return await self.sim_client.get_block_record_by_height(height)
+
+    async def get_all_block(self, height_min: uint32, height_max: uint32) -> List["SimFullBlock"]:
+        return await self.sim_client.get_all_block(height_min, height_max)
+
+    async def get_additions_and_removals(self, height: uint32) -> Tuple[List[CoinRecord], List[CoinRecord]]:
+        return await self.sim_client.get_additions_and_removals(height)
+
+    async def get_puzzle_and_solution(self, coin_id: bytes32, height: uint32) -> Optional[CoinSpend]:
+        return await self.sim_client.get_puzzle_and_solution(coin_id, height)
 
     def _alloc_key(self) -> Tuple[G1Element, PrivateKey]:
         key_idx: int = len(self.wallets)
