@@ -6,7 +6,7 @@ with open("README.md", "rt") as fh:
     long_description = fh.read()
 
 dependencies = [
-    "chia-blockchain==1.2.3",
+    "chia-blockchain==1.2.11",
     "pytest",
     "pytest-asyncio",
     "pytimeparse",
@@ -20,7 +20,7 @@ dev_dependencies = [
 
 setup(
     name="chia_dev_tools",
-    version="1.0.3",
+    version="1.0.4",
     packages=find_packages(exclude=("tests",)),
     author="Quexington",
     entry_points={

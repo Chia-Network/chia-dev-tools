@@ -1,6 +1,7 @@
 import click
 import aiohttp
 import asyncio
+import json
 
 from typing import Dict, Optional, List, Tuple
 from pprint import pprint
@@ -59,7 +60,7 @@ def rpc_state_cmd():
             node_client: FullNodeRpcClient = await get_client()
             state: Dict = await node_client.get_blockchain_state()
             state["peak"] = state["peak"].to_json_dict()
-            pprint(state)
+            print(json.dumps(state, sort_keys=True, indent=4))
         finally:
             node_client.close()
             await node_client.await_closed()
@@ -82,7 +83,7 @@ def rpc_blocks_cmd(header_hash: str, start: int, end: int):
             else:
                 print("Invalid arguments specified")
                 return
-            pprint([block.to_json_dict() for block in blocks])
+            print(json.dumps([block.to_json_dict() for block in blocks], sort_keys=True, indent=4))
         finally:
             node_client.close()
             await node_client.await_closed()
@@ -112,7 +113,7 @@ def rpc_blockrecords_cmd(header_hash: str, height: int, start: int, end: int):
                 block_records: List = await node_client.get_block_records(start, end)
             else:
                 print("Invalid arguments specified")
-            pprint(block_records)
+            print(json.dumps(block_records, sort_keys=True, indent=4))
         finally:
             node_client.close()
             await node_client.await_closed()
@@ -130,7 +131,7 @@ def rpc_unfinished_cmd():
         try:
             node_client: FullNodeRpcClient = await get_client()
             header_blocks: List[UnfinishedHeaderBlock] = await node_client.get_unfinished_block_headers()
-            pprint([block.to_json_dict() for block in header_blocks])
+            print(json.dumps([block.to_json_dict() for block in header_blocks], sort_keys=True, indent=4))
         finally:
             node_client.close()
             await node_client.await_closed()
@@ -202,7 +203,7 @@ def rpc_addrem_cmd(headerhash: str):
             additions, removals = await node_client.get_additions_and_removals(hexstr_to_bytes(headerhash))
             additions: List[Dict] = [rec.to_json_dict() for rec in additions]
             removals: List[Dict] = [rec.to_json_dict() for rec in removals]
-            pprint({"additions": additions, "removals": removals})
+            print(json.dumps({"additions": additions, "removals": removals}, sort_keys=True, indent=4))
         finally:
             node_client.close()
             await node_client.await_closed()
@@ -229,7 +230,7 @@ def rpc_puzsol_cmd(coinid: str, block_height: int):
             coin_spend: Optional[CoinSpend] = await node_client.get_puzzle_and_solution(
                 bytes.fromhex(coinid), block_height
             )
-            pprint(coin_spend.to_json_dict())
+            print(json.dumps(coin_spend.to_json_dict(), sort_keys=True, indent=4))
         finally:
             node_client.close()
             await node_client.await_closed()
@@ -247,7 +248,7 @@ def rpc_pushtx_cmd(spendbundles: Tuple[str]):
             for bundle in do_inspect_spend_bundle_cmd(fake_context(), spendbundles, print_results=False):
                 try:
                     result: Dict = await node_client.push_tx(bundle)
-                    pprint(result)
+                    print(json.dumps(result, sort_keys=True, indent=4))
                 except ValueError as e:
                     pprint(str(e))
         finally:
@@ -281,9 +282,9 @@ def rpc_mempool_cmd(transaction_id: str, ids_only: bool):
                     items[key.hex()] = b_items[key]
 
             if ids_only:
-                pprint(list(items.keys()))
+                print(json.dumps(list(items.keys()), sort_keys=True, indent=4))
             else:
-                pprint(items)
+                print(json.dumps(items, sort_keys=True, indent=4))
         finally:
             node_client.close()
             await node_client.await_closed()
@@ -318,26 +319,7 @@ def rpc_coinrecords_cmd(values: Tuple[str], by: str, as_name_dict: bool, **kwarg
             clean_values: bytes32 = map(lambda hex: hexstr_to_bytes(hex), values)
             if by in ["name", "id"]:
                 # TODO: When a by-multiple-names rpc exits, use it instead
-                coin_records: List[CoinRecord] = [
-                    await node_client.get_coin_record_by_name(value) for value in clean_values
-                ]
-                coin_records = list(filter(lambda record: record is not None, coin_records))
-                if not kwargs["include_spent_coins"]:
-                    coin_records: List[CoinRecord] = list(filter(lambda record: record.spent is False, coin_records))
-                if kwargs["start_height"] is not None:
-                    coin_records: List[CoinRecord] = list(
-                        filter(
-                            lambda record: record.confirmed_block_index >= kwargs["start_height"],
-                            coin_records,
-                        )
-                    )
-                if kwargs["end_height"] is not None:
-                    coin_records: List[CoinRecord] = list(
-                        filter(
-                            lambda record: record.confirmed_block_index < kwargs["end_height"],
-                            coin_records,
-                        )
-                    )
+                coin_records: List[CoinRecord] = await node_client.get_coin_records_by_names(clean_values, **kwargs)
             elif by in ["puzhash", "puzzle_hash", "puzzlehash"]:
                 coin_records: List[CoinRecord] = await node_client.get_coin_records_by_puzzle_hashes(
                     clean_values, **kwargs
@@ -364,9 +346,9 @@ def rpc_coinrecords_cmd(values: Tuple[str], by: str, as_name_dict: bool, **kwarg
                 cr_dict = {}
                 for record in coin_record_dicts:
                     cr_dict[Coin.from_json_dict(record["coin"]).name().hex()] = record
-                pprint(cr_dict)
+                print(json.dumps(cr_dict, sort_keys=True, indent=4))
             else:
-                pprint(coin_record_dicts)
+                print(json.dumps(coin_record_dicts, sort_keys=True, indent=4))
         finally:
             node_client.close()
             await node_client.await_closed()

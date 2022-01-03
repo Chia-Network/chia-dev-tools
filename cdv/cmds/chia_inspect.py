@@ -23,6 +23,8 @@ from chia.wallet.puzzles.p2_delegated_puzzle_or_hidden_puzzle import (
     calculate_synthetic_secret_key,
     calculate_synthetic_public_key,
 )
+from chia.util.default_root import DEFAULT_ROOT_PATH
+from chia.util.config import load_config
 from chia.util.keychain import mnemonic_to_seed, bytes_to_mnemonic
 from chia.util.ints import uint64, uint32
 from chia.util.condition_tools import (
@@ -62,7 +64,7 @@ def inspect_callback(
     # By default we return JSON
     if (not any([value for key, value in ctx.obj.items()])) or ctx.obj["json"]:
         if getattr(objs[0], "to_json_dict", None):
-            pprint([obj.to_json_dict() for obj in objs])
+            print(json.dumps([obj.to_json_dict() for obj in objs]))
         else:
             pprint(f"Object of type {type} cannot be serialized to JSON")
     if ctx.obj["bytes"]:
@@ -200,6 +202,7 @@ def do_inspect_coin_cmd(
             coin_objs = streamable_load(Coin, coins)
         except Exception:
             print("One or more of the specified objects was not a coin")
+            sys.exit(1)
     else:
         print("Invalid arguments specified.")
         sys.exit(1)
@@ -395,8 +398,12 @@ def do_inspect_spend_bundle_cmd(
                 print("")
                 print("Debugging Information")
                 print("---------------------")
+                config: Dict = load_config(DEFAULT_ROOT_PATH, "config.yaml")
+                genesis_challenge: str = config["network_overrides"]["constants"][kwargs["network"]][
+                    "GENESIS_CHALLENGE"
+                ]
                 for bundle in spend_bundle_objs:
-                    print(bundle.debug())
+                    print(bundle.debug(agg_sig_additional_data=hexstr_to_bytes(genesis_challenge)))
             if kwargs["signable_data"]:
                 print("")
                 print("Public Key/Message Pairs")
@@ -410,11 +417,8 @@ def do_inspect_spend_bundle_cmd(
                         if err or conditions_dict is None:
                             print(f"Generating conditions failed, con:{conditions_dict}, error: {err}")
                         else:
-                            from chia.util.default_root import DEFAULT_ROOT_PATH
-                            from chia.util.config import load_config
-
-                            config: Dict = load_config(DEFAULT_ROOT_PATH, "config.yaml")
-                            genesis_challenge: str = config["network_overrides"]["constants"][kwargs["network"]][
+                            config = load_config(DEFAULT_ROOT_PATH, "config.yaml")
+                            genesis_challenge = config["network_overrides"]["constants"][kwargs["network"]][
                                 "GENESIS_CHALLENGE"
                             ]
                             for pk, msg in pkm_pairs_for_conditions_dict(

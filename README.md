@@ -1,8 +1,6 @@
 Chia Dev Tools
 =======
 
-(This project has been moved to an [official Chia repository](https://github.com/Chia-Network/chia-dev-tools/) and will be improved there from now on.)
-
 Install
 -------
 
@@ -15,6 +13,7 @@ python3 -m venv venv
 pip install chia-dev-tools
 cdv --version
 ```
+(If you're on an M1 Mac, make sure you are running an ARM64 native python virtual environment)
 
 **Windows Powershell**
 ```
@@ -93,7 +92,7 @@ There are also commands for interacting with the full node's RPC endpoints (in d
 ```
 cdv rpc state
 cdv rpc blocks -s 0 -e 1
-cdv rpc coinrecords --by id e16dbc782f500aa24891886779067792b3305cff8b873ae1e77273ad0b7e6c05
+cdv rpc coinrecords --by id 6ce8fa56321d954f54ba27e58f4a025eb1081d2e1f38fc089a2e72927bcde0d1
 cdv rpc pushtx .\spend_bundle.json
 ```
 
@@ -101,4 +100,4 @@ Python Packages
 ---------------
 
 Being in a virtual environment with this tool will also give your python programs access to all of the chia repository packages.
-It also comes with a package of its own that lives in the `cdv` namespace with some helpful utilities.  Of particular interest is the `cdv.test` package which comes with all sorts of tools to help you write lifecycle tests of smart coins.  Check out [the examples](https://github.com/Quexington/chialisp_dev_utility/tree/main/cdv/examples) to see it in action.
+It also comes with a package of its own that lives in the `cdv` namespace with some helpful utilities.  Of particular interest is the `cdv.test` package which comes with all sorts of tools to help you write lifecycle tests of smart coins.  Check out [the examples](https://github.com/Chia-Network/chia-dev-tools/tree/main/cdv/examples) to see it in action.
