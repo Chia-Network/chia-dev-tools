@@ -12,7 +12,7 @@ from chia.types.blockchain_format.program import Program
 from chia.types.spend_bundle import SpendBundle
 from chia.types.coin_spend import CoinSpend
 from chia.types.coin_record import CoinRecord
-from chia.util.ints import uint64
+from chia.util.ints import uint32, uint64
 from chia.util.condition_tools import ConditionOpcode
 from chia.util.hash import std_hash
 from chia.wallet.derive_keys import master_sk_to_wallet_sk
@@ -644,6 +644,49 @@ class Network:
     def get_timestamp(self) -> datetime.timedelta:
         """Return the current simualtion time in seconds."""
         return datetime.timedelta(seconds=self.sim.timestamp)
+
+    # 'peak' is valid
+    async def get_blockchain_state(self) -> Dict:
+        return {'peak':self.sim.get_height()}
+
+    async def get_coin_record_by_name(self,name: bytes32) -> Optional[CoinRecord]:
+        return await self.sim_client.get_coin_record_by_name(name)
+
+    async def get_coin_records_by_names(
+        self,
+        names: List[bytes32],
+        include_spent_coins: bool = True,
+        start_height: Optional[int] = None,
+        end_height: Optional[int] = None,
+    ) -> List:
+        result_list = []
+
+        for n in names:
+            single_result = await self.sim_client.get_coin_record_by_name(n)
+            if single_result is not None:
+                result_list.append(single_result)
+
+        return result_list
+
+    async def get_coin_records_by_parent_ids(
+        self,
+        parent_ids: List[bytes32],
+        include_spent_coins: bool = True,
+        start_height: Optional[int] = None,
+        end_height: Optional[int] = None,
+    ) -> List:
+        result = []
+
+        coins = await self.sim.all_non_reward_coins()
+        coins = filter(lambda x: x.parent_coin_info in parent_ids, coins)
+
+        for coin in coins:
+            result.append(await self.sim_client.get_coin_record_by_name(coin.name()))
+
+        return result
+
+    async def get_puzzle_and_solution(self, coin_id: bytes32, height: uint32) -> Optional[CoinSpend]:
+        return await self.sim_client.get_puzzle_and_solution(coin_id, height)
 
     # Given a spend bundle, farm a block and analyze the result.
     async def push_tx(self, bundle: SpendBundle) -> Dict[str, Union[str, List[Coin]]]:
