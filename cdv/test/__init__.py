@@ -222,17 +222,17 @@ class Wallet:
 
     # Wallet RPC methods
     async def get_public_keys(self):
-        (synthetic_fingerprint,) = struct.unpack('<I', bytes(self.pk_)[:4])
+        (synthetic_fingerprint,) = struct.unpack("<I", bytes(self.pk_)[:4])
         return [synthetic_fingerprint]
 
     async def get_wallets(self):
-        return list(map(lambda x: {'id': str(x)}, await self.get_public_keys()))
+        return list(map(lambda x: {"id": str(x)}, await self.get_public_keys()))
 
     async def get_transactions(self, wallet_id):
         return []
 
     async def get_private_key(self, fp):
-        return {'sk':binascii.hexlify(bytes(self.generator_sk_))}
+        return {"sk": binascii.hexlify(bytes(self.generator_sk_))}
 
     # Make this coin available to the user it goes with.
     def add_coin(self, coin: Coin):
@@ -647,7 +647,7 @@ class Network:
 
     # 'peak' is valid
     async def get_blockchain_state(self) -> Dict:
-        return {'peak': self.sim.get_height()}
+        return {"peak": self.sim.get_height()}
 
     async def get_block_record_by_height(self, height):
         return await self.sim_client.get_block_record_by_height(height)
