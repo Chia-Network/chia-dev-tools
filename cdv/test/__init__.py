@@ -649,6 +649,12 @@ class Network:
     async def get_blockchain_state(self) -> Dict:
         return {'peak':self.sim.get_height()}
 
+    async def get_block_record_by_height(self, height):
+        return await self.sim_client.get_block_record_by_height(height)
+
+    async def get_additions_and_removals(self, header_hash):
+        return await self.sim_client.get_additions_and_removals(header_hash)
+
     async def get_coin_record_by_name(self,name: bytes32) -> Optional[CoinRecord]:
         return await self.sim_client.get_coin_record_by_name(name)
 
@@ -677,11 +683,17 @@ class Network:
     ) -> List:
         result = []
 
-        coins = await self.sim.all_non_reward_coins()
-        coins = filter(lambda x: x.parent_coin_info in parent_ids, coins)
+        peak_data = await self.get_blockchain_state()
+        last_block = await self.sim_client.get_block_record_by_height(peak_data['peak'])
 
-        for coin in coins:
-            result.append(await self.sim_client.get_coin_record_by_name(coin.name()))
+        while last_block.height > 0:
+            last_block_hash = last_block.header_hash
+            additions, removals = await self.sim_client.get_additions_and_removals(last_block_hash)
+            for new_coin in additions:
+                if new_coin.coin.parent_coin_info in parent_ids:
+                    result.append(new_coin)
+
+            last_block = await self.sim_client.get_block_record_by_height(last_block.height - 1)
 
         return result
 
