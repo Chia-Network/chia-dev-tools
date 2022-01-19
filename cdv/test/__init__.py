@@ -1,5 +1,7 @@
+import binascii
 import datetime
 import pytimeparse
+import struct
 
 from typing import Dict, List, Tuple, Optional, Union
 from blspy import AugSchemeMPL, G1Element, G2Element, PrivateKey
@@ -10,9 +12,10 @@ from chia.types.blockchain_format.program import Program
 from chia.types.spend_bundle import SpendBundle
 from chia.types.coin_spend import CoinSpend
 from chia.types.coin_record import CoinRecord
-from chia.util.ints import uint64
+from chia.util.ints import uint32, uint64
 from chia.util.condition_tools import ConditionOpcode
 from chia.util.hash import std_hash
+from chia.wallet.derive_keys import master_sk_to_wallet_sk
 from chia.wallet.sign_coin_spends import sign_coin_spends
 from chia.wallet.puzzles.p2_delegated_puzzle_or_hidden_puzzle import (  # standard_transaction
     puzzle_for_pk,
@@ -180,7 +183,7 @@ class CoinPairSearch:
 # chia that is released by smart coins, if the smart coins interact
 # meaningfully with them, as many likely will.
 class Wallet:
-    def __init__(self, parent: "Network", name: str, pk: G1Element, priv: PrivateKey):
+    def __init__(self, parent: "Network", name: str, key_idx: int):
         """Internal use constructor, use Network::make_wallet
 
         Fields:
@@ -193,10 +196,17 @@ class Wallet:
         puzzle_hash - The puzzle hash for this actor's standard coin
         pk_to_sk_dict - a dictionary for retrieving the secret keys when presented with the corresponding public key
         """
+
+        self.generator_pk_ = public_key_for_index(key_idx)
+        self.generator_sk_ = private_key_for_index(key_idx)
+
         self.parent = parent
         self.name = name
-        self.pk_ = pk
-        self.sk_ = priv
+
+        # Use an indexed key off the main key.
+        self.sk_ = master_sk_to_wallet_sk(self.generator_sk_, 0)
+        self.pk_ = self.sk_.get_g1()
+
         self.usable_coins: Dict[bytes32, Coin] = {}
         self.puzzle: Program = puzzle_for_pk(self.pk())
         self.puzzle_hash: bytes32 = self.puzzle.get_tree_hash()
@@ -209,6 +219,20 @@ class Wallet:
 
     def __repr__(self) -> str:
         return f"<Wallet(name={self.name},puzzle_hash={self.puzzle_hash},pk={self.pk_})>"
+
+    # Wallet RPC methods
+    async def get_public_keys(self):
+        (synthetic_fingerprint,) = struct.unpack("<I", bytes(self.pk_)[:4])
+        return [synthetic_fingerprint]
+
+    async def get_wallets(self):
+        return list(map(lambda x: {"id": str(x)}, await self.get_public_keys()))
+
+    async def get_transactions(self, wallet_id):
+        return []
+
+    async def get_private_key(self, fp):
+        return {"sk": binascii.hexlify(bytes(self.generator_sk_))}
 
     # Make this coin available to the user it goes with.
     def add_coin(self, coin: Coin):
@@ -593,12 +617,6 @@ class Network:
         self.time += farm_duration
         return farmed
 
-    def _alloc_key(self) -> Tuple[G1Element, PrivateKey]:
-        key_idx: int = len(self.wallets)
-        pk: G1Element = public_key_for_index(key_idx)
-        priv: PrivateKey = private_key_for_index(key_idx)
-        return pk, priv
-
     # Allow the user to create a wallet identity to whom standard coins may be targeted.
     # This results in the creation of a wallet that tracks balance and standard coins.
     # Public and private key from here are used in signing.
@@ -606,8 +624,8 @@ class Network:
         """Create a wallet for an actor.  This causes the actor's chia balance in standard
         coin to be tracked during the simulation.  Wallets have some domain specific methods
         that behave in similar ways to other blockchains."""
-        pk, priv = self._alloc_key()
-        w = Wallet(self, name, pk, priv)
+        key_idx = 1000 * len(self.wallets)
+        w = Wallet(self, name, key_idx)
         self.wallets[str(w.pk())] = w
         return w
 
@@ -626,6 +644,61 @@ class Network:
     def get_timestamp(self) -> datetime.timedelta:
         """Return the current simualtion time in seconds."""
         return datetime.timedelta(seconds=self.sim.timestamp)
+
+    # 'peak' is valid
+    async def get_blockchain_state(self) -> Dict:
+        return {"peak": self.sim.get_height()}
+
+    async def get_block_record_by_height(self, height):
+        return await self.sim_client.get_block_record_by_height(height)
+
+    async def get_additions_and_removals(self, header_hash):
+        return await self.sim_client.get_additions_and_removals(header_hash)
+
+    async def get_coin_record_by_name(self, name: bytes32) -> Optional[CoinRecord]:
+        return await self.sim_client.get_coin_record_by_name(name)
+
+    async def get_coin_records_by_names(
+        self,
+        names: List[bytes32],
+        include_spent_coins: bool = True,
+        start_height: Optional[int] = None,
+        end_height: Optional[int] = None,
+    ) -> List:
+        result_list = []
+
+        for n in names:
+            single_result = await self.sim_client.get_coin_record_by_name(n)
+            if single_result is not None:
+                result_list.append(single_result)
+
+        return result_list
+
+    async def get_coin_records_by_parent_ids(
+        self,
+        parent_ids: List[bytes32],
+        include_spent_coins: bool = True,
+        start_height: Optional[int] = None,
+        end_height: Optional[int] = None,
+    ) -> List:
+        result = []
+
+        peak_data = await self.get_blockchain_state()
+        last_block = await self.sim_client.get_block_record_by_height(peak_data["peak"])
+
+        while last_block.height > 0:
+            last_block_hash = last_block.header_hash
+            additions, removals = await self.sim_client.get_additions_and_removals(last_block_hash)
+            for new_coin in additions:
+                if new_coin.coin.parent_coin_info in parent_ids:
+                    result.append(new_coin)
+
+            last_block = await self.sim_client.get_block_record_by_height(last_block.height - 1)
+
+        return result
+
+    async def get_puzzle_and_solution(self, coin_id: bytes32, height: uint32) -> Optional[CoinSpend]:
+        return await self.sim_client.get_puzzle_and_solution(coin_id, height)
 
     # Given a spend bundle, farm a block and analyze the result.
     async def push_tx(self, bundle: SpendBundle) -> Dict[str, Union[str, List[Coin]]]:
