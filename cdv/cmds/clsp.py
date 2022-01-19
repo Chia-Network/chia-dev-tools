@@ -7,10 +7,10 @@ from pathlib import Path
 
 from chia.types.blockchain_format.program import Program
 
-from clvm_tools.clvmc import compile_clvm
 from clvm_tools.binutils import disassemble, assemble
 
 from cdv.cmds.util import parse_program, append_include
+from cdv.util.load_clvm import compile_clvm
 
 
 @click.group("clsp", short_help="Commands to use when developing with chialisp")
