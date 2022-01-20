@@ -32,7 +32,7 @@ if "CLVM_TOOLS_RS" in os.environ:
                 try:
                     module_object = importlib.import_module(p)
                     return os.path.dirname(inspect.getfile(module_object))
-                except Exception as _:
+                except Exception:
                     return p
 
         def rust_compile_clvm(full_path, output, search_paths=[]):
