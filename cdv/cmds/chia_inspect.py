@@ -14,7 +14,7 @@ from chia.types.coin_spend import CoinSpend
 from chia.types.coin_record import CoinRecord
 from chia.types.spend_bundle import SpendBundle
 from chia.types.generator_types import BlockGenerator
-from chia.consensus.cost_calculator import calculate_cost_of_program, NPCResult
+from chia.consensus.cost_calculator import NPCResult
 from chia.full_node.mempool_check_conditions import get_name_puzzle_conditions
 from chia.full_node.bundle_tools import simple_solution_generator
 from chia.wallet.derive_keys import _derive_path
@@ -305,7 +305,7 @@ def do_inspect_coin_spend_cmd(
                 npc_result: NPCResult = get_name_puzzle_conditions(
                     program, INFINITE_COST, cost_per_byte=cost_per_byte, safe_mode=True
                 )
-                cost: int = calculate_cost_of_program(program.program, npc_result, cost_per_byte)
+                cost: int = npc_result.cost
                 print(f"Cost: {cost}")
 
     return coin_spend_objs
