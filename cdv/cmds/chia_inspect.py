@@ -305,8 +305,7 @@ def do_inspect_coin_spend_cmd(
                 npc_result: NPCResult = get_name_puzzle_conditions(
                     program, INFINITE_COST, cost_per_byte=cost_per_byte, safe_mode=True
                 )
-                cost: int = npc_result.cost
-                print(f"Cost: {cost}")
+                print(f"Cost: {npc_result.cost}")
 
     return coin_spend_objs
 
