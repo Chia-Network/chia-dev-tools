@@ -391,8 +391,7 @@ def do_inspect_spend_bundle_cmd(
                         cost_per_byte=kwargs["cost_per_byte"],
                         safe_mode=True,
                     )
-                    cost: int = calculate_cost_of_program(program.program, npc_result, kwargs["cost_per_byte"])
-                    print(f"Cost: {cost}")
+                    print(f"Cost: {npc_result.cost}")
             if kwargs["debug"]:
                 print("")
                 print("Debugging Information")
