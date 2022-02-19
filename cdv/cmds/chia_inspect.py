@@ -91,6 +91,15 @@ def json_and_key_strip(input: str) -> Dict:
     else:
         return json_dict
 
+# Utility function for maintaining compatibility with Chia 1.2.11
+def get_npc_result_cost(program: BlockGenerator, npc_result: NPCResult, cost_per_byte: int) -> int:
+  try:
+      # Chia > 1.2.11
+      return npc_result.cost
+  except AttributeError as e:
+      # Chia 1.2.11
+      from chia.consensus.cost_calculator import calculate_cost_of_program
+      return calculate_cost_of_program(program.program, npc_result, cost_per_byte)
 
 # Streamable objects can be in either bytes or JSON and we'll take them via CLI or file
 def streamable_load(cls: Any, inputs: Iterable[Any]) -> List[Any]:
@@ -305,7 +314,8 @@ def do_inspect_coin_spend_cmd(
                 npc_result: NPCResult = get_name_puzzle_conditions(
                     program, INFINITE_COST, cost_per_byte=cost_per_byte, safe_mode=True
                 )
-                print(f"Cost: {npc_result.cost}")
+                cost: int = get_npc_result_cost(program.program, npc_result, cost_per_byte)
+                print(f"Cost: {cost}")
 
     return coin_spend_objs
 
@@ -391,7 +401,8 @@ def do_inspect_spend_bundle_cmd(
                         cost_per_byte=kwargs["cost_per_byte"],
                         safe_mode=True,
                     )
-                    print(f"Cost: {npc_result.cost}")
+                    cost: int = get_npc_result_cost(program.program, npc_result, kwargs["cost_per_byte"])
+                    print(f"Cost: {cost}")
             if kwargs["debug"]:
                 print("")
                 print("Debugging Information")
