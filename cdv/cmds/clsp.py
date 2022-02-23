@@ -6,11 +6,13 @@ from typing import Tuple, List
 from pathlib import Path
 
 from chia.types.blockchain_format.program import Program
+from chia.types.blockchain_format.sized_bytes import bytes32
+from chia.util.bech32m import encode_puzzle_hash, decode_puzzle_hash
 
 from clvm_tools.binutils import disassemble, assemble
 
 from cdv.cmds.util import parse_program, append_include
-from cdv.util.load_clvm import compile_clvm
+from cdv.util.load_clvm import compile_clvm, load_clvm
 
 
 @click.group("clsp", short_help="Commands to use when developing with chialisp")
@@ -138,6 +140,36 @@ def uncurry_cmd(program: str, treehash: bool, dump: bool):
         for arg in curried_args.as_iter():
             print("- " + disassemble(arg))
 
+
+@clsp_cmd.command("cat_puzzle_hash",
+    short_help=("Return the outer puzzle address/hash for a CAT with the given tail hash"
+               " & inner puzzlehash/receive address (can be hex or bech32m)")
+)
+@click.argument("inner_puzzlehash", required=True)
+@click.option("-t", "--tail", required=True, help="The tail hash of the CAT")
+def cat_puzzle_hash(inner_puzzlehash: str, tail: str):
+    import cdv.clibs as clibs
+    from chia.wallet.puzzles.cat_loader import CAT_MOD
+    CAT_MOD_HASH: bytes32 = CAT_MOD.get_tree_hash()
+    CAT_PUZ_HASH: Program = load_clvm("cat_puz_hash.clsp", "cdv.clibs")
+    try:
+      # User passed in a hex puzzlehash
+      inner_puzzlehash_bytes32 = bytes32.from_hexstr(inner_puzzlehash)
+      output_bech32m = False
+    except:
+       # If that failed, we're dealing with a bech32m inner puzzlehash.
+       inner_puzzlehash_bytes32 = decode_puzzle_hash(inner_puzzlehash)
+       prefix = inner_puzzlehash[:inner_puzzlehash.rfind("1")]
+       output_bech32m = True
+
+    outer_puzzlehash = bytes32.from_bytes(CAT_PUZ_HASH.run(
+        Program.to([CAT_MOD_HASH, bytes32.from_hexstr(tail), inner_puzzlehash_bytes32])).as_python()
+    )
+
+    if output_bech32m:
+        print(encode_puzzle_hash(outer_puzzlehash, prefix))
+    else:
+        print(outer_puzzlehash)
 
 @clsp_cmd.command(
     "retrieve",
