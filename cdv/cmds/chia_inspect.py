@@ -312,7 +312,7 @@ def do_inspect_coin_spend_cmd(
             for coin_spend in coin_spend_objs:
                 program: BlockGenerator = simple_solution_generator(SpendBundle([coin_spend], G2Element()))
                 npc_result: NPCResult = get_name_puzzle_conditions(
-                    program, INFINITE_COST, cost_per_byte=cost_per_byte, safe_mode=True
+                    program, INFINITE_COST, cost_per_byte=cost_per_byte, mempool_mode=True
                 )
                 cost: int = get_npc_result_cost(program.program, npc_result, cost_per_byte)
                 print(f"Cost: {cost}")
@@ -399,7 +399,7 @@ def do_inspect_spend_bundle_cmd(
                         program,
                         INFINITE_COST,
                         cost_per_byte=kwargs["cost_per_byte"],
-                        safe_mode=True,
+                        mempool_mode=True,
                     )
                     cost: int = get_npc_result_cost(program.program, npc_result, kwargs["cost_per_byte"])
                     print(f"Cost: {cost}")
@@ -472,7 +472,6 @@ def do_inspect_spend_bundle_cmd(
     "--confirmed-block-index",
     help="The block index in which this coin was created",
 )
-@click.option("-s", "--spent", is_flag=True, help="Has the coin been spent?")
 @click.option(
     "-si",
     "--spent-block-index",
@@ -510,7 +509,6 @@ def do_inspect_coin_record_cmd(
                     ),
                     kwargs["confirmed_block_index"],
                     kwargs["spent_block_index"],
-                    kwargs["spent"],
                     kwargs["coinbase"],
                     kwargs["timestamp"],
                 )
@@ -522,7 +520,6 @@ def do_inspect_coin_record_cmd(
                     do_inspect_coin_cmd(ctx, (kwargs["coin"],), print_results=False)[0],
                     kwargs["confirmed_block_index"],
                     kwargs["spent_block_index"],
-                    kwargs["spent"],
                     kwargs["coinbase"],
                     kwargs["timestamp"],
                 )
