@@ -14,7 +14,7 @@ from chia.types.coin_spend import CoinSpend
 from chia.types.coin_record import CoinRecord
 from chia.types.spend_bundle import SpendBundle
 from chia.types.generator_types import BlockGenerator
-from chia.consensus.cost_calculator import calculate_cost_of_program, NPCResult
+from chia.consensus.cost_calculator import NPCResult
 from chia.full_node.mempool_check_conditions import get_name_puzzle_conditions
 from chia.full_node.bundle_tools import simple_solution_generator
 from chia.wallet.derive_keys import _derive_path
@@ -90,6 +90,18 @@ def json_and_key_strip(input: str) -> Dict:
         return json_dict[list(json_dict.keys())[0]]
     else:
         return json_dict
+
+
+# Utility function for maintaining compatibility with Chia 1.2.11
+def get_npc_result_cost(program: BlockGenerator, npc_result: NPCResult, cost_per_byte: int) -> int:
+    try:
+        # Chia > 1.2.11
+        return npc_result.cost
+    except AttributeError:
+        # Chia 1.2.11
+        from chia.consensus.cost_calculator import calculate_cost_of_program
+
+        return calculate_cost_of_program(program.program, npc_result, cost_per_byte)
 
 
 # Streamable objects can be in either bytes or JSON and we'll take them via CLI or file
@@ -303,9 +315,9 @@ def do_inspect_coin_spend_cmd(
             for coin_spend in coin_spend_objs:
                 program: BlockGenerator = simple_solution_generator(SpendBundle([coin_spend], G2Element()))
                 npc_result: NPCResult = get_name_puzzle_conditions(
-                    program, INFINITE_COST, cost_per_byte=cost_per_byte, safe_mode=True
+                    program, INFINITE_COST, cost_per_byte=cost_per_byte, mempool_mode=True
                 )
-                cost: int = calculate_cost_of_program(program.program, npc_result, cost_per_byte)
+                cost: int = get_npc_result_cost(program.program, npc_result, cost_per_byte)
                 print(f"Cost: {cost}")
 
     return coin_spend_objs
@@ -390,9 +402,9 @@ def do_inspect_spend_bundle_cmd(
                         program,
                         INFINITE_COST,
                         cost_per_byte=kwargs["cost_per_byte"],
-                        safe_mode=True,
+                        mempool_mode=True,
                     )
-                    cost: int = calculate_cost_of_program(program.program, npc_result, kwargs["cost_per_byte"])
+                    cost: int = get_npc_result_cost(program.program, npc_result, kwargs["cost_per_byte"])
                     print(f"Cost: {cost}")
             if kwargs["debug"]:
                 print("")
@@ -463,7 +475,6 @@ def do_inspect_spend_bundle_cmd(
     "--confirmed-block-index",
     help="The block index in which this coin was created",
 )
-@click.option("-s", "--spent", is_flag=True, help="Has the coin been spent?")
 @click.option(
     "-si",
     "--spent-block-index",
@@ -501,7 +512,6 @@ def do_inspect_coin_record_cmd(
                     ),
                     kwargs["confirmed_block_index"],
                     kwargs["spent_block_index"],
-                    kwargs["spent"],
                     kwargs["coinbase"],
                     kwargs["timestamp"],
                 )
@@ -513,7 +523,6 @@ def do_inspect_coin_record_cmd(
                     do_inspect_coin_cmd(ctx, (kwargs["coin"],), print_results=False)[0],
                     kwargs["confirmed_block_index"],
                     kwargs["spent_block_index"],
-                    kwargs["spent"],
                     kwargs["coinbase"],
                     kwargs["timestamp"],
                 )

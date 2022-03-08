@@ -6,7 +6,8 @@ with open("README.md", "rt") as fh:
     long_description = fh.read()
 
 dependencies = [
-    "chia-blockchain==1.2.11",
+    "chia-blockchain==1.3.0",
+    "packaging==21.0",
     "pytest",
     "pytest-asyncio",
     "pytimeparse",
@@ -15,7 +16,7 @@ dependencies = [
 dev_dependencies = [
     "flake8",
     "mypy",
-    "black",
+    "black==21.12b0",
 ]
 
 setup(

@@ -280,7 +280,6 @@ class TestInspectCommands:
         id: str = "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b"
         coinbase: str = "False"
         confirmed_block_index: str = "500"
-        spent: str = "True"
         spent_block_index: str = "501"
         timestamp: str = "909469800"
 
@@ -305,8 +304,6 @@ class TestInspectCommands:
                 coinbase,
                 "-ci",
                 confirmed_block_index,
-                "-s",
-                spent,
                 "-si",
                 spent_block_index,
                 "-t",
@@ -333,8 +330,6 @@ class TestInspectCommands:
                 coinbase,
                 "-ci",
                 confirmed_block_index,
-                "-s",
-                spent,
                 "-si",
                 spent_block_index,
                 "-t",
