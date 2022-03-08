@@ -91,15 +91,18 @@ def json_and_key_strip(input: str) -> Dict:
     else:
         return json_dict
 
+
 # Utility function for maintaining compatibility with Chia 1.2.11
 def get_npc_result_cost(program: BlockGenerator, npc_result: NPCResult, cost_per_byte: int) -> int:
-  try:
-      # Chia > 1.2.11
-      return npc_result.cost
-  except AttributeError as e:
-      # Chia 1.2.11
-      from chia.consensus.cost_calculator import calculate_cost_of_program
-      return calculate_cost_of_program(program.program, npc_result, cost_per_byte)
+    try:
+        # Chia > 1.2.11
+        return npc_result.cost
+    except AttributeError:
+        # Chia 1.2.11
+        from chia.consensus.cost_calculator import calculate_cost_of_program
+
+        return calculate_cost_of_program(program.program, npc_result, cost_per_byte)
+
 
 # Streamable objects can be in either bytes or JSON and we'll take them via CLI or file
 def streamable_load(cls: Any, inputs: Iterable[Any]) -> List[Any]:
