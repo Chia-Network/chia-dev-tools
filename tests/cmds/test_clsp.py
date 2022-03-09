@@ -178,11 +178,15 @@ class TestClspCommands:
         runner = CliRunner()
         args_bech32m = [
             "xch18h6rmktpdgms23sqj009hxjwz7szmumwy257uzv8dnvqcuaz0ltqmu9ret",
-            "-t", "0x7efa9f202cfd8e174e1376790232f1249e71fbe46dc428f7237a47d871a2b78b"]
+            "-t",
+            "0x7efa9f202cfd8e174e1376790232f1249e71fbe46dc428f7237a47d871a2b78b",
+        ]
         expected_bech32m = "xch1755h8zumwglmzwl0q8zja80c5a74f7nhpjcrzjhzs48nkxmme06qzwyc9g"
         args_hex = [
             "0x3df43dd9616a3705460093de5b9a4e17a02df36e22a9ee09876cd80c73a27fd6",
-            "-t", "0x7efa9f202cfd8e174e1376790232f1249e71fbe46dc428f7237a47d871a2b78b"]
+            "-t",
+            "0x7efa9f202cfd8e174e1376790232f1249e71fbe46dc428f7237a47d871a2b78b",
+        ]
         expected_hex = "f529738b9b723fb13bef01c52e9df8a77d54fa770cb0314ae2854f3b1b7bcbf4"
         result_bech32m: Result = runner.invoke(cli, ["clsp", "cat_puzzle_hash"] + args_bech32m)
         assert result_bech32m.exit_code == 0
