@@ -1,4 +1,5 @@
 /chia_dev_tools.egg-info
+/build
 /venv
 /dist
 /include
