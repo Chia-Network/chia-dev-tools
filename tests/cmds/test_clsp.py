@@ -188,9 +188,19 @@ class TestClspCommands:
             "0x7efa9f202cfd8e174e1376790232f1249e71fbe46dc428f7237a47d871a2b78b",
         ]
         expected_hex = "f529738b9b723fb13bef01c52e9df8a77d54fa770cb0314ae2854f3b1b7bcbf4"
+        args_usds = [
+            "xch16ay8wdjtl8f58gml4vl5jw4vm6ychhu3lk9hddhykhcmt6l6599s9lrvqn",
+            "-t",
+            "USDS"
+        ]
+        expected_usds = "xch1qmm4m495jtq5ypulwp6rsf7c09z78leg4pxlwtty4ke2rptfcmvsd8z7n9"
+
         result_bech32m: Result = runner.invoke(cli, ["clsp", "cat_puzzle_hash"] + args_bech32m)
         assert result_bech32m.exit_code == 0
         assert expected_bech32m in result_bech32m.output
         result_hex: Result = runner.invoke(cli, ["clsp", "cat_puzzle_hash"] + args_hex)
         assert result_hex.exit_code == 0
         assert expected_hex in result_hex.output
+        result_usds: Result = runner.invoke(cli, ["clsp", "cat_puzzle_hash"] + args_usds)
+        assert result_usds.exit_code == 0
+        assert expected_usds in result_usds.output
