@@ -149,9 +149,20 @@ def uncurry_cmd(program: str, treehash: bool, dump: bool):
     ),
 )
 @click.argument("inner_puzzlehash", required=True)
-@click.option("-t", "--tail", "tail_hash", required=True, help="The tail hash of the CAT")
+@click.option(
+    "-t",
+    "--tail",
+    "tail_hash",
+    required=True,
+    help="The tail hash of the CAT (hex or one of the standard CAT symbols, e.g. MRMT)",
+)
 def cat_puzzle_hash(inner_puzzlehash: str, tail_hash: str):
     from chia.wallet.puzzles.cat_loader import CAT_MOD
+    from chia.wallet.cat_wallet.cat_constants import DEFAULT_CATS
+
+    default_cats_by_symbols = {cat["symbol"]: cat for cat in DEFAULT_CATS.values()}
+    if tail_hash in default_cats_by_symbols:
+        tail_hash = default_cats_by_symbols[tail_hash]["asset_id"]
 
     try:
         # User passed in a hex puzzlehash
