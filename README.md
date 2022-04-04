@@ -16,6 +16,9 @@ cdv --version
 (If you're on an M1 Mac, make sure you are running an ARM64 native python virtual environment)
 
 **Windows Powershell**
+
+Requires: Installation of [Python 3 for Windows](https://www.python.org/downloads/windows/)
+
 ```
 py -m venv venv
 ./venv/Scripts/activate
