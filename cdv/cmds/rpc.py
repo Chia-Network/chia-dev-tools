@@ -338,9 +338,7 @@ def rpc_coinrecords_cmd(values: Tuple[str], by: str, as_name_dict: bool, **kwarg
                 )
             elif by in ["hint"]:
                 hint = list(clean_values)[0]
-                coin_records: List[CoinRecord] = await node_client.get_coin_records_by_hint(
-                    hint=hint, **kwargs
-                )
+                coin_records: List[CoinRecord] = await node_client.get_coin_records_by_hint(hint=hint, **kwargs)
             else:
                 print(f"Unaware of property {by}.")
                 return
