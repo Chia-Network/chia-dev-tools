@@ -297,7 +297,7 @@ def rpc_mempool_cmd(transaction_id: str, ids_only: bool):
     short_help="Gets coin records by a specified information (get_coin_records_by_*)",
 )
 @click.argument("values", nargs=-1, required=True)
-@click.option("--by", help="The property to use (id, puzzlehash, parentid)")
+@click.option("--by", help="The property to use (id, puzzlehash, parentid, hint)")
 @click.option(
     "-nd",
     "--as-name-dict",
@@ -336,6 +336,9 @@ def rpc_coinrecords_cmd(values: Tuple[str], by: str, as_name_dict: bool, **kwarg
                 coin_records: List[CoinRecord] = await node_client.get_coin_records_by_parent_ids(
                     clean_values, **kwargs
                 )
+            elif by in ["hint"]:
+                hint = list(clean_values)[0]
+                coin_records: List[CoinRecord] = await node_client.get_coin_records_by_hint(hint=hint, **kwargs)
             else:
                 print(f"Unaware of property {by}.")
                 return
