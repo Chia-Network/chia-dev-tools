@@ -1,8 +1,7 @@
 import json
-
 from pathlib import Path
-
 from typing import Dict, List
+
 from click.testing import CliRunner, Result
 
 from cdv.cmds.cli import cli

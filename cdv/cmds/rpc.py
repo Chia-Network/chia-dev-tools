@@ -1,28 +1,26 @@
-import click
-import aiohttp
 import asyncio
 import json
-
-from typing import Dict, Optional, List, Tuple
 from pprint import pprint
+from typing import Dict, List, Optional, Tuple
 
+import aiohttp
+import click
 from chia.consensus.block_record import BlockRecord
 from chia.rpc.full_node_rpc_client import FullNodeRpcClient
-from chia.util.default_root import DEFAULT_ROOT_PATH
-from chia.util.config import load_config
-from chia.util.ints import uint16, uint64
-from chia.util.misc import format_bytes
-from chia.util.byte_types import hexstr_to_bytes
 from chia.types.blockchain_format.coin import Coin
 from chia.types.blockchain_format.sized_bytes import bytes32
-from chia.types.coin_spend import CoinSpend
 from chia.types.coin_record import CoinRecord
+from chia.types.coin_spend import CoinSpend
 from chia.types.full_block import FullBlock
 from chia.types.unfinished_header_block import UnfinishedHeaderBlock
+from chia.util.byte_types import hexstr_to_bytes
+from chia.util.config import load_config
+from chia.util.default_root import DEFAULT_ROOT_PATH
+from chia.util.ints import uint16, uint64
+from chia.util.misc import format_bytes
 
-from cdv.cmds.util import fake_context
 from cdv.cmds.chia_inspect import do_inspect_spend_bundle_cmd
-
+from cdv.cmds.util import fake_context
 
 """
 These functions are untested because it is relatively basic code that would be very complex to test.
@@ -31,7 +29,7 @@ Please be careful when making changes.
 
 
 @click.group("rpc", short_help="Make RPC requests to a Chia full node")
-def rpc_cmd():
+def rpc_cmd() -> None:
     pass
 
 
@@ -273,8 +271,11 @@ def rpc_mempool_cmd(transaction_id: str, ids_only: bool):
         try:
             node_client: FullNodeRpcClient = await get_client()
             if transaction_id:
-                items = {}
-                items[transaction_id] = await node_client.get_mempool_item_by_tx_id(hexstr_to_bytes(transaction_id))
+                items = {
+                    transaction_id: await node_client.get_mempool_item_by_tx_id(
+                        bytes32.from_bytes(hexstr_to_bytes(transaction_id))
+                    )
+                }
             else:
                 b_items: Dict = await node_client.get_all_mempool_items()
                 items = {}

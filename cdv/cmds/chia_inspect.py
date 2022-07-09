@@ -1,37 +1,33 @@
-import sys
-import click
 import json
-
-from typing import List, Any, Callable, Dict, Iterable, Union, Optional, Tuple
+import sys
 from pprint import pprint
 from secrets import token_bytes
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-from blspy import AugSchemeMPL, PrivateKey, G1Element, G2Element
-
-from chia.types.blockchain_format.program import INFINITE_COST, Program
-from chia.types.blockchain_format.coin import Coin
-from chia.types.coin_spend import CoinSpend
-from chia.types.coin_record import CoinRecord
-from chia.types.spend_bundle import SpendBundle
-from chia.types.generator_types import BlockGenerator
+import click
+from blspy import AugSchemeMPL, G1Element, G2Element, PrivateKey
 from chia.consensus.cost_calculator import NPCResult
-from chia.full_node.mempool_check_conditions import get_name_puzzle_conditions
 from chia.full_node.bundle_tools import simple_solution_generator
+from chia.full_node.mempool_check_conditions import get_name_puzzle_conditions
+from chia.types.blockchain_format.coin import Coin
+from chia.types.blockchain_format.program import INFINITE_COST, Program
+from chia.types.blockchain_format.sized_bytes import bytes32
+from chia.types.coin_record import CoinRecord
+from chia.types.coin_spend import CoinSpend
+from chia.types.generator_types import BlockGenerator
+from chia.types.spend_bundle import SpendBundle
+from chia.util.byte_types import hexstr_to_bytes
+from chia.util.condition_tools import conditions_dict_for_solution, pkm_pairs_for_conditions_dict
+from chia.util.config import load_config
+from chia.util.default_root import DEFAULT_ROOT_PATH
+from chia.util.ints import uint32, uint64
+from chia.util.keychain import bytes_to_mnemonic, mnemonic_to_seed
 from chia.wallet.derive_keys import _derive_path
 from chia.wallet.puzzles.p2_delegated_puzzle_or_hidden_puzzle import (
     DEFAULT_HIDDEN_PUZZLE_HASH,
-    calculate_synthetic_secret_key,
     calculate_synthetic_public_key,
+    calculate_synthetic_secret_key,
 )
-from chia.util.default_root import DEFAULT_ROOT_PATH
-from chia.util.config import load_config
-from chia.util.keychain import mnemonic_to_seed, bytes_to_mnemonic
-from chia.util.ints import uint64, uint32
-from chia.util.condition_tools import (
-    conditions_dict_for_solution,
-    pkm_pairs_for_conditions_dict,
-)
-from chia.util.byte_types import hexstr_to_bytes
 
 from cdv.cmds.util import parse_program
 
@@ -47,7 +43,7 @@ but also for building them from scratch and for modifying them once you have the
 @click.option("-id", "--id", is_flag=True, help="Output the id of the object")
 @click.option("-t", "--type", is_flag=True, help="Output the type of the object")
 @click.pass_context
-def inspect_cmd(ctx: click.Context, **kwargs):
+def inspect_cmd(ctx: click.Context, **kwargs) -> None:
     ctx.ensure_object(dict)
     for key, value in kwargs.items():
         ctx.obj[key] = value
@@ -90,18 +86,6 @@ def json_and_key_strip(input: str) -> Dict:
         return json_dict[list(json_dict.keys())[0]]
     else:
         return json_dict
-
-
-# Utility function for maintaining compatibility with Chia 1.2.11
-def get_npc_result_cost(program: BlockGenerator, npc_result: NPCResult, cost_per_byte: int) -> int:
-    try:
-        # Chia > 1.2.11
-        return npc_result.cost
-    except AttributeError:
-        # Chia 1.2.11
-        from chia.consensus.cost_calculator import calculate_cost_of_program
-
-        return calculate_cost_of_program(program.program, npc_result, cost_per_byte)
 
 
 # Streamable objects can be in either bytes or JSON and we'll take them via CLI or file
@@ -204,8 +188,8 @@ def do_inspect_coin_cmd(
     if kwargs and all([kwargs[key] for key in kwargs.keys()]):
         coin_objs: List[Coin] = [
             Coin(
-                hexstr_to_bytes(kwargs["parent_id"]),
-                hexstr_to_bytes(kwargs["puzzle_hash"]),
+                bytes32.from_hexstr(kwargs["parent_id"]),
+                bytes32.from_hexstr(kwargs["puzzle_hash"]),
                 uint64(kwargs["amount"]),
             )
         ]
@@ -274,8 +258,8 @@ def do_inspect_coin_spend_cmd(
             coin_spend_objs: List[CoinSpend] = [
                 CoinSpend(
                     Coin(
-                        hexstr_to_bytes(kwargs["parent_id"]),
-                        hexstr_to_bytes(kwargs["puzzle_hash"]),
+                        bytes32.from_hexstr(kwargs["parent_id"]),
+                        bytes32.from_hexstr(kwargs["puzzle_hash"]),
                         uint64(kwargs["amount"]),
                     ),
                     parse_program(kwargs["puzzle_reveal"]),
@@ -317,7 +301,7 @@ def do_inspect_coin_spend_cmd(
                 npc_result: NPCResult = get_name_puzzle_conditions(
                     program, INFINITE_COST, cost_per_byte=cost_per_byte, mempool_mode=True
                 )
-                cost: int = get_npc_result_cost(program.program, npc_result, cost_per_byte)
+                cost: int = npc_result.cost
                 print(f"Cost: {cost}")
 
     return coin_spend_objs
@@ -404,7 +388,7 @@ def do_inspect_spend_bundle_cmd(
                         cost_per_byte=kwargs["cost_per_byte"],
                         mempool_mode=True,
                     )
-                    cost: int = get_npc_result_cost(program.program, npc_result, kwargs["cost_per_byte"])
+                    cost: int = npc_result.cost
                     print(f"Cost: {cost}")
             if kwargs["debug"]:
                 print("")
@@ -443,8 +427,8 @@ def do_inspect_spend_bundle_cmd(
                                 else:
                                     pkm_dict[str(pk)] = [msg]
                 # This very deliberately prints identical messages multiple times
-                for pk, msgs in pkm_dict.items():
-                    print(f"{pk}:")
+                for pk_str, msgs in pkm_dict.items():
+                    print(f"{pk_str}:")
                     for msg in msgs:
                         print(f"\t- {msg.hex()}")
 
@@ -506,8 +490,8 @@ def do_inspect_coin_record_cmd(
             coin_record_objs: List[CoinRecord] = [
                 CoinRecord(
                     Coin(
-                        hexstr_to_bytes(kwargs["parent_id"]),
-                        hexstr_to_bytes(kwargs["puzzle_hash"]),
+                        bytes32.from_hexstr(kwargs["parent_id"]),
+                        bytes32.from_hexstr(kwargs["puzzle_hash"]),
                         uint64(kwargs["amount"]),
                     ),
                     kwargs["confirmed_block_index"],
@@ -680,8 +664,8 @@ def do_inspect_keys_cmd(ctx: click.Context, print_results: bool = True, **kwargs
 
             if kwargs["synthetic"]:
                 if sk:
-                    sk = calculate_synthetic_secret_key(sk, hexstr_to_bytes(kwargs["hidden_puzhash"]))
-                pk = calculate_synthetic_public_key(pk, hexstr_to_bytes(kwargs["hidden_puzhash"]))
+                    sk = calculate_synthetic_secret_key(sk, bytes32.from_hexstr((kwargs["hidden_puzhash"])))
+                pk = calculate_synthetic_public_key(pk, bytes32.from_hexstr((kwargs["hidden_puzhash"])))
         else:
             print("Invalid arguments specified.")
 

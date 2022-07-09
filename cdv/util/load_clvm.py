@@ -4,9 +4,8 @@ import os
 import pathlib
 
 import pkg_resources
-from clvm_tools.clvmc import compile_clvm as compile_clvm_py
-
 from chia.types.blockchain_format.program import Program, SerializedProgram
+from clvm_tools.clvmc import compile_clvm as compile_clvm_py
 
 compile_clvm = compile_clvm_py
 

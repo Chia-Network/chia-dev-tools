@@ -1,10 +1,11 @@
 import pytest
+import pytest_asyncio
 
 from cdv.test import setup as setup_test
 
 
 class TestSomething:
-    @pytest.fixture(scope="function")
+    @pytest_asyncio.fixture(scope="function")
     async def setup(self):
         network, alice, bob = await setup_test()
         await network.farm_block()

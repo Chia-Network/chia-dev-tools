@@ -1,12 +1,10 @@
 import os
 import shutil
-
-from typing import IO, List
 from pathlib import Path
-from click.testing import CliRunner, Result
+from typing import IO, List
 
 from chia.types.blockchain_format.program import Program
-
+from click.testing import CliRunner, Result
 from clvm_tools.binutils import disassemble
 
 from cdv.cmds.cli import cli
@@ -181,15 +179,15 @@ class TestClspCommands:
             "-t",
             "0x7efa9f202cfd8e174e1376790232f1249e71fbe46dc428f7237a47d871a2b78b",
         ]
-        expected_bech32m = "xch1755h8zumwglmzwl0q8zja80c5a74f7nhpjcrzjhzs48nkxmme06qzwyc9g"
+        expected_bech32m = "xch1wtlyxwdl99xk5war69jzxpafx4kmvcjrmevlxn4yet8r7cfc63tqww5qwg"
         args_hex = [
             "0x3df43dd9616a3705460093de5b9a4e17a02df36e22a9ee09876cd80c73a27fd6",
             "-t",
             "0x7efa9f202cfd8e174e1376790232f1249e71fbe46dc428f7237a47d871a2b78b",
         ]
-        expected_hex = "f529738b9b723fb13bef01c52e9df8a77d54fa770cb0314ae2854f3b1b7bcbf4"
+        expected_hex = "72fe4339bf294d6a3ba3d1642307a9356db66243de59f34ea4cace3f6138d456"
         args_usds = ["xch16ay8wdjtl8f58gml4vl5jw4vm6ychhu3lk9hddhykhcmt6l6599s9lrvqn", "-t", "USDS"]
-        expected_usds = "xch1qmm4m495jtq5ypulwp6rsf7c09z78leg4pxlwtty4ke2rptfcmvsd8z7n9"
+        expected_usds = "xch1hurndm0nx93epskq496rt25yf5ar070wzhcdtpf3rt5gx2vu97wq4q5g3k"
 
         result_bech32m: Result = runner.invoke(cli, ["clsp", "cat_puzzle_hash"] + args_bech32m)
         assert result_bech32m.exit_code == 0
