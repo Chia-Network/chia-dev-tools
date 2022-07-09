@@ -31,7 +31,7 @@ Please be careful when making changes.
 
 
 @click.group("rpc", short_help="Make RPC requests to a Chia full node")
-def rpc_cmd():
+def rpc_cmd() -> None:
     pass
 
 

@@ -6,16 +6,18 @@ import shutil
 from typing import List
 from pathlib import Path
 
+from chia.types.blockchain_format.sized_bytes import bytes32
+from chia.util.byte_types import hexstr_to_bytes
+
 from cdv import __version__
 
 from chia.util.hash import std_hash
 from chia.util.bech32m import encode_puzzle_hash, decode_puzzle_hash
 
-from cdv.cmds import (
-    clsp,
-    chia_inspect,
-    rpc,
-)
+from cdv.cmds.clsp import clsp_cmd
+from cdv.cmds.chia_inspect import inspect_cmd
+from cdv.cmds.rpc import rpc_cmd
+
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
@@ -42,8 +44,8 @@ def monkey_patch_click() -> None:
 )
 @click.version_option(__version__)
 @click.pass_context
-def cli(ctx: click.Context) -> None:
-    ctx.ensure_object(dict)
+def cli(_ctx: click.Context) -> None:
+    _ctx.ensure_object(dict)
 
 
 @cli.command("test", short_help="Run the local test suite (located in ./tests)")
@@ -103,7 +105,7 @@ def hash_cmd(data: str):
     help="The prefix to encode with",
 )
 def encode_cmd(puzzle_hash: str, prefix: str):
-    print(encode_puzzle_hash(bytes.fromhex(puzzle_hash), prefix))
+    print(encode_puzzle_hash(bytes32(hexstr_to_bytes(puzzle_hash)), prefix))
 
 
 @cli.command("decode", short_help="Decode a bech32m address to a puzzle hash")
@@ -112,14 +114,14 @@ def decode_cmd(address: str):
     print(decode_puzzle_hash(address).hex())
 
 
-cli.add_command(clsp.clsp_cmd)
-cli.add_command(chia_inspect.inspect_cmd)
-cli.add_command(rpc.rpc_cmd)
+cli.add_command(clsp_cmd)
+cli.add_command(inspect_cmd)
+cli.add_command(rpc_cmd)
 
 
 def main() -> None:
     monkey_patch_click()
-    cli()  # pylint: disable=no-value-for-parameter
+    cli()
 
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ from blspy import AugSchemeMPL, PrivateKey, G1Element, G2Element
 
 from chia.types.blockchain_format.program import INFINITE_COST, Program
 from chia.types.blockchain_format.coin import Coin
+from chia.types.blockchain_format.sized_bytes import bytes32
 from chia.types.coin_spend import CoinSpend
 from chia.types.coin_record import CoinRecord
 from chia.types.spend_bundle import SpendBundle
@@ -47,7 +48,7 @@ but also for building them from scratch and for modifying them once you have the
 @click.option("-id", "--id", is_flag=True, help="Output the id of the object")
 @click.option("-t", "--type", is_flag=True, help="Output the type of the object")
 @click.pass_context
-def inspect_cmd(ctx: click.Context, **kwargs):
+def inspect_cmd(ctx: click.Context, **kwargs) -> None:
     ctx.ensure_object(dict)
     for key, value in kwargs.items():
         ctx.obj[key] = value
@@ -680,8 +681,8 @@ def do_inspect_keys_cmd(ctx: click.Context, print_results: bool = True, **kwargs
 
             if kwargs["synthetic"]:
                 if sk:
-                    sk = calculate_synthetic_secret_key(sk, hexstr_to_bytes(kwargs["hidden_puzhash"]))
-                pk = calculate_synthetic_public_key(pk, hexstr_to_bytes(kwargs["hidden_puzhash"]))
+                    sk = calculate_synthetic_secret_key(sk, bytes32(hexstr_to_bytes(kwargs["hidden_puzhash"])))
+                pk = calculate_synthetic_public_key(pk, bytes32(hexstr_to_bytes(kwargs["hidden_puzhash"])))
         else:
             print("Invalid arguments specified.")
 

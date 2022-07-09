@@ -16,7 +16,7 @@ from cdv.util.load_clvm import compile_clvm
 
 
 @click.group("clsp", short_help="Commands to use when developing with chialisp")
-def clsp_cmd():
+def clsp_cmd() -> None:
     pass
 
 
