@@ -1,8 +1,9 @@
+import asyncio
 from typing import Optional
 
 import click
 
-from cdv.cmds.sim_utils import SIMULATOR_ROOT_PATH
+from cdv.cmds.sim_utils import SIMULATOR_ROOT_PATH, execute_with_simulator, farm_blocks, set_auto_farm
 
 """
 These functions are for the new Chia Simulator. This is currently a work in progress.
@@ -44,7 +45,9 @@ def create_simulator_config(ctx: click.Context) -> None:
 @click.argument("group", type=click.Choice(list(all_groups.keys())), nargs=-1, required=True)
 @click.pass_context
 def start_cmd(ctx: click.Context, restart: bool, group: str) -> None:
-    pass
+    from chia.cmds.start_funcs import async_start
+
+    asyncio.run(async_start(ctx.obj["root_path"], group, restart))
 
 
 @sim_cmd.command("stop", short_help="Stop running services")
@@ -52,7 +55,11 @@ def start_cmd(ctx: click.Context, restart: bool, group: str) -> None:
 @click.argument("group", type=click.Choice(list(all_groups.keys())), nargs=-1, required=True)
 @click.pass_context
 def stop_cmd(ctx: click.Context, daemon: bool, group: str) -> None:
-    pass
+    import sys
+
+    from chia.cmds.stop import async_stop
+
+    sys.exit(asyncio.run(async_stop(ctx.obj["root_path"], group, daemon)))
 
 
 @sim_cmd.command("status", short_help="Get information about the state of the simulator.")
@@ -72,14 +79,31 @@ def revert_cmd(ctx: click.Context, height: int, reset: bool) -> None:
 
 @sim_cmd.command("farm", short_help="Farm blocks")
 @click.option("-b", "--blocks", type=int, required=False, default=1, help="Amount of blocks to create")
-@click.option("-t", "--transaction", is_flag=True, type=bool, default=False, help="Only add transaction blocks")
+@click.option("-tr", "--transaction", is_flag=True, type=bool, default=False, help="Only add transaction blocks")
+@click.option("-ta", "--target-address", type=str, default="", help="Block reward address")
 @click.pass_context
-def farm_cmd(ctx: click.Context, blocks: int, transaction_only: bool) -> None:
-    pass
+def farm_cmd(ctx: click.Context, blocks: int, transaction_only: bool, target_address: str) -> None:
+    asyncio.run(
+        execute_with_simulator(
+            ctx.obj["rpc_port"],
+            ctx.obj["root_path"],
+            farm_blocks,
+            blocks,
+            transaction_only,
+            target_address,
+        )
+    )
 
 
 @sim_cmd.command("autofarm", short_help="Enable or disable auto farming on transaction submission")
 @click.option("-s", "--set_autofarm", type=bool, required=True, help="Enable or disable auto farming.")
 @click.pass_context
 def autofarm_cmd(ctx: click.Context, set_autofarm: Optional[bool]) -> None:
-    pass
+    asyncio.run(
+        execute_with_simulator(
+            ctx.obj["rpc_port"],
+            ctx.obj["root_path"],
+            set_auto_farm,
+            set_autofarm,
+        )
+    )
