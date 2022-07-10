@@ -41,8 +41,8 @@ def monkey_patch_click() -> None:
 )
 @click.version_option(__version__)
 @click.pass_context
-def cli(_ctx: click.Context) -> None:
-    _ctx.ensure_object(dict)
+def cli(ctx: click.Context) -> None:
+    ctx.ensure_object(dict)
 
 
 @cli.command("test", short_help="Run the local test suite (located in ./tests)")
