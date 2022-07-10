@@ -3,7 +3,7 @@ from typing import Optional
 
 import click
 
-from cdv.cmds.sim_utils import SIMULATOR_ROOT_PATH, execute_with_simulator, farm_blocks, set_auto_farm
+from cdv.cmds.sim_utils import SIMULATOR_ROOT_PATH, execute_with_simulator, farm_blocks, set_auto_farm, print_status
 
 """
 These functions are for the new Chia Simulator. This is currently a work in progress.
@@ -68,10 +68,21 @@ def stop_cmd(ctx: click.Context, daemon: bool, group: str) -> None:
 
 
 @sim_cmd.command("status", short_help="Get information about the state of the simulator.")
-@click.option("-f", "--fingerprint", type=int, required=False, help="Get detailed information on this fingerprint.")
+@click.option("-f", "--fingerprint", type=int, help="Get detailed information on this fingerprint.")
+@click.option("-s", "--show_coins", type=bool, is_flag=True, default=False, help="Show all unspent coins.")
+@click.option("-p", "--show_puzzles", type=bool, is_flag=True, default=True, help="Show the balances of all puzzles.")
 @click.pass_context
-def status_cmd(ctx: click.Context, fingerprint: Optional[int]) -> None:
-    pass
+def status_cmd(ctx: click.Context, fingerprint: Optional[int], show_coins: bool, show_puzzles: bool) -> None:
+    asyncio.run(
+        execute_with_simulator(
+            ctx.obj["rpc_port"],
+            ctx.obj["root_path"],
+            print_status,
+            fingerprint,
+            show_coins,
+            show_puzzles,
+        )
+    )
 
 
 @sim_cmd.command("revert", short_help="Reset chain to a previous block height.")
@@ -79,6 +90,7 @@ def status_cmd(ctx: click.Context, fingerprint: Optional[int]) -> None:
 @click.option("-r", "--reset", is_flag=True, type=bool, help="Reset the chain to the genesis block")
 @click.pass_context
 def revert_cmd(ctx: click.Context, height: int, reset: bool) -> None:
+    # TODO: Requires new rpc's to be implemented
     pass
 
 
