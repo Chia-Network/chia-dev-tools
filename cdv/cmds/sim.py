@@ -35,8 +35,13 @@ def sim_cmd(ctx: click.Context, root_path: str, rpc_port: Optional[int]) -> None
 
 
 @sim_cmd.command("create", short_help="Guides you through the process of setting up a Chia Simulator")
+@click.option("-f", "--fingerprint", type=int, required=False, help="Use your fingerprint to skip the key prompt")
+@click.option("-p", "--plot-directory", type=str, required=False, help="Override Default simulation plot directory")
+@click.option("-a", "--auto-farm", type=bool, required=False, help="Enable or Disable auto farming")
 @click.pass_context
-def create_simulator_config(ctx: click.Context) -> None:
+def create_simulator_config(
+    ctx: click.Context, fingerprint: Optional[int], plot_directory: Optional[str], auto_farm: Optional[bool]
+) -> None:
     pass
 
 
