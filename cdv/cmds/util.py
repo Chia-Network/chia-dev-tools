@@ -1,12 +1,10 @@
 import re
-
 from typing import Dict, Iterable, List, Union
 
 from chia.types.blockchain_format.program import Program
 from chia.util.byte_types import hexstr_to_bytes
-
-from clvm_tools.clvmc import compile_clvm_text
 from clvm_tools.binutils import assemble
+from clvm_tools.clvmc import compile_clvm_text
 
 
 # This is do trick inspect commands into thinking they're commands

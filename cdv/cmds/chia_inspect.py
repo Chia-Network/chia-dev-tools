@@ -1,38 +1,33 @@
-import sys
-import click
 import json
-
-from typing import List, Any, Callable, Dict, Iterable, Union, Optional, Tuple
+import sys
 from pprint import pprint
 from secrets import token_bytes
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-from blspy import AugSchemeMPL, PrivateKey, G1Element, G2Element
-
-from chia.types.blockchain_format.program import INFINITE_COST, Program
-from chia.types.blockchain_format.coin import Coin
-from chia.types.blockchain_format.sized_bytes import bytes32
-from chia.types.coin_spend import CoinSpend
-from chia.types.coin_record import CoinRecord
-from chia.types.spend_bundle import SpendBundle
-from chia.types.generator_types import BlockGenerator
+import click
+from blspy import AugSchemeMPL, G1Element, G2Element, PrivateKey
 from chia.consensus.cost_calculator import NPCResult
-from chia.full_node.mempool_check_conditions import get_name_puzzle_conditions
 from chia.full_node.bundle_tools import simple_solution_generator
+from chia.full_node.mempool_check_conditions import get_name_puzzle_conditions
+from chia.types.blockchain_format.coin import Coin
+from chia.types.blockchain_format.program import INFINITE_COST, Program
+from chia.types.blockchain_format.sized_bytes import bytes32
+from chia.types.coin_record import CoinRecord
+from chia.types.coin_spend import CoinSpend
+from chia.types.generator_types import BlockGenerator
+from chia.types.spend_bundle import SpendBundle
+from chia.util.byte_types import hexstr_to_bytes
+from chia.util.condition_tools import conditions_dict_for_solution, pkm_pairs_for_conditions_dict
+from chia.util.config import load_config
+from chia.util.default_root import DEFAULT_ROOT_PATH
+from chia.util.ints import uint32, uint64
+from chia.util.keychain import bytes_to_mnemonic, mnemonic_to_seed
 from chia.wallet.derive_keys import _derive_path
 from chia.wallet.puzzles.p2_delegated_puzzle_or_hidden_puzzle import (
     DEFAULT_HIDDEN_PUZZLE_HASH,
-    calculate_synthetic_secret_key,
     calculate_synthetic_public_key,
+    calculate_synthetic_secret_key,
 )
-from chia.util.default_root import DEFAULT_ROOT_PATH
-from chia.util.config import load_config
-from chia.util.keychain import mnemonic_to_seed, bytes_to_mnemonic
-from chia.util.ints import uint64, uint32
-from chia.util.condition_tools import (
-    conditions_dict_for_solution,
-    pkm_pairs_for_conditions_dict,
-)
-from chia.util.byte_types import hexstr_to_bytes
 
 from cdv.cmds.util import parse_program
 

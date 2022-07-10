@@ -1,18 +1,16 @@
-import pytest
-
 from typing import Dict, List, Optional
 
+import pytest
 from chia.types.blockchain_format.coin import Coin
-from chia.types.spend_bundle import SpendBundle
 from chia.types.condition_opcodes import ConditionOpcode
+from chia.types.spend_bundle import SpendBundle
 from chia.util.ints import uint64
 
 from cdv.examples.drivers.piggybank_drivers import (
     create_piggybank_puzzle,
-    solution_for_piggybank,
     piggybank_announcement_assertion,
+    solution_for_piggybank,
 )
-
 from cdv.test import CoinWrapper
 from cdv.test import setup as setup_test
 
