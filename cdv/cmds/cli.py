@@ -119,7 +119,7 @@ cli.add_command(sim_cmd)
 
 def main() -> None:
     monkey_patch_click()
-    cli()
+    cli()  # pylint: disable=no-value-for-parameter
 
 
 if __name__ == "__main__":
