@@ -1,11 +1,12 @@
 import os
 from pathlib import Path
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, Optional, Any
 
 from chia.consensus.coinbase import create_puzzlehash_for_pk
 from chia.simulator.SimulatorFullNodeRpcClient import SimulatorFullNodeRpcClient
 from chia.types.blockchain_format.sized_bytes import bytes32
 from chia.util.bech32m import encode_puzzle_hash, decode_puzzle_hash
+from chia.util.config import save_config, load_config
 from chia.util.ints import uint32
 from blspy import PrivateKey
 from chia.util.keychain import Keychain
@@ -50,6 +51,61 @@ async def execute_with_simulator(rpc_port: Optional[int], root_path: Path, funct
     await node_client.await_closed()
 
 
+def get_puzzle_hash_from_key(fingerprint: int, key_id: int = 1) -> bytes32:
+    priv_key_and_entropy = Keychain().get_private_key_by_fingerprint(fingerprint)
+    if priv_key_and_entropy is None:
+        raise Exception("Fingerprint not found")
+    private_key = priv_key_and_entropy[0]
+    sk_for_wallet_id: PrivateKey = master_sk_to_wallet_sk(private_key, uint32(key_id))
+    puzzle_hash: bytes32 = create_puzzlehash_for_pk(sk_for_wallet_id.get_g1())
+    return puzzle_hash
+
+
+def create_chia_directory(
+    chia_root: Path,
+    fingerprint: int,
+    farming_address: Optional[str],
+    plot_directory: Optional[str],
+    auto_farm: Optional[bool],
+) -> Dict[str, Any]:
+    from chia.cmds.init_funcs import chia_init
+
+    # create chia directories
+    chia_init(chia_root, testnet=True)
+    # modify config file to put it on its own testnet.
+    config = load_config(chia_root, "config.yaml")
+    config["full_node"]["send_uncompact_interval"] = 0
+    config["full_node"]["target_uncompact_proofs"] = 30
+    config["full_node"]["peer_connect_interval"] = 50
+    config["full_node"]["sanitize_weight_proof_only"] = False
+    config["logging"]["log_stdout"] = True
+    config["selected_network"] = "testnet0"
+    # make sure we don't try to connect to other nodes.
+    config["full_node"]["introducer_peer"] = None
+    config["wallet"]["introducer_peer"] = None
+    config["full_node"]["dns_servers"] = []
+    config["wallet"]["dns_servers"] = []
+    for service in ["harvester", "farmer", "full_node", "wallet", "introducer", "timelord", "pool", "simulator", "ui"]:
+        config[service]["selected_network"] = "testnet0"
+    # simulator overrides
+    config["simulator"]["key_fingerprint"] = fingerprint
+    if farming_address is None:
+        farming_address = encode_puzzle_hash(get_puzzle_hash_from_key(fingerprint), "txch")
+    config["simulator"]["farming_address"] = farming_address
+    if plot_directory is not None:
+        config["simulator"]["plot_directory"] = plot_directory
+    if auto_farm is not None:
+        config["simulator"]["auto_farm"] = auto_farm
+    # change genesis block to give the user the reward
+    farming_ph = decode_puzzle_hash(farming_address)
+    testnet0_consts = config["network_overrides"]["constants"]["testnet0"]
+    testnet0_consts["GENESIS_PRE_FARM_FARMER_PUZZLE_HASH"] = farming_ph
+    testnet0_consts["GENESIS_PRE_FARM_POOL_PUZZLE_HASH"] = farming_ph
+    # save config and return the config
+    save_config(chia_root, "config.yaml", config)
+    return config
+
+
 def display_key_info(fingerprint: int) -> None:
     prefix = "txch"
     print(f"Using fingerprint {fingerprint}")
@@ -58,7 +114,6 @@ def display_key_info(fingerprint: int) -> None:
         print(f"Fingerprint {fingerprint} not found")
         return
 
-    print(f"Showing all public and private keys for: {fingerprint}")
     for sk, seed in private_key_and_seed:
         print("\nFingerprint:", sk.get_g1().get_fingerprint())
         print("Master public key (m):", sk.get_g1())
