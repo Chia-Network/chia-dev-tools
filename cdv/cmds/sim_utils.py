@@ -130,6 +130,41 @@ def display_key_info(fingerprint: int) -> None:
         print(f"{mnemonic} \n")
 
 
+async def generate_plots(root_path: Path) -> None:
+    import sys
+    from chia.simulator.start_simulator import main as start_simulator
+
+    # temporarily clear sys.argv to avoid issues with config.yaml
+    sys_argv = sys.argv.copy()
+    sys.argv = [sys.argv[0]]
+    # because we run this function in test mode, it creates block tools,
+    # and it returns a service which we don't care about.
+    await start_simulator(True, root_path)
+    sys.argv = sys_argv  # restore sys.argv
+
+
+async def async_config_wizard(
+    root_path: Path,
+    fingerprint: Optional[int],
+    farming_address: Optional[str],
+    plot_directory: Optional[str],
+    auto_farm: Optional[bool],
+) -> None:
+    if fingerprint is None:
+        return
+    # create chia directory & get config.
+    config = create_chia_directory(root_path, fingerprint, farming_address, plot_directory, auto_farm)
+    print(f"Farming & Prefarm reward address: {config['simulator']['farming_address']}")
+    # Pre-generate plots by running block_tools init functions.
+    print("Please Wait, Generating plots...\n")
+    print("This may take up to a minute if on a slow machine.\n")
+    await generate_plots(root_path)
+    print("\nPlots generated.\n")
+    # final messages
+    print("Configuration Wizard Complete.")
+    print("\nPlease run 'chia start simulator' to start the simulator.")
+
+
 async def print_status(
     node_client: SimulatorFullNodeRpcClient,
     config: Dict,

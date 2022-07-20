@@ -3,7 +3,14 @@ from typing import Optional
 
 import click
 
-from cdv.cmds.sim_utils import SIMULATOR_ROOT_PATH, execute_with_simulator, farm_blocks, set_auto_farm, print_status
+from cdv.cmds.sim_utils import (
+    SIMULATOR_ROOT_PATH,
+    execute_with_simulator,
+    farm_blocks,
+    set_auto_farm,
+    print_status,
+    async_config_wizard,
+)
 
 """
 These functions are for the new Chia Simulator. This is currently a work in progress.
@@ -37,11 +44,11 @@ def sim_cmd(ctx: click.Context, root_path: str, rpc_port: Optional[int]) -> None
 @sim_cmd.command("create", short_help="Guides you through the process of setting up a Chia Simulator")
 @click.option("-f", "--fingerprint", type=int, required=False, help="Use your fingerprint to skip the key prompt")
 @click.option(
-    "-o",
-    "--farming_address",
+    "-r",
+    "--reward_address",
     type=str,
     required=False,
-    help="Use this farming address instead of the derived address.",
+    help="Use this address instead of the default farming address.",
 )
 @click.option(
     "-p", "--plot-directory", type=str, required=False, help="Use a different directory then 'simulator-plots'."
@@ -56,6 +63,7 @@ def create_simulator_config(
     auto_farm: Optional[bool],
 ) -> None:
     print(f"Using this Directory: {ctx.obj['root_path']}\n")
+    asyncio.run(async_config_wizard(ctx.obj["root_path"], fingerprint, farming_address, plot_directory, auto_farm))
     pass
 
 
