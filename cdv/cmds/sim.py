@@ -37,7 +37,7 @@ def sim_cmd(ctx: click.Context, root_path: str, rpc_port: Optional[int]) -> None
 @sim_cmd.command("create", short_help="Guides you through the process of setting up a Chia Simulator")
 @click.option("-f", "--fingerprint", type=int, required=False, help="Use your fingerprint to skip the key prompt")
 @click.option(
-    "-fa",
+    "-o",
     "--farming_address",
     type=str,
     required=False,
@@ -55,6 +55,7 @@ def create_simulator_config(
     plot_directory: Optional[str],
     auto_farm: Optional[bool],
 ) -> None:
+    print(f"Using this Directory: {ctx.obj['root_path']}\n")
     pass
 
 
@@ -109,8 +110,8 @@ def revert_cmd(ctx: click.Context, height: int, reset: bool) -> None:
 
 @sim_cmd.command("farm", short_help="Farm blocks")
 @click.option("-b", "--blocks", type=int, default=1, help="Amount of blocks to create")
-@click.option("-tr", "--transaction", is_flag=True, type=bool, default=False, help="Only add transaction blocks")
-@click.option("-ta", "--target-address", type=str, default="", help="Block reward address")
+@click.option("-t", "--transaction", is_flag=True, type=bool, default=False, help="Only add transaction blocks")
+@click.option("-a", "--target-address", type=str, default="", help="Block reward address")
 @click.pass_context
 def farm_cmd(ctx: click.Context, blocks: int, transaction_only: bool, target_address: str) -> None:
     asyncio.run(
