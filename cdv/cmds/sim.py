@@ -2,6 +2,7 @@ import asyncio
 from typing import Optional
 
 import click
+from chia.util.config import load_config
 
 from cdv.cmds.sim_utils import (
     SIMULATOR_ROOT_PATH,
@@ -53,17 +54,17 @@ def sim_cmd(ctx: click.Context, root_path: str, rpc_port: Optional[int]) -> None
 @click.option(
     "-p", "--plot-directory", type=str, required=False, help="Use a different directory then 'simulator-plots'."
 )
-@click.option("-a", "--auto-farm", type=bool, flag=True, help="Enable or Disable auto farming")
+@click.option("-a", "--auto-farm", type=bool, is_flag=True, help="Enable or Disable auto farming")
 @click.pass_context
 def create_simulator_config(
     ctx: click.Context,
     fingerprint: Optional[int],
-    farming_address: Optional[str],
+    reward_address: Optional[str],
     plot_directory: Optional[str],
     auto_farm: Optional[bool],
 ) -> None:
     print(f"Using this Directory: {ctx.obj['root_path']}\n")
-    asyncio.run(async_config_wizard(ctx.obj["root_path"], fingerprint, farming_address, plot_directory, auto_farm))
+    asyncio.run(async_config_wizard(ctx.obj["root_path"], fingerprint, reward_address, plot_directory, auto_farm))
     pass
 
 
@@ -73,8 +74,11 @@ def create_simulator_config(
 @click.pass_context
 def start_cmd(ctx: click.Context, restart: bool, group: str) -> None:
     from chia.cmds.start_funcs import async_start
+    import sys
 
-    asyncio.run(async_start(ctx.obj["root_path"], group, restart))
+    sys.argv[0] = sys.argv[0].replace("cdv", "chia")  # this is the best way I swear.
+    config = load_config(ctx.obj["root_path"], "config.yaml")
+    asyncio.run(async_start(ctx.obj["root_path"], config, group, restart))
 
 
 @sim_cmd.command("stop", short_help="Stop running services")
@@ -83,10 +87,10 @@ def start_cmd(ctx: click.Context, restart: bool, group: str) -> None:
 @click.pass_context
 def stop_cmd(ctx: click.Context, daemon: bool, group: str) -> None:
     import sys
-
     from chia.cmds.stop import async_stop
 
-    sys.exit(asyncio.run(async_stop(ctx.obj["root_path"], group, daemon)))
+    config = load_config(ctx.obj["root_path"], "config.yaml")
+    sys.exit(asyncio.run(async_stop(ctx.obj["root_path"], config, group, daemon)))
 
 
 @sim_cmd.command("status", short_help="Get information about the state of the simulator.")
@@ -111,8 +115,9 @@ def status_cmd(ctx: click.Context, fingerprint: Optional[int], show_coins: bool,
 @click.option("-b", "--blocks", type=int, default=1, help="Number of blocks to delete.")
 @click.option("-r", "--reset", is_flag=True, type=bool, help="Reset the chain to the genesis block")
 @click.pass_context
-def revert_cmd(ctx: click.Context, height: int, reset: bool) -> None:
+def revert_cmd(ctx: click.Context, blocks: int, reset: bool) -> None:
     # TODO: Requires new rpc's to be implemented
+    raise ValueError("This command is not yet implemented.")
     pass
 
 
@@ -121,14 +126,14 @@ def revert_cmd(ctx: click.Context, height: int, reset: bool) -> None:
 @click.option("-t", "--transaction", is_flag=True, type=bool, default=False, help="Only add transaction blocks")
 @click.option("-a", "--target-address", type=str, default="", help="Block reward address")
 @click.pass_context
-def farm_cmd(ctx: click.Context, blocks: int, transaction_only: bool, target_address: str) -> None:
+def farm_cmd(ctx: click.Context, blocks: int, transaction: bool, target_address: str) -> None:
     asyncio.run(
         execute_with_simulator(
             ctx.obj["rpc_port"],
             ctx.obj["root_path"],
             farm_blocks,
             blocks,
-            transaction_only,
+            transaction,
             target_address,
         )
     )
