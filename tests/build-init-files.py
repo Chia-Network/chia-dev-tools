@@ -37,7 +37,7 @@ def command(verbose, root_str):
     stream_handler = logging.StreamHandler()
     logger.addHandler(stream_handler)
 
-    tree_roots = ["cdv", "tests"]
+    tree_roots = []  # Disabled for now, ask Jack.
     failed = False
     root = pathlib.Path(root_str).resolve()
     directories = sorted(
