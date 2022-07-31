@@ -29,7 +29,7 @@ def parse_program(program: Union[str, Program], include: Iterable = []) -> Progr
         return program
     else:
         if "(" in program:  # If it's raw clvm
-            prog = Program.to(assemble(program))
+            prog: Program = Program.to(assemble(program))
         elif "." not in program:  # If it's a byte string
             prog = Program.from_bytes(hexstr_to_bytes(program))
         else:  # If it's a file

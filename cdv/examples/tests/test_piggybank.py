@@ -62,7 +62,7 @@ class TestStandardTransaction:
         # Aggregate them to make sure they are spent together
         combined_spend = SpendBundle.aggregate([contribution_spend, piggybank_spend])
 
-        result = await network.push_tx(combined_spend)
+        result: Dict[str, List[Coin]] = await network.push_tx(combined_spend)
         return result
 
     @pytest.mark.asyncio

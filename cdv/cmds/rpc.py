@@ -39,7 +39,7 @@ async def get_client() -> Optional[FullNodeRpcClient]:
         config = load_config(DEFAULT_ROOT_PATH, "config.yaml")
         self_hostname = config["self_hostname"]
         full_node_rpc_port = config["full_node"]["rpc_port"]
-        full_node_client = await FullNodeRpcClient.create(
+        full_node_client: Optional[FullNodeRpcClient] = await FullNodeRpcClient.create(
             self_hostname, uint16(full_node_rpc_port), DEFAULT_ROOT_PATH, config
         )
         return full_node_client

@@ -81,9 +81,10 @@ def inspect_callback(
 
 # If there's only one key, return the data on that key instead (for things like {'spend_bundle': {...}})
 def json_and_key_strip(input: str) -> Dict:
-    json_dict = json.loads(input)
+    json_dict: Dict = json.loads(input)
     if len(json_dict.keys()) == 1:
-        return json_dict[list(json_dict.keys())[0]]
+        result: Dict = json_dict[list(json_dict.keys())[0]]
+        return result  # mypy
     else:
         return json_dict
 
@@ -143,13 +144,13 @@ def inspect_any_cmd(ctx: click.Context, objects: Tuple[str]):
     for obj in input_objects:
         if type(obj) == str:
             print(f"Could not guess the type of {obj}")
-        elif type(obj) == Coin:
+        elif type(obj) == Coin:  # type: ignore[comparison-overlap]
             do_inspect_coin_cmd(ctx, [obj])
-        elif type(obj) == CoinSpend:
+        elif type(obj) == CoinSpend:  # type: ignore[comparison-overlap]
             do_inspect_coin_spend_cmd(ctx, [obj])
-        elif type(obj) == SpendBundle:
+        elif type(obj) == SpendBundle:  # type: ignore[comparison-overlap]
             do_inspect_spend_bundle_cmd(ctx, [obj])
-        elif type(obj) == CoinRecord:
+        elif type(obj) == CoinRecord:  # type: ignore[comparison-overlap]
             do_inspect_coin_record_cmd(ctx, [obj])
         elif type(obj) == Program:
             do_inspect_program_cmd(ctx, [obj])
