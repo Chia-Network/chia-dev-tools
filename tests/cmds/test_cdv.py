@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import pytest
 from click.testing import CliRunner, Result
 
 from cdv.cmds.cli import cli
@@ -41,8 +40,6 @@ class TestCdvCommands:
         assert result.exit_code == 0
         assert "8f6e594e007ca1a1676ef64469c58f7ece8cddc9deae0faf66fbce2466519ebd" in result.output
 
-    @pytest.mark.xfail
-    # the flake is real.
     def test_test(self):
         runner = CliRunner()
         with runner.isolated_filesystem():
