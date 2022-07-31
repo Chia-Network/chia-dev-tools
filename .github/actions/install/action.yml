@@ -29,7 +29,7 @@ runs:
       env:
         INSTALL_PYTHON_VERSION: ${{ inputs.python-version }}
       run: |
-        ${{ inputs.command-prefix }} pip install ."[dev]"
+        ${{ inputs.command-prefix }} ./.github/actions/install/install.sh
 
     - name: Run install script (Windows)
       if: runner.os == 'windows'
@@ -37,4 +37,4 @@ runs:
       env:
         INSTALL_PYTHON_VERSION: ${{ inputs.python-version }}
       run: |
-        ${{ inputs.command-prefix }} pip install ."[dev]"
+        ${{ inputs.command-prefix }} ./.github/actions/install/install.ps1
