@@ -16,7 +16,16 @@ dependencies = [
 dev_dependencies = [
     "flake8",
     "mypy",
+    "types-aiofiles",
+    "types-click",
+    "types-cryptography",
+    "types-pkg_resources",
+    "types-pyyaml",
+    "types-setuptools",
     "black==21.12b0",
+    "isort",
+    "pre-commit",
+    "pylint",
 ]
 
 setup(
