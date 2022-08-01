@@ -1,31 +1,30 @@
 import binascii
 import datetime
-import pytimeparse
 import struct
+from typing import Dict, List, Optional, Tuple, Union
 
-from typing import Dict, List, Tuple, Optional, Union
+import pytimeparse
 from blspy import AugSchemeMPL, G1Element, G2Element, PrivateKey
-
-from chia.types.blockchain_format.sized_bytes import bytes32
+from chia.clvm.spend_sim import SimClient, SpendSim
+from chia.consensus.default_constants import DEFAULT_CONSTANTS
 from chia.types.blockchain_format.coin import Coin
 from chia.types.blockchain_format.program import Program
-from chia.types.spend_bundle import SpendBundle
-from chia.types.coin_spend import CoinSpend
+from chia.types.blockchain_format.sized_bytes import bytes32
 from chia.types.coin_record import CoinRecord
-from chia.util.ints import uint32, uint64
+from chia.types.coin_spend import CoinSpend
+from chia.types.spend_bundle import SpendBundle
 from chia.util.condition_tools import ConditionOpcode
 from chia.util.hash import std_hash
+from chia.util.ints import uint32, uint64
 from chia.wallet.derive_keys import master_sk_to_wallet_sk
-from chia.wallet.sign_coin_spends import sign_coin_spends
 from chia.wallet.puzzles.p2_delegated_puzzle_or_hidden_puzzle import (  # standard_transaction
-    puzzle_for_pk,
-    calculate_synthetic_secret_key,
     DEFAULT_HIDDEN_PUZZLE_HASH,
+    calculate_synthetic_secret_key,
+    puzzle_for_pk,
 )
-from chia.clvm.spend_sim import SpendSim, SimClient
-from chia.consensus.default_constants import DEFAULT_CONSTANTS
+from chia.wallet.sign_coin_spends import sign_coin_spends
 
-from cdv.util.keys import public_key_for_index, private_key_for_index
+from cdv.util.keys import private_key_for_index, public_key_for_index
 
 duration_div = 86400.0
 block_time = (600.0 / 32.0) / duration_div
@@ -59,18 +58,14 @@ class SpendResult:
 class CoinWrapper(Coin):
     """A class that provides some useful methods on coins."""
 
-    def __init__(self, parent: Coin, puzzle_hash: bytes32, amt: uint64, source: Program):
+    def __init__(self, parent_hash: bytes32, amount: int, source: Program):
         """Given parent, puzzle_hash and amount, give an object representing the coin"""
-        super().__init__(parent, puzzle_hash, amt)
+        super().__init__(parent_hash, source.get_tree_hash(), uint64(amount))
         self.source = source
 
     def puzzle(self) -> Program:
         """Return the program that unlocks this coin"""
         return self.source
-
-    def puzzle_hash(self) -> bytes32:
-        """Return this coin's puzzle hash"""
-        return self.puzzle().get_tree_hash()
 
     def smart_coin(self) -> "SmartCoinWrapper":
         """Return a smart coin object wrapping this coin's program"""
@@ -87,7 +82,6 @@ class CoinWrapper(Coin):
     def from_coin(cls, coin: Coin, puzzle: Program) -> "CoinWrapper":
         return cls(
             coin.parent_coin_info,
-            coin.puzzle_hash,
             coin.amount,
             puzzle,
         )
@@ -139,7 +133,7 @@ class SmartCoinWrapper:
     def custom_coin(self, parent: Coin, amt: uint64) -> CoinWrapper:
         """Given a parent and an amount, create the Coin object representing this
         smart coin as it would exist post launch"""
-        return CoinWrapper(parent.name(), self.puzzle_hash(), amt, self.source)
+        return CoinWrapper(parent.name(), amt, self.source)
 
 
 # Used internally to accumulate a search for coins we can combine to the
@@ -204,7 +198,7 @@ class Wallet:
         self.name = name
 
         # Use an indexed key off the main key.
-        self.sk_ = master_sk_to_wallet_sk(self.generator_sk_, 0)
+        self.sk_ = master_sk_to_wallet_sk(self.generator_sk_, uint32(0))
         self.pk_ = self.sk_.get_g1()
 
         self.usable_coins: Dict[bytes32, Coin] = {}
@@ -332,7 +326,6 @@ class Wallet:
         # We need the final coin to know what the announced coin name will be.
         final_coin = CoinWrapper(
             coins[-1].name(),
-            self.puzzle_hash,
             uint64(sum(map(lambda x: x.amount, coins))),
             self.puzzle,
         )
@@ -391,7 +384,6 @@ class Wallet:
             only_coin: Coin = coins_to_spend[0]
             return CoinWrapper(
                 only_coin.parent_coin_info,
-                only_coin.puzzle_hash,
                 only_coin.amount,
                 self.puzzle,
             )
@@ -399,12 +391,7 @@ class Wallet:
         # We receive a timeline of actions to take (indicating that we have a plan)
         # Do the first action and start over.
         result: Optional[SpendResult] = await self.combine_coins(
-            list(
-                map(
-                    lambda x: CoinWrapper(x.parent_coin_info, x.puzzle_hash, x.amount, self.puzzle),
-                    coins_to_spend,
-                )
-            )
+            [CoinWrapper(coin.parent_coin_info, coin.amount, self.puzzle) for coin in coins_to_spend]
         )
 
         if result is None:
@@ -693,7 +680,7 @@ class Network:
                 if new_coin.coin.parent_coin_info in parent_ids:
                     result.append(new_coin)
 
-            last_block = await self.sim_client.get_block_record_by_height(last_block.height - 1)
+            last_block = await self.sim_client.get_block_record_by_height(uint32(last_block.height - 1))
 
         return result
 

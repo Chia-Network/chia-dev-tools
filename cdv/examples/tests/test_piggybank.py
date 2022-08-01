@@ -1,24 +1,23 @@
-import pytest
-
 from typing import Dict, List, Optional
 
+import pytest
+import pytest_asyncio
 from chia.types.blockchain_format.coin import Coin
-from chia.types.spend_bundle import SpendBundle
 from chia.types.condition_opcodes import ConditionOpcode
+from chia.types.spend_bundle import SpendBundle
 from chia.util.ints import uint64
 
 from cdv.examples.drivers.piggybank_drivers import (
     create_piggybank_puzzle,
-    solution_for_piggybank,
     piggybank_announcement_assertion,
+    solution_for_piggybank,
 )
-
 from cdv.test import CoinWrapper
 from cdv.test import setup as setup_test
 
 
 class TestStandardTransaction:
-    @pytest.fixture(scope="function")
+    @pytest_asyncio.fixture(scope="function")
     async def setup(self):
         network, alice, bob = await setup_test()
         await network.farm_block()
@@ -63,7 +62,7 @@ class TestStandardTransaction:
         # Aggregate them to make sure they are spent together
         combined_spend = SpendBundle.aggregate([contribution_spend, piggybank_spend])
 
-        result = await network.push_tx(combined_spend)
+        result: Dict[str, List[Coin]] = await network.push_tx(combined_spend)
         return result
 
     @pytest.mark.asyncio

@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 with open("README.md", "rt") as fh:
     long_description = fh.read()
 
 dependencies = [
-    "chia-blockchain==1.3.4",
-    "packaging==21.0",
+    "chia-blockchain==1.5.0",
+    "packaging",
     "pytest",
     "pytest-asyncio",
     "pytimeparse",
@@ -16,7 +16,16 @@ dependencies = [
 dev_dependencies = [
     "flake8",
     "mypy",
+    "types-aiofiles",
+    "types-click",
+    "types-cryptography",
+    "types-pkg_resources",
+    "types-pyyaml",
+    "types-setuptools",
     "black==21.12b0",
+    "isort",
+    "pre-commit",
+    "pylint",
 ]
 
 setup(

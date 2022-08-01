@@ -2,12 +2,11 @@ from pathlib import Path
 from typing import List
 
 from chia.types.blockchain_format.coin import Coin
-from chia.types.blockchain_format.sized_bytes import bytes32
 from chia.types.blockchain_format.program import Program
+from chia.types.blockchain_format.sized_bytes import bytes32
 from chia.types.condition_opcodes import ConditionOpcode
-from chia.util.ints import uint64
 from chia.util.hash import std_hash
-
+from chia.util.ints import uint64
 from clvm.casts import int_to_bytes
 
 import cdv.clibs as std_lib
@@ -24,7 +23,8 @@ def create_piggybank_puzzle(amount: uint64, cash_out_puzhash: bytes32) -> Progra
 
 # Generate a solution to contribute to a piggybank
 def solution_for_piggybank(pb_coin: Coin, contrib_amount: uint64) -> Program:
-    return Program.to([pb_coin.puzzle_hash, pb_coin.amount, (pb_coin.amount + contrib_amount)])
+    result: Program = Program.to([pb_coin.puzzle_hash, pb_coin.amount, (pb_coin.amount + contrib_amount)])  # mypy sucks
+    return result
 
 
 # Return the condition to assert the announcement

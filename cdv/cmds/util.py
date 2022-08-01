@@ -1,18 +1,14 @@
 import re
-
 from typing import Dict, Iterable, List, Union
 
 from chia.types.blockchain_format.program import Program
-from chia.util.byte_types import hexstr_to_bytes
-
-from clvm_tools.clvmc import compile_clvm_text
 from clvm_tools.binutils import assemble
+from clvm_tools.clvmc import compile_clvm_text
 
 
 # This is do trick inspect commands into thinking they're commands
 def fake_context() -> Dict:
-    ctx = {}
-    ctx["obj"] = {"json": True}
+    ctx = {"obj": {"json": True}}
     return ctx
 
 
@@ -32,9 +28,9 @@ def parse_program(program: Union[str, Program], include: Iterable = []) -> Progr
         return program
     else:
         if "(" in program:  # If it's raw clvm
-            prog = Program.to(assemble(program))
+            prog: Program = Program.to(assemble(program))
         elif "." not in program:  # If it's a byte string
-            prog = Program.from_bytes(hexstr_to_bytes(program))
+            prog = Program.fromhex(program)
         else:  # If it's a file
             with open(program, "r") as file:
                 filestring: str = file.read()
@@ -45,5 +41,5 @@ def parse_program(program: Union[str, Program], include: Iterable = []) -> Progr
                     else:  # If it's CLVM
                         prog = Program.to(assemble(filestring))
                 else:  # If it's serialized CLVM
-                    prog = Program.from_bytes(hexstr_to_bytes(filestring))
+                    prog = Program.fromhex(filestring)
         return prog
