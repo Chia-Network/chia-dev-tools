@@ -356,10 +356,7 @@ def do_inspect_spend_bundle_cmd(
     # If this is from the command line and they've specified at lease one spend to parse
     if kwargs and (len(kwargs["spend"]) > 0):
         if len(kwargs["aggsig"]) > 0:
-            sig: G2Element = AugSchemeMPL.aggregate(
-                G2Element(hexstr_to_bytes(kwargs["aggsig"][0])),
-                [G2Element(hexstr_to_bytes(sig)) for sig in kwargs["aggsig"][1:]],
-            )
+            sig: G2Element = AugSchemeMPL.aggregate([G2Element(hexstr_to_bytes(sig)) for sig in kwargs["aggsig"]])
         else:
             sig = G2Element()
         spend_bundle_objs: List[SpendBundle] = [
