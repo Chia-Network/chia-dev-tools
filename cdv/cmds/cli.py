@@ -7,7 +7,6 @@ import click
 import pytest
 from chia.types.blockchain_format.sized_bytes import bytes32
 from chia.util.bech32m import decode_puzzle_hash, encode_puzzle_hash
-from chia.util.byte_types import hexstr_to_bytes
 from chia.util.hash import std_hash
 
 from cdv import __version__
@@ -101,7 +100,7 @@ def hash_cmd(data: str):
     help="The prefix to encode with",
 )
 def encode_cmd(puzzle_hash: str, prefix: str):
-    print(encode_puzzle_hash(bytes32(hexstr_to_bytes(puzzle_hash)), prefix))
+    print(encode_puzzle_hash(bytes32.from_hexstr(puzzle_hash), prefix))
 
 
 @cli.command("decode", short_help="Decode a bech32m address to a puzzle hash")
