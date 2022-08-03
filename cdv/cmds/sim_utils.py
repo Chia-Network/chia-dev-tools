@@ -1,6 +1,7 @@
 import os
 from decimal import Decimal
 from pathlib import Path
+from random import randint
 from typing import Any, Callable, Dict, List, Optional
 
 from blspy import PrivateKey
@@ -85,30 +86,38 @@ def create_chia_directory(
 ) -> Dict[str, Any]:
     from chia.cmds.init_funcs import chia_init
 
-    # create chia directories
-    chia_init(chia_root, testnet=True)
-    # modify config file to put it on its own testnet.
-    config = load_config(chia_root, "config.yaml")
-    config["full_node"]["send_uncompact_interval"] = 0
-    config["full_node"]["target_uncompact_proofs"] = 30
-    config["full_node"]["peer_connect_interval"] = 50
-    config["full_node"]["sanitize_weight_proof_only"] = False
-    # config["logging"]["log_stdout"] = True  # Not sure if we want this.
-    # make sure we don't try to connect to other nodes.
-    config["full_node"]["introducer_peer"] = None
-    config["wallet"]["introducer_peer"] = None
-    config["full_node"]["dns_servers"] = []
-    config["wallet"]["dns_servers"] = []
-    # set ports and networks, we mostly just add 4 to the port.
-    # this is dependent on the length of the name of the simulator, which should be good.
-    port_offset = len(chia_root.parts[-1])
-    config["selected_network"] = "simulator0"
-    config["daemon_port"] = config["daemon_port"] + port_offset
-    for service in ["harvester", "farmer", "full_node", "wallet", "introducer", "timelord", "pool", "ui"]:
-        config[service]["selected_network"] = "simulator0"
-        if config[service].get("rpc_port") is not None and config[service].get("port") is not None:
-            config[service]["port"] = port_offset + config[service]["port"]
-            config[service]["rpc_port"] = port_offset + config[service]["rpc_port"]
+    if not chia_root.is_dir() or not Path(chia_root / "config" / "config.yaml").exists():
+        # create chia directories
+        chia_init(chia_root, testnet=True)
+        # modify config file to put it on its own testnet.
+        config = load_config(chia_root, "config.yaml")
+        config["full_node"]["send_uncompact_interval"] = 0
+        config["full_node"]["target_uncompact_proofs"] = 30
+        config["full_node"]["peer_connect_interval"] = 50
+        config["full_node"]["sanitize_weight_proof_only"] = False
+        config["network_overrides"]["constants"]["simulator0"] = config["network_overrides"]["constants"][
+            "testnet0"
+        ].copy()
+        config["network_overrides"]["config"]["simulator0"] = config["network_overrides"]["config"]["testnet0"].copy()
+        # config["logging"]["log_stdout"] = True  # Not sure if we want this.
+        # make sure we don't try to connect to other nodes.
+        config["full_node"]["introducer_peer"] = None
+        config["wallet"]["introducer_peer"] = None
+        config["full_node"]["dns_servers"] = []
+        config["wallet"]["dns_servers"] = []
+        # set ports and networks, we mostly just add 4 to the port.
+        # this is dependent on the length of the name of the simulator * a random number which should be good.
+        port_offset = len(chia_root.parts[-1]) * randint(1, 20)
+        config["selected_network"] = "simulator0"
+        config["daemon_port"] = config["daemon_port"] + port_offset
+        config["network_overrides"]["config"]["simulator0"]["default_full_node_port"] = 38444 + port_offset
+        for service in ["harvester", "farmer", "full_node", "wallet", "introducer", "timelord", "pool", "ui"]:
+            config[service]["selected_network"] = "simulator0"
+            if config[service].get("rpc_port") is not None and config[service].get("port") is not None:
+                config[service]["port"] = port_offset + config[service]["port"]
+                config[service]["rpc_port"] = port_offset + config[service]["rpc_port"]
+    else:
+        config = load_config(chia_root, "config.yaml")
     # simulator overrides
     config["simulator"]["key_fingerprint"] = fingerprint
     if farming_address is None:
@@ -119,10 +128,7 @@ def create_chia_directory(
     config["simulator"]["auto_farm"] = auto_farm if auto_farm is not None else True
     # change genesis block to give the user the reward
     farming_ph = decode_puzzle_hash(farming_address)
-    # copy testnet0 consts
-    config["network_overrides"]["constants"]["simulator0"] = config["network_overrides"]["constants"]["testnet0"].copy()
-    config["network_overrides"]["config"]["simulator0"] = config["network_overrides"]["config"]["testnet0"].copy()
-    config["network_overrides"]["config"]["simulator0"]["default_full_node_port"] = 38444
+    # modify testnet0 consts to give the user the reward
     simulator_consts = config["network_overrides"]["constants"]["simulator0"]
     simulator_consts["GENESIS_PRE_FARM_FARMER_PUZZLE_HASH"] = farming_ph.hex()
     simulator_consts["GENESIS_PRE_FARM_POOL_PUZZLE_HASH"] = farming_ph.hex()
