@@ -52,6 +52,20 @@ async def execute_with_simulator(rpc_port: Optional[int], root_path: Path, funct
     await node_client.await_closed()
 
 
+async def start_async(root_path: Path, group: Any, restart: bool) -> None:
+    import sys
+
+    from chia.cmds.start_funcs import async_start
+
+    sys.argv[0] = sys.argv[0].replace("cdv", "chia")  # this is the best way I swear.
+    if root_path.exists():
+        config = load_config(root_path, "config.yaml")
+        await async_start(root_path, config, group, restart)
+    else:
+        print(f"Simulator root path: {root_path} does not exist.")
+        print("please run 'cdv sim create' to create and configure a new simulator.")
+
+
 def get_ph_from_fingerprint(fingerprint: int, key_id: int = 1) -> bytes32:
     priv_key_and_entropy = Keychain().get_private_key_by_fingerprint(fingerprint)
     if priv_key_and_entropy is None:
@@ -79,15 +93,22 @@ def create_chia_directory(
     config["full_node"]["target_uncompact_proofs"] = 30
     config["full_node"]["peer_connect_interval"] = 50
     config["full_node"]["sanitize_weight_proof_only"] = False
-    config["logging"]["log_stdout"] = True
-    config["selected_network"] = "testnet0"
+    # config["logging"]["log_stdout"] = True  # Not sure if we want this.
     # make sure we don't try to connect to other nodes.
     config["full_node"]["introducer_peer"] = None
     config["wallet"]["introducer_peer"] = None
     config["full_node"]["dns_servers"] = []
     config["wallet"]["dns_servers"] = []
-    for service in ["harvester", "farmer", "full_node", "wallet", "introducer", "timelord", "pool", "simulator", "ui"]:
-        config[service]["selected_network"] = "testnet0"
+    # set ports and networks, we mostly just add 4 to the port.
+    # this is dependent on the length of the name of the simulator, which should be good.
+    port_offset = len(chia_root.parts[-1])
+    config["selected_network"] = "simulator0"
+    config["daemon_port"] = config["daemon_port"] + port_offset
+    for service in ["harvester", "farmer", "full_node", "wallet", "introducer", "timelord", "pool", "ui"]:
+        config[service]["selected_network"] = "simulator0"
+        if config[service].get("rpc_port") is not None and config[service].get("port") is not None:
+            config[service]["port"] = port_offset + config[service]["port"]
+            config[service]["rpc_port"] = port_offset + config[service]["rpc_port"]
     # simulator overrides
     config["simulator"]["key_fingerprint"] = fingerprint
     if farming_address is None:
@@ -98,9 +119,13 @@ def create_chia_directory(
     config["simulator"]["auto_farm"] = auto_farm if auto_farm is not None else True
     # change genesis block to give the user the reward
     farming_ph = decode_puzzle_hash(farming_address)
-    testnet0_consts = config["network_overrides"]["constants"]["testnet0"]
-    testnet0_consts["GENESIS_PRE_FARM_FARMER_PUZZLE_HASH"] = farming_ph.hex()
-    testnet0_consts["GENESIS_PRE_FARM_POOL_PUZZLE_HASH"] = farming_ph.hex()
+    # copy testnet0 consts
+    config["network_overrides"]["constants"]["simulator0"] = config["network_overrides"]["constants"]["testnet0"].copy()
+    config["network_overrides"]["config"]["simulator0"] = config["network_overrides"]["config"]["testnet0"].copy()
+    config["network_overrides"]["config"]["simulator0"]["default_full_node_port"] = 38444
+    simulator_consts = config["network_overrides"]["constants"]["simulator0"]
+    simulator_consts["GENESIS_PRE_FARM_FARMER_PUZZLE_HASH"] = farming_ph.hex()
+    simulator_consts["GENESIS_PRE_FARM_POOL_PUZZLE_HASH"] = farming_ph.hex()
     # save config and return the config
     save_config(chia_root, "config.yaml", config)
     return config
@@ -210,13 +235,13 @@ async def generate_plots(config: Dict[str, Any], root_path: Path, fingerprint: i
         test_constants,
         root_path,
         automated_testing=False,
-        plot_dir=config["simulator"].get("plot_directory", "simulator-plots"),
+        plot_dir=config["simulator"].get("plot_directory", "plots"),
         keychain=Keychain(),
     )
     await bt.setup_keys(fingerprint=fingerprint, reward_ph=farming_puzzle_hash)
     starting_time = time()
     await bt.setup_plots(num_og_plots=PLOTS, num_pool_plots=0, num_non_keychain_plots=0, plot_size=PLOT_SIZE)
-    print(f"{'New plots generated.' if time() - starting_time > 2 else 'Using Existing Plots'}\n")
+    print(f"{'New plots generated.' if time() - starting_time > 5 else 'Using Existing Plots'}\n")
 
 
 async def async_config_wizard(
@@ -242,7 +267,8 @@ async def async_config_wizard(
     await generate_plots(config, root_path, fingerprint)
     # final messages
     print("Configuration Wizard Complete.")
-    print("Please run 'cdv sim start simulator' to start the simulator.")
+    print("Starting Simulator now...\n\n")
+    await start_async(root_path, ("simulator",), False)
 
 
 def print_coin_record(
@@ -328,7 +354,7 @@ async def print_status(
     include_reward_coins: bool,
     show_addresses: bool,
 ) -> None:
-    from chia.cmds.show_funcs import print_blockchain_state
+    from chia.cmds.show import print_blockchain_state  # TODO: JACK FIX THIS
     from chia.cmds.units import units
 
     # Display keychain info
@@ -374,14 +400,14 @@ async def revert_block_height(
         # in this case num_blocks is the number of blocks to delete
         new_height: int = await node_client.revert_blocks(num_blocks, reset_chain_to_genesis)
         print(
-            f"All transactions in Block: {new_height+num_blocks} and above were successfully deleted, "
+            f"All transactions in Block: {new_height + num_blocks} and above were successfully deleted, "
             "you should now delete & restart all wallets."
         )
     else:
         # However, in this case num_blocks is the fork height.
         new_height = await node_client.reorg_blocks(num_blocks, num_new_blocks, use_revert_blocks)
         old_height = new_height - num_new_blocks
-        print(f"All transactions in Block: {old_height-num_blocks} and above were successfully reverted.")
+        print(f"All transactions in Block: {old_height - num_blocks} and above were successfully reverted.")
     print(f"Block Height is now: {new_height}")
 
 

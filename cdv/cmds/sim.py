@@ -13,6 +13,7 @@ from cdv.cmds.sim_utils import (
     print_status,
     revert_block_height,
     set_auto_farm,
+    start_async,
 )
 
 """
@@ -50,6 +51,7 @@ all_groups = {
 def sim_cmd(ctx: click.Context, rpc_port: Optional[int], root_path: str, simulator_name: str) -> None:
     ctx.ensure_object(dict)
     ctx.obj["root_path"] = Path(root_path) / simulator_name
+    ctx.obj["sim_name"] = simulator_name
     ctx.obj["rpc_port"] = rpc_port
 
 
@@ -63,9 +65,9 @@ def sim_cmd(ctx: click.Context, rpc_port: Optional[int], root_path: str, simulat
     help="Use this address instead of the default farming address.",
 )
 @click.option(
-    "-p", "--plot-directory", type=str, required=False, help="Use a different directory then 'simulator-plots'."
+    "-p", "--plot-directory", type=str, required=False, help="Use a different directory then 'simulator/plots'."
 )
-@click.option("-a", "--auto-farm", type=bool, is_flag=True, help="Enable or Disable auto farming")
+@click.option("-a", "--auto-farm", type=bool, default=None, help="Enable or Disable auto farming")
 @click.pass_context
 def create_simulator_config(
     ctx: click.Context,
@@ -79,21 +81,15 @@ def create_simulator_config(
 
 
 @sim_cmd.command("start", short_help="Start service groups")
-@click.option("-r", "--restart", is_flag=True, type=bool, help="Restart running services")
+@click.option("-r", "--restart", is_flag=True, help="Restart running services")
 @click.argument("group", type=click.Choice(list(all_groups.keys())), nargs=-1, required=True)
 @click.pass_context
 def start_cmd(ctx: click.Context, restart: bool, group: str) -> None:
-    import sys
-
-    from chia.cmds.start_funcs import async_start
-
-    sys.argv[0] = sys.argv[0].replace("cdv", "chia")  # this is the best way I swear.
-    config = load_config(ctx.obj["root_path"], "config.yaml")
-    asyncio.run(async_start(ctx.obj["root_path"], config, group, restart))
+    asyncio.run(start_async(ctx.obj["root_path"], group, restart))
 
 
 @sim_cmd.command("stop", short_help="Stop running services")
-@click.option("-d", "--daemon", is_flag=True, type=bool, help="Stop daemon")
+@click.option("-d", "--daemon", is_flag=True, help="Stop daemon")
 @click.argument("group", type=click.Choice(list(all_groups.keys())), nargs=-1, required=True)
 @click.pass_context
 def stop_cmd(ctx: click.Context, daemon: bool, group: str) -> None:
@@ -107,12 +103,10 @@ def stop_cmd(ctx: click.Context, daemon: bool, group: str) -> None:
 
 @sim_cmd.command("status", short_help="Get information about the state of the simulator.")
 @click.option("-f", "--fingerprint", type=int, help="Get detailed information on this fingerprint.")
-@click.option("-k", "--show_key", type=bool, is_flag=True, default=False, help="Show detailed key information.")
-@click.option("-c", "--show_coins", type=bool, is_flag=True, default=False, help="Show all unspent coins.")
-@click.option("-i", "--include_rewards", type=bool, is_flag=True, default=False, help="Should show rewards coins?")
-@click.option(
-    "-a", "--show_addresses", type=bool, is_flag=True, default=False, help="Show the balances of all addresses."
-)
+@click.option("-k", "--show_key", is_flag=True, help="Show detailed key information.")
+@click.option("-c", "--show_coins", is_flag=True, help="Show all unspent coins.")
+@click.option("-i", "--include_rewards", is_flag=True, help="Should show rewards coins?")
+@click.option("-a", "--show_addresses", is_flag=True, help="Show the balances of all addresses.")
 @click.pass_context
 def status_cmd(
     ctx: click.Context,
@@ -139,18 +133,15 @@ def status_cmd(
 @sim_cmd.command("revert", short_help="Reset chain to a previous block height.")
 @click.option("-b", "--blocks", type=int, default=1, help="Number of blocks to go back.")
 @click.option("-n", "--new_blocks", type=int, default=1, help="Number of new blocks to add during a reorg.")
-@click.option("-r", "--reset", is_flag=True, type=bool, help="Reset the chain to the genesis block")
+@click.option("-r", "--reset", is_flag=True, help="Reset the chain to the genesis block")
 @click.option(
     "-f",
     "--force",
     is_flag=True,
-    type=bool,
     help="Forcefully delete blocks, this is not a reorg but might be needed in very special circumstances."
     "  Note: Use with caution, this will break all wallets.",
 )
-@click.option(
-    "-d", "--disable_prompt", is_flag=True, type=bool, help="Disable confirmation prompt when force reverting."
-)
+@click.option("-d", "--disable_prompt", is_flag=True, help="Disable confirmation prompt when force reverting.")
 @click.pass_context
 def revert_cmd(
     ctx: click.Context, blocks: int, new_blocks: int, reset: bool, force: bool, disable_prompt: bool
@@ -180,7 +171,7 @@ def revert_cmd(
 
 @sim_cmd.command("farm", short_help="Farm blocks")
 @click.option("-b", "--blocks", type=int, default=1, help="Amount of blocks to create")
-@click.option("-t", "--transaction", is_flag=True, type=bool, default=False, help="Only add transaction blocks")
+@click.option("-t", "--transaction", is_flag=True, help="Only add transaction blocks")
 @click.option("-a", "--target-address", type=str, default="", help="Block reward address")
 @click.pass_context
 def farm_cmd(ctx: click.Context, blocks: int, transaction: bool, target_address: str) -> None:
