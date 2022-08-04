@@ -106,9 +106,9 @@ def create_chia_directory(
         config["wallet"]["introducer_peer"] = None
         config["full_node"]["dns_servers"] = []
         config["wallet"]["dns_servers"] = []
-        config["network_overrides"]["constants"]["simulator0"][
-            "GENESIS_CHALLENGE"
-        ] = "eb8c4d20b322be8d9fddbf9412016bdffe9a2901d7edb0e364e94266d0e095f7"
+        sim_genesis = "eb8c4d20b322be8d9fddbf9412016bdffe9a2901d7edb0e364e94266d0e095f7"
+        config["network_overrides"]["constants"]["simulator0"]["GENESIS_CHALLENGE"] = sim_genesis
+        config["network_overrides"]["constants"]["simulator0"]["NETWORK_TYPE"] = 2  # 2 is the simulator's network type
         # set ports and networks, we don't want to cause a port conflict.
         port_offset = randint(1, 20000)
         config["selected_network"] = "simulator0"
