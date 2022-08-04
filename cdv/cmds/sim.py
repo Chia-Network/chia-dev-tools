@@ -171,17 +171,17 @@ def revert_cmd(
 
 @sim_cmd.command("farm", short_help="Farm blocks")
 @click.option("-b", "--blocks", type=int, default=1, help="Amount of blocks to create")
-@click.option("-t", "--transaction", is_flag=True, help="Only add transaction blocks")
+@click.option("-n", "--non-transaction", is_flag=True, help="Allow non-transaction blocks")
 @click.option("-a", "--target-address", type=str, default="", help="Block reward address")
 @click.pass_context
-def farm_cmd(ctx: click.Context, blocks: int, transaction: bool, target_address: str) -> None:
+def farm_cmd(ctx: click.Context, blocks: int, non_transaction: bool, target_address: str) -> None:
     asyncio.run(
         execute_with_simulator(
             ctx.obj["rpc_port"],
             ctx.obj["root_path"],
             farm_blocks,
             blocks,
-            transaction,
+            not non_transaction,
             target_address,
         )
     )

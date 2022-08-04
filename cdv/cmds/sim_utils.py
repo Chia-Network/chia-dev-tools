@@ -105,17 +105,25 @@ def create_chia_directory(
         config["wallet"]["introducer_peer"] = None
         config["full_node"]["dns_servers"] = []
         config["wallet"]["dns_servers"] = []
-        # set ports and networks, we mostly just add 4 to the port.
-        # this is dependent on the length of the name of the simulator * a random number which should be good.
-        port_offset = len(chia_root.parts[-1]) * randint(1, 20)
+        config["network_overrides"]["constants"]["simulator0"][
+            "GENESIS_CHALLENGE"
+        ] = "eb8c4d20b322be8d9fddbf9412016bdffe9a2901d7edb0e364e94266d0e095f7"
+        # set ports and networks, we don't want to cause a port conflict.
+        port_offset = randint(1, 20000)
         config["selected_network"] = "simulator0"
-        config["daemon_port"] = config["daemon_port"] + port_offset
+        config["daemon_port"] -= port_offset
         config["network_overrides"]["config"]["simulator0"]["default_full_node_port"] = 38444 + port_offset
-        for service in ["harvester", "farmer", "full_node", "wallet", "introducer", "timelord", "pool", "ui"]:
-            config[service]["selected_network"] = "simulator0"
-            if config[service].get("rpc_port") is not None and config[service].get("port") is not None:
-                config[service]["port"] = port_offset + config[service]["port"]
-                config[service]["rpc_port"] = port_offset + config[service]["rpc_port"]
+        # wallet
+        config["wallet"]["selected_network"] = "simulator0"
+        config["wallet"]["port"] += port_offset
+        config["wallet"]["rpc_port"] += port_offset
+        # full node
+        config["full_node"]["selected_network"] = "simulator0"
+        config["full_node"]["port"] -= port_offset
+        config["full_node"]["rpc_port"] += port_offset
+        # connect wallet to full node
+        config["wallet"]["full_node_peer"]["port"] = config["full_node"]["port"]
+        config["full_node"]["wallet_peer"]["port"] = config["wallet"]["port"]
     else:
         config = load_config(chia_root, "config.yaml")
     # simulator overrides
@@ -265,13 +273,13 @@ async def async_config_wizard(
     # create chia directory & get config.
     print("Creating chia directory & config...")
     config = create_chia_directory(root_path, fingerprint, farming_address, plot_directory, auto_farm)
-    print(f"\nFarming & Prefarm reward address: {config['simulator']['farming_address']}")
     # Pre-generate plots by running block_tools init functions.
     print("Please Wait, Generating plots...")
     print("This may take up to a minute if you are on a slow machine")
 
     await generate_plots(config, root_path, fingerprint)
     # final messages
+    print(f"\nFarming & Prefarm reward address: {config['simulator']['farming_address']}\n")
     print("Configuration Wizard Complete.")
     print("Starting Simulator now...\n\n")
     await start_async(root_path, ("simulator",), False)
