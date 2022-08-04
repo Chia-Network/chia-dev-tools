@@ -1,9 +1,11 @@
+import asyncio
 import os
 from decimal import Decimal
 from pathlib import Path
 from random import randint
 from typing import Any, Callable, Dict, List, Optional
 
+from aiohttp import ClientConnectorError
 from blspy import PrivateKey
 from chia.consensus.coinbase import create_puzzlehash_for_pk
 from chia.simulator.simulator_full_node_rpc_client import SimulatorFullNodeRpcClient
@@ -24,13 +26,15 @@ SIMULATOR_ROOT_PATH = Path(os.path.expanduser(os.getenv("CHIA_SIMULATOR_ROOT", "
 
 
 # based on execute_with_node
-async def execute_with_simulator(rpc_port: Optional[int], root_path: Path, function: Callable, *args) -> None:
+async def execute_with_simulator(
+    rpc_port: Optional[int], root_path: Path, function: Callable, catch_errors: bool = True, *args
+) -> Any:
     import traceback
 
-    from aiohttp import ClientConnectorError
     from chia.util.config import load_config
     from chia.util.ints import uint16
 
+    result = None
     config = load_config(root_path, "config.yaml")
     self_hostname = config["self_hostname"]
     if rpc_port is None:
@@ -39,10 +43,14 @@ async def execute_with_simulator(rpc_port: Optional[int], root_path: Path, funct
         node_client: SimulatorFullNodeRpcClient = await SimulatorFullNodeRpcClient.create(
             self_hostname, uint16(rpc_port), root_path, config
         )
-        await function(node_client, config, *args)
+        result = await function(node_client, config, *args)
 
     except Exception as e:
-        if isinstance(e, ClientConnectorError):
+        if not catch_errors:
+            node_client.close()
+            await node_client.await_closed()
+            raise e
+        elif isinstance(e, ClientConnectorError):
             print(f"Connection error. Check if simulator rpc is running at {rpc_port}")
             print("This is normal if full node is still starting up")
         else:
@@ -51,6 +59,7 @@ async def execute_with_simulator(rpc_port: Optional[int], root_path: Path, funct
 
     node_client.close()
     await node_client.await_closed()
+    return result
 
 
 async def start_async(root_path: Path, group: Any, restart: bool) -> None:
@@ -259,6 +268,11 @@ async def generate_plots(config: Dict[str, Any], root_path: Path, fingerprint: i
     print(f"{'New plots generated.' if time() - starting_time > 5 else 'Using Existing Plots'}\n")
 
 
+async def get_current_height(node_client: SimulatorFullNodeRpcClient, _config: Dict[str, Any]) -> int:
+    num_blocks = len(await node_client.get_all_blocks())
+    return num_blocks
+
+
 async def async_config_wizard(
     root_path: Path,
     fingerprint: Optional[int],
@@ -280,10 +294,25 @@ async def async_config_wizard(
 
     await generate_plots(config, root_path, fingerprint)
     # final messages
-    print(f"\nFarming & Prefarm reward address: {config['simulator']['farming_address']}\n")
+    farming_address = config["simulator"]["farming_address"]
+    print(f"\nFarming & Prefarm reward address: {farming_address}\n")
     print("Configuration Wizard Complete.")
     print("Starting Simulator now...\n\n")
     await start_async(root_path, ("simulator",), False)
+    # now we create make sure the simulator has a genesis block
+    print("Please wait, generating genesis block.")
+    while True:
+        try:
+            num_blocks = await execute_with_simulator(None, root_path, get_current_height, False)
+        except ClientConnectorError:
+            await asyncio.sleep(0.25)
+        else:
+            if num_blocks == 0:
+                await execute_with_simulator(None, root_path, farm_blocks, False, 1, True, farming_address)
+                print("Genesis block generated, exiting.")
+            else:
+                print("Genesis block already exists, exiting.")
+            break
 
 
 def print_coin_record(
