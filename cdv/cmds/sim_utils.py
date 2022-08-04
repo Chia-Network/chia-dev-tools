@@ -95,6 +95,7 @@ def create_chia_directory(
         config["full_node"]["target_uncompact_proofs"] = 30
         config["full_node"]["peer_connect_interval"] = 50
         config["full_node"]["sanitize_weight_proof_only"] = False
+        config["logging"]["log_level"] = "INFO"
         config["network_overrides"]["constants"]["simulator0"] = config["network_overrides"]["constants"][
             "testnet0"
         ].copy()
