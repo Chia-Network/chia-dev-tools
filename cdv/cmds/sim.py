@@ -1,6 +1,6 @@
 import asyncio
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import click
 from chia.util.config import load_config
@@ -15,15 +15,6 @@ from cdv.cmds.sim_utils import (
     set_auto_farm,
     start_async,
 )
-
-"""
-These functions are for the new Chia Simulator. This is currently a work in progress.
-"""
-all_groups = {
-    "all": "chia_full_node_simulator chia_wallet".split(),
-    "wallet": "chia_wallet",
-    "simulator": "chia_full_node_simulator",
-}
 
 
 @click.group("sim", short_help="Configure and make requests to a Chia Simulator Full Node")
@@ -82,22 +73,28 @@ def create_simulator_config(
 
 @sim_cmd.command("start", short_help="Start service groups")
 @click.option("-r", "--restart", is_flag=True, help="Restart running services")
-@click.argument("group", type=click.Choice(list(all_groups.keys())), nargs=-1, required=True)
+@click.option("-w", "--wallet", is_flag=True, help="Start wallet")
 @click.pass_context
-def start_cmd(ctx: click.Context, restart: bool, group: str) -> None:
+def start_cmd(ctx: click.Context, restart: bool, wallet: bool) -> None:
+    group: Any = ("simulator",)
+    if wallet:
+        group += ("wallet",)
     asyncio.run(start_async(ctx.obj["root_path"], group, restart))
 
 
 @sim_cmd.command("stop", short_help="Stop running services")
 @click.option("-d", "--daemon", is_flag=True, help="Stop daemon")
-@click.argument("group", type=click.Choice(list(all_groups.keys())), nargs=-1, required=True)
+@click.option("-w", "--wallet", is_flag=True, help="Stop wallet")
 @click.pass_context
-def stop_cmd(ctx: click.Context, daemon: bool, group: str) -> None:
+def stop_cmd(ctx: click.Context, daemon: bool, wallet: bool) -> None:
     import sys
 
     from chia.cmds.stop import async_stop
 
     config = load_config(ctx.obj["root_path"], "config.yaml")
+    group: Any = ("simulator",)
+    if wallet:
+        group += ("wallet",)
     sys.exit(asyncio.run(async_stop(ctx.obj["root_path"], config, group, daemon)))
 
 
