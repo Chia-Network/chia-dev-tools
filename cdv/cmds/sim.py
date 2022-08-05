@@ -58,17 +58,34 @@ def sim_cmd(ctx: click.Context, rpc_port: Optional[int], root_path: str, simulat
 @click.option(
     "-p", "--plot-directory", type=str, required=False, help="Use a different directory then 'simulator/plots'."
 )
+@click.option("-m", "--mnemonic", type=str, required=False, help="Add to keychain and use a specific mnemonic.")
 @click.option("-a", "--auto-farm", type=bool, default=None, help="Enable or Disable auto farming")
+@click.option(
+    "-d",
+    "--docker_mode",
+    is_flag=True,
+    hidden=True,
+    help="Run non-interactively in Docker Mode, & generate a new key if keychain is empty.",
+)
 @click.pass_context
 def create_simulator_config(
     ctx: click.Context,
     fingerprint: Optional[int],
     reward_address: Optional[str],
     plot_directory: Optional[str],
+    mnemonic: Optional[str],
     auto_farm: Optional[bool],
+    docker_mode: bool,
 ) -> None:
     print(f"Using this Directory: {ctx.obj['root_path']}\n")
-    asyncio.run(async_config_wizard(ctx.obj["root_path"], fingerprint, reward_address, plot_directory, auto_farm))
+    if fingerprint and mnemonic:
+        print("You can't use both a fingerprint and a mnemonic. Please choose one.")
+        return None
+    asyncio.run(
+        async_config_wizard(
+            ctx.obj["root_path"], fingerprint, reward_address, plot_directory, mnemonic, auto_farm, docker_mode
+        )
+    )
 
 
 @sim_cmd.command("start", short_help="Start service groups")

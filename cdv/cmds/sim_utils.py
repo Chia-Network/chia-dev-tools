@@ -177,23 +177,29 @@ def display_key_info(fingerprint: int) -> None:
     print(f"{mnemonic} \n")
 
 
-def generate_and_return_fingerprint() -> int:
+def generate_and_return_fingerprint(mnemonic: Optional[str] = None) -> int:
     """
     Generate and add new PrivateKey and return its fingerprint.
     """
     from chia.util.keychain import generate_mnemonic
 
-    print("Generating private key")
-    sk = Keychain().add_private_key(generate_mnemonic(), "")
+    if mnemonic is None:
+        print("Generating private key")
+        mnemonic = generate_mnemonic()
+    sk = Keychain().add_private_key(mnemonic, "")
     fingerprint: int = sk.get_g1().get_fingerprint()
     print(f"Added private key with public key fingerprint {fingerprint}")
     return fingerprint
 
 
-def select_fingerprint(fingerprint: Optional[int] = None) -> Optional[int]:
+def select_fingerprint(
+    fingerprint: Optional[int] = None, mnemonic_string: Optional[str] = None, auto_generate_key: bool = False
+) -> Optional[int]:
     """
     Either select an existing fingerprint or create one and return it.
     """
+    if mnemonic_string is not None:
+        fingerprint = generate_and_return_fingerprint(mnemonic_string)
     fingerprints = [pk.get_fingerprint() for pk in Keychain().get_all_public_keys()]
     if fingerprint is not None and fingerprint in fingerprints:
         return fingerprint
@@ -201,14 +207,14 @@ def select_fingerprint(fingerprint: Optional[int] = None) -> Optional[int]:
         print(f"Invalid Fingerprint. Fingerprint {fingerprint} was not found.")
         return None
     if len(fingerprints) == 0:
-        if (
-            input("No keys in keychain. Press 'q' to quit, or press any other key to generate a new key.").lower()
-            == "q"
-        ):
-            return None
-        else:
-            # generate private key and add to wallet
-            fingerprint = generate_and_return_fingerprint()
+        if not auto_generate_key:
+            if (
+                input("No keys in keychain. Press 'q' to quit, or press any other key to generate a new key.").lower()
+                == "q"
+            ):
+                return None
+        # generate private key and add to wallet
+        fingerprint = generate_and_return_fingerprint()
     else:
         print("Fingerprints:")
         print(
@@ -277,10 +283,12 @@ async def async_config_wizard(
     fingerprint: Optional[int],
     farming_address: Optional[str],
     plot_directory: Optional[str],
+    mnemonic_string: Optional[str],
     auto_farm: Optional[bool],
+    docker_mode: bool,
 ) -> None:
     # either return passed through fingerprint or get one
-    fingerprint = select_fingerprint(fingerprint)
+    fingerprint = select_fingerprint(fingerprint, mnemonic_string, docker_mode)
     if fingerprint is None:
         # user cancelled wizard
         return
