@@ -6,7 +6,7 @@ with open("README.md", "rt") as fh:
     long_description = fh.read()
 
 dependencies = [
-    "chia-blockchain==1.5.0",
+    "chia-blockchain==1.5.1",
     "packaging",
     "pytest",
     "pytest-asyncio",
@@ -30,7 +30,7 @@ dev_dependencies = [
 
 setup(
     name="chia_dev_tools",
-    version="1.0.8",
+    version="1.1.0",
     packages=find_packages(exclude=("tests",)),
     author="Quexington",
     entry_points={
@@ -49,8 +49,8 @@ setup(
     long_description_content_type="text/markdown",
     classifiers=[
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Security :: Cryptography",
     ],
