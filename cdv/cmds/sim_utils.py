@@ -63,6 +63,9 @@ async def execute_with_simulator(
 
 
 async def start_async(root_path: Path, group: Any, restart: bool) -> None:
+    """
+    Simulator wrapper of the chia async_start function
+    """
     import sys
 
     from chia.cmds.start_funcs import async_start
@@ -94,11 +97,15 @@ def create_chia_directory(
     auto_farm: Optional[bool],
     docker_mode: bool,
 ) -> Dict[str, Any]:
+    """
+    This function creates a new chia directory and returns a heavily modified config,
+    suitable for use in the simulator.
+    """
     from chia.cmds.init_funcs import chia_init
 
     if not chia_root.is_dir() or not Path(chia_root / "config" / "config.yaml").exists():
         # create chia directories & load config
-        chia_init(chia_root, testnet=True)
+        chia_init(chia_root, testnet=True, fix_ssl_permissions=True)
         config = load_config(chia_root, "config.yaml")
         # apply standard block-tools config.
         config["full_node"]["send_uncompact_interval"] = 0
@@ -138,6 +145,7 @@ def create_chia_directory(
             config["full_node"]["wallet_peer"]["port"] = config["wallet"]["port"]
         else:
             config["self_hostname"] = "0.0.0.0"  # Bind to all interfaces.
+            config["logging"]["log_stdout"] = True  # Log to console.
     else:
         config = load_config(chia_root, "config.yaml")
     # simulator overrides
@@ -159,6 +167,9 @@ def create_chia_directory(
 
 
 def display_key_info(fingerprint: int) -> None:
+    """
+    Display key info for a given fingerprint, similar to the output of `chia keys show`.
+    """
     prefix = "txch"
     print(f"Using fingerprint {fingerprint}")
     private_key_and_seed = Keychain().get_private_key_by_fingerprint(fingerprint)
@@ -202,7 +213,7 @@ def select_fingerprint(
     """
     Either select an existing fingerprint or create one and return it.
     """
-    if mnemonic_string is not None:
+    if mnemonic_string:
         fingerprint = generate_and_return_fingerprint(mnemonic_string)
     fingerprints = [pk.get_fingerprint() for pk in Keychain().get_all_public_keys()]
     if fingerprint is not None and fingerprint in fingerprints:
@@ -278,6 +289,7 @@ async def generate_plots(config: Dict[str, Any], root_path: Path, fingerprint: i
 
 
 async def get_current_height(node_client: SimulatorFullNodeRpcClient, _config: Dict[str, Any]) -> int:
+    # this is a helper function to get the current height of the simulator, using execute_with_simulator
     num_blocks = len(await node_client.get_all_blocks())
     return num_blocks
 
@@ -357,13 +369,13 @@ async def print_coin_records(
 
     coin_records: List[CoinRecord] = await node_client.get_all_coins(include_spent)
     coin_records = [coin_record for coin_record in coin_records if not coin_record.coinbase or include_reward_coins]
+    address_prefix = "txch"  # we are never on mainnet
+    name = address_prefix.upper()
     paginate = False  # I might change this later.
     if len(coin_records) != 0:
         print("All Coins: ")
         if paginate is True:
             paginate = sys.stdout.isatty()
-        address_prefix = config["network_overrides"]["config"][config["selected_network"]]["address_prefix"]
-        name = config["network_overrides"]["config"][config["selected_network"]]["address_prefix"].upper()
         mojo_per_unit = units["chia"]
         num_per_screen = 5 if paginate else len(coin_records)
         # ripped from cmds/wallet_funcs.
@@ -387,17 +399,17 @@ async def print_coin_records(
                         break
 
 
-async def print_wallets(config: Dict[str, Any], node_client: SimulatorFullNodeRpcClient) -> None:
+async def print_wallets(_config: Dict[str, Any], node_client: SimulatorFullNodeRpcClient) -> None:
     from chia.cmds.units import units
 
     ph_and_amount = await node_client.get_all_puzzle_hashes()
-    address_prefix = config["network_overrides"]["config"][config["selected_network"]]["address_prefix"]
-    name = config["network_overrides"]["config"][config["selected_network"]]["address_prefix"].upper()
+    address_prefix = "txch"  # we are never on mainnet
+    name = address_prefix.upper()
     mojo_per_unit = units["chia"]
     for puzzle_hash, (amount, num_tx) in ph_and_amount.items():
         address = encode_puzzle_hash(puzzle_hash, address_prefix)
         chia_amount = Decimal(int(amount)) / mojo_per_unit
-        print(f"Address: {address} Has a balance of: {chia_amount} {name}, with a total of: {num_tx}, transactions.\n")
+        print(f"Address: {address} has a balance of: {chia_amount} {name}, with a total of: {num_tx} transactions.\n")
 
 
 async def print_status(
@@ -409,6 +421,10 @@ async def print_status(
     include_reward_coins: bool,
     show_addresses: bool,
 ) -> None:
+    """
+    This command allows users to easily get the status of the simulator
+    and information about the state of and the coins in the simulated blockchain.
+    """
     from chia.cmds.show import print_blockchain_state  # TODO: JACK FIX THIS
     from chia.cmds.units import units
 
@@ -449,6 +465,9 @@ async def revert_block_height(
     reset_chain_to_genesis: bool,
     use_revert_blocks: bool,
 ) -> None:
+    """
+    This function allows users to easily revert the chain to a previous state or perform a reorg.
+    """
     if use_revert_blocks:
         if num_new_blocks != 1:
             print(f"Ignoring num_new_blocks: {num_new_blocks}, because we are not performing a reorg.")
@@ -473,6 +492,9 @@ async def farm_blocks(
     transaction_blocks: bool,
     target_address: str,
 ) -> None:
+    """
+    This function is used to generate new blocks.
+    """
     if target_address == "":
         target_address = config["simulator"]["farming_address"]
     if target_address is None:
@@ -490,6 +512,9 @@ async def farm_blocks(
 
 
 async def set_auto_farm(node_client: SimulatorFullNodeRpcClient, _config: Dict, set_autofarm: bool) -> None:
+    """
+    This function can be used to enable or disable Auto Farming.
+    """
     current = await node_client.get_auto_farming()
     if current == set_autofarm:
         print(f"Auto farming is already {'on' if set_autofarm else 'off'}")
