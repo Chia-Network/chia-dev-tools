@@ -1,13 +1,26 @@
 #!/usr/bin/env bash
 
 # shellcheck disable=SC2154,SC2086
-if [[ ${start_wallet} == "true" ]]; then
-  start_args="-w"
-else
-  start_args=""
+# generate long string of args for simulator
+create_args="--docker_mode"
+if [[ ${mnemonic} != "" ]]; then
+  create_args+=" --mnemonic=${mnemonic}"
 fi
-cdv sim create -d -m ${mnemonic} -a ${auto_farm} -r ${reward_address} -f ${fingerprint}
-cdv sim start ${start_args}
+if [[ ${auto_farm} != "" ]]; then
+  create_args+=" --auto-farm=${auto_farm}"
+fi
+if [[ ${reward_address} != "" ]]; then
+  create_args+=" --reward_address=${reward_address}"
+fi
+if [[ ${fingerprint} != "" ]]; then
+  create_args+=" --fingerprint=${fingerprint}"
+fi
+# create and start simulator
+cdv sim create ${create_args}
+# start wallet if enabled
+if [[ ${start_wallet} == "true" ]]; then
+  cdv sim start -w
+fi
 
 trap "echo Shutting down ...; cdv sim stop -wd; exit 0" SIGINT SIGTERM
 

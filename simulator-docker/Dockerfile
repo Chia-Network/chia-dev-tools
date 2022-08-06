@@ -57,7 +57,10 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
 
 COPY --from=chia_build /chia-dev-tools /chia-dev-tools
 
+# these allow one click cli access to the simulator
 ENV PATH=/chia-dev-tools/venv/bin:$PATH
+ENV CHIA_ROOT=$SIMULATOR_ROOT_PATH/$simulator_name
+
 WORKDIR /chia-dev-tools
 
 COPY docker-start.sh /usr/local/bin/
