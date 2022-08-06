@@ -92,47 +92,52 @@ def create_chia_directory(
     farming_address: Optional[str],
     plot_directory: Optional[str],
     auto_farm: Optional[bool],
+    docker_mode: bool,
 ) -> Dict[str, Any]:
     from chia.cmds.init_funcs import chia_init
 
     if not chia_root.is_dir() or not Path(chia_root / "config" / "config.yaml").exists():
-        # create chia directories
+        # create chia directories & load config
         chia_init(chia_root, testnet=True)
-        # modify config file to put it on its own testnet.
         config = load_config(chia_root, "config.yaml")
+        # apply standard block-tools config.
         config["full_node"]["send_uncompact_interval"] = 0
         config["full_node"]["target_uncompact_proofs"] = 30
         config["full_node"]["peer_connect_interval"] = 50
         config["full_node"]["sanitize_weight_proof_only"] = False
-        config["logging"]["log_level"] = "INFO"
-        config["network_overrides"]["constants"]["simulator0"] = config["network_overrides"]["constants"][
-            "testnet0"
-        ].copy()
-        config["network_overrides"]["config"]["simulator0"] = config["network_overrides"]["config"]["testnet0"].copy()
-        # config["logging"]["log_stdout"] = True  # Not sure if we want this.
+        config["logging"]["log_level"] = "INFO"  # extra logs for easier development
         # make sure we don't try to connect to other nodes.
         config["full_node"]["introducer_peer"] = None
         config["wallet"]["introducer_peer"] = None
         config["full_node"]["dns_servers"] = []
         config["wallet"]["dns_servers"] = []
+        # create custom testnet (simulator0)
+        config["network_overrides"]["constants"]["simulator0"] = config["network_overrides"]["constants"][
+            "testnet0"
+        ].copy()
+        config["network_overrides"]["config"]["simulator0"] = config["network_overrides"]["config"]["testnet0"].copy()
         sim_genesis = "eb8c4d20b322be8d9fddbf9412016bdffe9a2901d7edb0e364e94266d0e095f7"
         config["network_overrides"]["constants"]["simulator0"]["GENESIS_CHALLENGE"] = sim_genesis
-        # set ports and networks, we don't want to cause a port conflict.
-        port_offset = randint(1, 20000)
+        # tell services to use simulator0
         config["selected_network"] = "simulator0"
-        config["daemon_port"] -= port_offset
-        config["network_overrides"]["config"]["simulator0"]["default_full_node_port"] = 38444 + port_offset
-        # wallet
         config["wallet"]["selected_network"] = "simulator0"
-        config["wallet"]["port"] += port_offset
-        config["wallet"]["rpc_port"] += port_offset
-        # full node
         config["full_node"]["selected_network"] = "simulator0"
-        config["full_node"]["port"] -= port_offset
-        config["full_node"]["rpc_port"] += port_offset
-        # connect wallet to full node
-        config["wallet"]["full_node_peer"]["port"] = config["full_node"]["port"]
-        config["full_node"]["wallet_peer"]["port"] = config["wallet"]["port"]
+        if not docker_mode:  # We want predictable ports for our docker image.
+            # set ports and networks, we don't want to cause a port conflict.
+            port_offset = randint(1, 20000)
+            config["daemon_port"] -= port_offset
+            config["network_overrides"]["config"]["simulator0"]["default_full_node_port"] = 38444 + port_offset
+            # wallet
+            config["wallet"]["port"] += port_offset
+            config["wallet"]["rpc_port"] += port_offset
+            # full node
+            config["full_node"]["port"] -= port_offset
+            config["full_node"]["rpc_port"] += port_offset
+            # connect wallet to full node
+            config["wallet"]["full_node_peer"]["port"] = config["full_node"]["port"]
+            config["full_node"]["wallet_peer"]["port"] = config["wallet"]["port"]
+        else:
+            config["self_hostname"] = "0.0.0.0"  # Bind to all interfaces.
     else:
         config = load_config(chia_root, "config.yaml")
     # simulator overrides
@@ -143,9 +148,8 @@ def create_chia_directory(
     if plot_directory is not None:
         config["simulator"]["plot_directory"] = plot_directory
     config["simulator"]["auto_farm"] = auto_farm if auto_farm is not None else True
-    # change genesis block to give the user the reward
     farming_ph = decode_puzzle_hash(farming_address)
-    # modify testnet0 consts to give the user the reward
+    # modify genesis block to give the user the reward
     simulator_consts = config["network_overrides"]["constants"]["simulator0"]
     simulator_consts["GENESIS_PRE_FARM_FARMER_PUZZLE_HASH"] = farming_ph.hex()
     simulator_consts["GENESIS_PRE_FARM_POOL_PUZZLE_HASH"] = farming_ph.hex()
@@ -294,7 +298,7 @@ async def async_config_wizard(
         return
     # create chia directory & get config.
     print("Creating chia directory & config...")
-    config = create_chia_directory(root_path, fingerprint, farming_address, plot_directory, auto_farm)
+    config = create_chia_directory(root_path, fingerprint, farming_address, plot_directory, auto_farm, docker_mode)
     # Pre-generate plots by running block_tools init functions.
     print("Please Wait, Generating plots...")
     print("This may take up to a minute if you are on a slow machine")
