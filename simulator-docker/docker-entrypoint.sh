@@ -8,6 +8,7 @@ fi
 
 cd /chia-dev-tools|| exit 1
 
+# shellcheck disable=SC1091
 . ./activate
 
 exec "$@"
