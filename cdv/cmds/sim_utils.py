@@ -215,12 +215,14 @@ def select_fingerprint(
     """
     if mnemonic_string:
         fingerprint = generate_and_return_fingerprint(mnemonic_string)
-    fingerprints = [pk.get_fingerprint() for pk in Keychain().get_all_public_keys()]
+    fingerprints: list[int] = [pk.get_fingerprint() for pk in Keychain().get_all_public_keys()]
     if fingerprint is not None and fingerprint in fingerprints:
         return fingerprint
     elif fingerprint is not None and fingerprint not in fingerprints:
         print(f"Invalid Fingerprint. Fingerprint {fingerprint} was not found.")
         return None
+    if auto_generate_key and len(fingerprints) == 1:
+        return fingerprints[0]
     if len(fingerprints) == 0:
         if not auto_generate_key:
             if (
