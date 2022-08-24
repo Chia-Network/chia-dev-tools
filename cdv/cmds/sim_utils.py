@@ -73,7 +73,7 @@ async def start_async(root_path: Path, group: Any, restart: bool) -> None:
     sys.argv[0] = sys.argv[0].replace("cdv", "chia")  # this is the best way I swear.
     if root_path.exists():
         config = load_config(root_path, "config.yaml")
-        await async_start(root_path, config, group, restart)
+        await async_start(root_path, config, group, restart, True)
     else:
         print(f"Simulator root path: {root_path} does not exist.")
         print("please run 'cdv sim create' to create and configure a new simulator.")
