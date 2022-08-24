@@ -66,6 +66,10 @@ class CoinWrapper:
         self.puzzle_hash = self.coin.puzzle_hash
         self.parent_coin_info = self.coin.parent_coin_info
 
+    def name(self) -> bytes32:
+        """Return the name / id of this coin"""
+        return self.coin.name()
+
     def puzzle(self) -> Program:
         """Return the program that unlocks this coin"""
         return self.source
@@ -81,9 +85,6 @@ class CoinWrapper:
             coin.amount,
             puzzle,
         )
-
-    def name(self) -> bytes32:
-        return self.coin.name()
 
     def create_standard_spend(self, priv: PrivateKey, conditions: List[List]):
         delegated_puzzle_solution = Program.to((1, conditions))
@@ -200,7 +201,7 @@ class Wallet:
         self.sk_ = master_sk_to_wallet_sk(self.generator_sk_, uint32(0))
         self.pk_ = self.sk_.get_g1()
 
-        self.usable_coins: Dict[bytes32, Coin] = {}
+        self.usable_coins: Dict[bytes32, Union[Coin, CoinWrapper]] = {}
         self.puzzle: Program = puzzle_for_pk(self.pk())
         self.puzzle_hash: bytes32 = self.puzzle.get_tree_hash()
 
@@ -228,7 +229,7 @@ class Wallet:
         return {"sk": binascii.hexlify(bytes(self.generator_sk_))}
 
     # Make this coin available to the user it goes with.
-    def add_coin(self, coin: Coin):
+    def add_coin(self, coin: Union[CoinWrapper, Coin]):
         self.usable_coins[coin.name()] = coin
 
     def pk_to_sk(self, pk: G1Element) -> PrivateKey:
@@ -236,16 +237,17 @@ class Wallet:
         return self.pk_to_sk_dict[str(pk)]
 
     def compute_combine_action(
-        self, amt: uint64, actions: List, usable_coins: Dict[bytes32, Coin]
+        self, amt: uint64, actions: List, usable_coins: Dict[bytes32, Union[Coin, CoinWrapper]]
     ) -> Optional[List[Coin]]:
         # No one coin is enough, try to find a best fit pair, otherwise combine the two
         # maximum coins.
         searcher = CoinPairSearch(amt)
-
         # Process coins for this round.
         for k, c in usable_coins.items():
-            searcher.process_coin_for_combine_search(c)
-
+            if isinstance(c, CoinWrapper):
+                searcher.process_coin_for_combine_search(c.coin)
+            else:
+                searcher.process_coin_for_combine_search(c)
         max_coins, total = searcher.get_result()
 
         if total >= amt:
@@ -454,7 +456,7 @@ class Wallet:
         )
         pushed: Dict[str, Union[str, List[Coin]]] = await self.parent.push_tx(spend_bundle)
         if "error" not in pushed:
-            return cw.custom_coin(found_coin, amt)
+            return cw.custom_coin(found_coin.coin, amt)
         else:
             return None
 
