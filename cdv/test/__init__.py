@@ -55,13 +55,16 @@ class SpendResult:
         return list(filter(lambda x: x.puzzle_hash == puzzle_hash, self.outputs))
 
 
-class CoinWrapper(Coin):
+class CoinWrapper:
     """A class that provides some useful methods on coins."""
 
     def __init__(self, parent_hash: bytes32, amount: int, source: Program):
         """Given parent, puzzle_hash and amount, give an object representing the coin"""
-        super().__init__(parent_hash, source.get_tree_hash(), uint64(amount))
+        self.coin = Coin(parent_hash, source.get_tree_hash(), uint64(amount))
         self.source = source
+        self.amount = self.coin.amount
+        self.puzzle_hash = self.coin.puzzle_hash
+        self.parent_coin_info = self.coin.parent_coin_info
 
     def puzzle(self) -> Program:
         """Return the program that unlocks this coin"""
@@ -71,13 +74,6 @@ class CoinWrapper(Coin):
         """Return a smart coin object wrapping this coin's program"""
         return SmartCoinWrapper(DEFAULT_CONSTANTS.GENESIS_CHALLENGE, self.source)
 
-    def as_coin(self) -> Coin:
-        return Coin(
-            self.parent_coin_info,
-            self.puzzle_hash,
-            self.amount,
-        )
-
     @classmethod
     def from_coin(cls, coin: Coin, puzzle: Program) -> "CoinWrapper":
         return cls(
@@ -86,12 +82,15 @@ class CoinWrapper(Coin):
             puzzle,
         )
 
+    def name(self) -> bytes32:
+        return self.coin.name()
+
     def create_standard_spend(self, priv: PrivateKey, conditions: List[List]):
         delegated_puzzle_solution = Program.to((1, conditions))
         solution = Program.to([[], delegated_puzzle_solution, []])
 
         coin_spend_object = CoinSpend(
-            self.as_coin(),
+            self.coin,
             self.puzzle(),
             solution,
         )
@@ -446,7 +445,7 @@ class Wallet:
         spend_bundle = SpendBundle(
             [
                 CoinSpend(
-                    found_coin.as_coin(),  # Coin to spend
+                    found_coin.coin,  # Coin to spend
                     self.puzzle,  # Puzzle used for found_coin
                     solution,  # The solution to the puzzle locking found_coin
                 )
@@ -525,7 +524,7 @@ class Wallet:
             solution = delegated_puzzle_solution
 
         solution_for_coin = CoinSpend(
-            coin.as_coin(),
+            coin.coin,
             coin.puzzle(),
             solution,
         )
@@ -630,7 +629,7 @@ class Network:
 
     def get_timestamp(self) -> datetime.timedelta:
         """Return the current simualtion time in seconds."""
-        return datetime.timedelta(seconds=self.sim.timestamp)
+        return datetime.timedelta(seconds=float(self.sim.timestamp))
 
     # 'peak' is valid
     async def get_blockchain_state(self) -> Dict:

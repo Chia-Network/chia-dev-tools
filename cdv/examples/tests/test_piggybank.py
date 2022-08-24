@@ -42,7 +42,7 @@ class TestStandardTransaction:
         piggybank_spend: SpendBundle = await alice.spend_coin(
             piggybank_coin,
             pushtx=False,
-            args=solution_for_piggybank(piggybank_coin.as_coin(), CONTRIBUTION_AMOUNT),
+            args=solution_for_piggybank(piggybank_coin.coin, CONTRIBUTION_AMOUNT),
         )
         # This is the spend of a standard coin.  We simply spend to ourselves but minus the CONTRIBUTION_AMOUNT.
         contribution_spend: SpendBundle = await alice.spend_coin(
@@ -55,7 +55,7 @@ class TestStandardTransaction:
                     contribution_coin.puzzle_hash,
                     (contribution_coin.amount - CONTRIBUTION_AMOUNT),
                 ],
-                piggybank_announcement_assertion(piggybank_coin.as_coin(), CONTRIBUTION_AMOUNT),
+                piggybank_announcement_assertion(piggybank_coin.coin, CONTRIBUTION_AMOUNT),
             ],
         )
 
