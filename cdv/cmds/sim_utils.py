@@ -147,7 +147,8 @@ def create_chia_directory(
     # simulator overrides
     config["simulator"]["key_fingerprint"] = fingerprint
     if farming_address is None:
-        farming_address = encode_puzzle_hash(get_ph_from_fingerprint(fingerprint), "txch")
+        prefix = config["network_overrides"]["config"]["simulator0"]["address_prefix"]
+        farming_address = encode_puzzle_hash(get_ph_from_fingerprint(fingerprint), prefix)
     config["simulator"]["farming_address"] = farming_address
     if plot_directory is not None:
         config["simulator"]["plot_directory"] = plot_directory
@@ -162,11 +163,10 @@ def create_chia_directory(
     return config
 
 
-def display_key_info(fingerprint: int) -> None:
+def display_key_info(fingerprint: int, prefix: str) -> None:
     """
     Display key info for a given fingerprint, similar to the output of `chia keys show`.
     """
-    prefix = "txch"
     print(f"Using fingerprint {fingerprint}")
     private_key_and_seed = Keychain().get_private_key_by_fingerprint(fingerprint)
     if private_key_and_seed is None:
@@ -413,7 +413,7 @@ async def print_status(
     This command allows users to easily get the status of the simulator
     and information about the state of and the coins in the simulated blockchain.
     """
-    from chia.cmds.show import print_blockchain_state  # TODO: JACK FIX THIS
+    from chia.cmds.show import print_blockchain_state  # TODO: Change for 1.6
     from chia.cmds.units import units
 
     # Display keychain info
@@ -421,7 +421,9 @@ async def print_status(
         if fingerprint is None:
             fingerprint = config["simulator"]["key_fingerprint"]
         if fingerprint is not None:
-            display_key_info(fingerprint)
+            display_key_info(
+                fingerprint, config["network_overrides"]["config"][config["selected_network"]]["address_prefix"]
+            )
         else:
             print(
                 "No fingerprint in config, either rerun 'cdv sim create' "
@@ -433,8 +435,9 @@ async def print_status(
     # farming information
     target_ph: bytes32 = await node_client.get_farming_ph()
     farming_coin_records = await node_client.get_coin_records_by_puzzle_hash(target_ph, False)
+    prefix = config["network_overrides"]["config"][config["selected_network"]]["address_prefix"]
     print(
-        f"Current Farming address: {encode_puzzle_hash(target_ph, 'txch')}, "
+        f"Current Farming address: {encode_puzzle_hash(target_ph, prefix)}, "
         f"with a balance of: "
         f"{sum(coin_records.coin.amount for coin_records in farming_coin_records) / units['chia']} TXCH."
     )
