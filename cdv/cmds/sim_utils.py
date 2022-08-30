@@ -1,5 +1,6 @@
 import asyncio
 import os
+import traceback
 from pathlib import Path
 from random import randint
 from typing import Any, Callable, Dict, List, Optional
@@ -12,7 +13,7 @@ from chia.types.blockchain_format.sized_bytes import bytes32
 from chia.types.coin_record import CoinRecord
 from chia.util.bech32m import decode_puzzle_hash, encode_puzzle_hash
 from chia.util.config import load_config, save_config
-from chia.util.ints import uint32
+from chia.util.ints import uint16, uint32
 from chia.util.keychain import Keychain, bytes_to_mnemonic
 from chia.wallet.derive_keys import (
     master_sk_to_farmer_sk,
@@ -28,10 +29,6 @@ SIMULATOR_ROOT_PATH = Path(os.path.expanduser(os.getenv("CHIA_SIMULATOR_ROOT", "
 async def execute_with_simulator(
     rpc_port: Optional[int], root_path: Path, function: Callable, catch_errors: bool = True, *args
 ) -> Any:
-    import traceback
-
-    from chia.util.config import load_config
-    from chia.util.ints import uint16
 
     result = None
     config = load_config(root_path, "config.yaml")
