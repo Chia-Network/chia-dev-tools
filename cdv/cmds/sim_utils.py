@@ -1,6 +1,5 @@
 import asyncio
 import os
-from decimal import Decimal
 from pathlib import Path
 from random import randint
 from typing import Any, Callable, Dict, List, Optional
@@ -343,18 +342,16 @@ async def async_config_wizard(
 def print_coin_record(
     name: str,
     address_prefix: str,
-    mojo_per_unit: int,
     coin_record: CoinRecord,
 ) -> None:
     from datetime import datetime
 
-    chia_amount = Decimal(int(coin_record.coin.amount)) / mojo_per_unit
     coin_address = encode_puzzle_hash(coin_record.coin.puzzle_hash, address_prefix)
     print(f"Coin 0x{coin_record.name.hex()}")
     print(f"Wallet Address: {coin_address}")
     print(f"Confirmed at block: {coin_record.confirmed_block_index}")
     print(f"Spent: {f'at Block {coin_record.spent_block_index}' if coin_record.spent else 'No'}")
-    print(f"Coin Amount: {chia_amount} {name}")
+    print(f"Coin Amount: {coin_record.coin.amount} {name}")
     print(f"Parent Coin ID: 0x{coin_record.coin.parent_coin_info.hex()}")
     print(f"Created at: {datetime.fromtimestamp(float(coin_record.timestamp)).strftime('%Y-%m-%d %H:%M:%S')}\n")
 
@@ -367,18 +364,15 @@ async def print_coin_records(
 ) -> None:
     import sys
 
-    from chia.cmds.units import units
-
     coin_records: List[CoinRecord] = await node_client.get_all_coins(include_spent)
     coin_records = [coin_record for coin_record in coin_records if not coin_record.coinbase or include_reward_coins]
     address_prefix = "txch"  # we are never on mainnet
-    name = address_prefix.upper()
+    name = "mojo"
     paginate = False  # I might change this later.
     if len(coin_records) != 0:
         print("All Coins: ")
         if paginate is True:
             paginate = sys.stdout.isatty()
-        mojo_per_unit = units["chia"]
         num_per_screen = 5 if paginate else len(coin_records)
         # ripped from cmds/wallet_funcs.
         for i in range(0, len(coin_records), num_per_screen):
@@ -389,7 +383,6 @@ async def print_coin_records(
                     coin_record=coin_records[i + j],
                     name=name,
                     address_prefix=address_prefix,
-                    mojo_per_unit=mojo_per_unit,
                 )
             if i + num_per_screen <= len(coin_records) and paginate:
                 print("Press q to quit, or c to continue")
@@ -402,16 +395,12 @@ async def print_coin_records(
 
 
 async def print_wallets(_config: Dict[str, Any], node_client: SimulatorFullNodeRpcClient) -> None:
-    from chia.cmds.units import units
-
     ph_and_amount = await node_client.get_all_puzzle_hashes()
     address_prefix = "txch"  # we are never on mainnet
-    name = address_prefix.upper()
-    mojo_per_unit = units["chia"]
+    name = "mojo"
     for puzzle_hash, (amount, num_tx) in ph_and_amount.items():
         address = encode_puzzle_hash(puzzle_hash, address_prefix)
-        chia_amount = Decimal(int(amount)) / mojo_per_unit
-        print(f"Address: {address} has a balance of: {chia_amount} {name}, with a total of: {num_tx} transactions.\n")
+        print(f"Address: {address} has a balance of: {amount} {name}, with a total of: {num_tx} transactions.\n")
 
 
 async def print_status(
