@@ -8,3 +8,4 @@ __pycache__/
 main.sym
 .coverage
 .idea
+.DS_Store
