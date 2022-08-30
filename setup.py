@@ -30,7 +30,7 @@ dev_dependencies = [
 
 setup(
     name="chia_dev_tools",
-    version="1.1.0",
+    version="1.1.1",
     packages=find_packages(exclude=("tests",)),
     author="Quexington",
     entry_points={
