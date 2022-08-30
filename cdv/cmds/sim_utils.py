@@ -366,7 +366,7 @@ async def print_coin_records(
 
     coin_records: List[CoinRecord] = await node_client.get_all_coins(include_spent)
     coin_records = [coin_record for coin_record in coin_records if not coin_record.coinbase or include_reward_coins]
-    address_prefix = "txch"  # we are never on mainnet
+    address_prefix = config["network_overrides"]["config"][config["selected_network"]]["address_prefix"]
     name = "mojo"
     paginate = False  # I might change this later.
     if len(coin_records) != 0:
@@ -394,9 +394,9 @@ async def print_coin_records(
                         break
 
 
-async def print_wallets(_config: Dict[str, Any], node_client: SimulatorFullNodeRpcClient) -> None:
+async def print_wallets(config: Dict[str, Any], node_client: SimulatorFullNodeRpcClient) -> None:
     ph_and_amount = await node_client.get_all_puzzle_hashes()
-    address_prefix = "txch"  # we are never on mainnet
+    address_prefix = config["network_overrides"]["config"][config["selected_network"]]["address_prefix"]
     name = "mojo"
     for puzzle_hash, (amount, num_tx) in ph_and_amount.items():
         address = encode_puzzle_hash(puzzle_hash, address_prefix)
