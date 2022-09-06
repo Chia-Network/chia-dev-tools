@@ -214,6 +214,7 @@ def autofarm_cmd(ctx: click.Context, set_autofarm: str) -> None:
             ctx.obj["rpc_port"],
             ctx.obj["root_path"],
             set_auto_farm,
+            True,
             autofarm,
         )
     )
