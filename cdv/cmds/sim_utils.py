@@ -154,6 +154,8 @@ def create_chia_directory(
     config["simulator"]["farming_address"] = farming_address
     if plot_directory is not None:
         config["simulator"]["plot_directory"] = plot_directory
+    # Temporary change to fix win / linux differences.
+    config["simulator"]["plot_directory"] = str(Path(config["simulator"]["plot_directory"]))
     config["simulator"]["auto_farm"] = auto_farm if auto_farm is not None else True
     farming_ph = decode_puzzle_hash(farming_address)
     # modify genesis block to give the user the reward
