@@ -139,6 +139,8 @@ def create_chia_directory(
             # connect wallet to full node
             config["wallet"]["full_node_peer"]["port"] = config["full_node"]["port"]
             config["full_node"]["wallet_peer"]["port"] = config["wallet"]["port"]
+            # ui
+            config["ui"]["daemon_port"] = config["daemon_port"]
         else:
             config["self_hostname"] = "0.0.0.0"  # Bind to all interfaces.
             config["logging"]["log_stdout"] = True  # Log to console.
