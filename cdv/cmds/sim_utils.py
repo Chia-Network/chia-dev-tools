@@ -156,7 +156,8 @@ def create_chia_directory(
         config["simulator"]["plot_directory"] = plot_directory
     # Temporary change to fix win / linux differences.
     config["simulator"]["plot_directory"] = str(Path(config["simulator"]["plot_directory"]))
-    if "//" in config["simulator"]["plot_directory"] and os.name != "nt":  # if we're on linux, we need to fix this.
+    if "//" in config["simulator"]["plot_directory"] and os.name != "nt":
+        # if we're on linux, we need to convert to a linux path.
         config["simulator"]["plot_directory"] = str(PureWindowsPath(config["simulator"]["plot_directory"]).as_posix())
     config["simulator"]["auto_farm"] = auto_farm if auto_farm is not None else True
     farming_ph = decode_puzzle_hash(farming_address)
