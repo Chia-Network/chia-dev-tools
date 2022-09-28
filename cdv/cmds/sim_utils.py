@@ -1,7 +1,7 @@
 import asyncio
 import os
 import traceback
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from random import randint
 from typing import Any, Callable, Dict, List, Optional
 
@@ -156,6 +156,8 @@ def create_chia_directory(
         config["simulator"]["plot_directory"] = plot_directory
     # Temporary change to fix win / linux differences.
     config["simulator"]["plot_directory"] = str(Path(config["simulator"]["plot_directory"]))
+    if "//" in config["simulator"]["plot_directory"] and os.name != "nt":  # if we're on linux, we need to fix this.
+        config["simulator"]["plot_directory"] = str(PureWindowsPath(config["simulator"]["plot_directory"]).as_posix())
     config["simulator"]["auto_farm"] = auto_farm if auto_farm is not None else True
     farming_ph = decode_puzzle_hash(farming_address)
     # modify genesis block to give the user the reward
