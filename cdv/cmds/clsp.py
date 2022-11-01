@@ -175,7 +175,7 @@ def cat_puzzle_hash(inner_puzzlehash: str, tail_hash: str):
     # using `puzzle-hash-of-curried-function` in curry_and_treehash.clib.
     outer_puzzlehash = CAT_MOD.curry(
         CAT_MOD.get_tree_hash(), bytes32.from_hexstr(tail_hash), inner_puzzlehash_bytes32
-    ).get_tree_hash(inner_puzzlehash_bytes32)
+    ).get_tree_hash_precalc(inner_puzzlehash_bytes32)
 
     if prefix:
         print(encode_puzzle_hash(outer_puzzlehash, prefix))

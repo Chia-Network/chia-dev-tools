@@ -100,15 +100,23 @@ def streamable_load(cls: Any, inputs: Iterable[Any]) -> List[Any]:
     input_objs: List[Any] = []
     for input in inputs:
         if "{" in input:  # If it's a JSON string
-            input_objs.append(cls.from_json_dict(json_and_key_strip(input)))
+            json_dict = json_and_key_strip(input)
+            parsed_obj = cls.from_json_dict(json_dict)
         elif "." in input:  # If it's a filename
             file_string = open(input, "r").read()
             if "{" in file_string:  # If it's a JSON file
-                input_objs.append(cls.from_json_dict(json_and_key_strip(file_string)))
+                json_dict = json_and_key_strip(file_string)
+                parsed_obj = cls.from_json_dict(json_dict)
             else:  # If it's bytes in a file
-                input_objs.append(cls.from_bytes(hexstr_to_bytes(file_string)))
+                original_bytes = hexstr_to_bytes(file_string)
+                parsed_obj = cls.from_bytes(original_bytes)
+                assert bytes(parsed_obj) == original_bytes  # assert the serialization incase it was only a partial read
         else:  # If it's a byte string
-            input_objs.append(cls.from_bytes(hexstr_to_bytes(input)))
+            original_bytes = hexstr_to_bytes(input)
+            parsed_obj = cls.from_bytes(original_bytes)
+            assert bytes(parsed_obj) == original_bytes
+
+        input_objs.append(parsed_obj)
 
     return input_objs
 
@@ -125,19 +133,23 @@ def inspect_any_cmd(ctx: click.Context, objects: Tuple[str]):
         for cls in [Coin, CoinSpend, SpendBundle, CoinRecord]:
             try:
                 in_obj = streamable_load(cls, [obj])[0]
+                break
             except Exception:
                 pass
-        # Try it as some key stuff
-        for cls in [G1Element, G2Element, PrivateKey]:
-            try:
-                in_obj = cls.from_bytes(hexstr_to_bytes(obj))  # type: ignore
-            except Exception:
-                pass
-        # Try it as a Program
-        try:
-            in_obj = parse_program(obj)
-        except Exception:
-            pass
+        else:
+            # Try it as some key stuff
+            for cls in [G1Element, G2Element, PrivateKey]:
+                try:
+                    in_obj = cls.from_bytes(hexstr_to_bytes(obj))  # type: ignore
+                    break
+                except Exception:
+                    pass
+            else:
+                # Try it as a Program
+                try:
+                    in_obj = parse_program(obj)
+                except Exception:
+                    pass
 
         input_objects.append(in_obj)
 
@@ -568,13 +580,6 @@ def do_inspect_program_cmd(
 @click.option("-pk", "--public-key", help="A BLS public key")
 @click.option("-sk", "--secret-key", help="The secret key from which to derive the public key")
 @click.option("-m", "--mnemonic", help="A 24 word mnemonic from which to derive the secret key")
-@click.option(
-    "-pw",
-    "--passphrase",
-    default="",
-    show_default=True,
-    help="A passphrase to use when deriving a secret key from mnemonic",
-)
 @click.option("-r", "--random", is_flag=True, help="Generate a random set of keys")
 @click.option("-hd", "--hd-path", help="Enter the HD path in the form 'm/12381/8444/n/n'")
 @click.option(
@@ -632,11 +637,11 @@ def do_inspect_keys_cmd(ctx: click.Context, print_results: bool = True, **kwargs
                 sk = PrivateKey.from_bytes(hexstr_to_bytes(kwargs["secret_key"]))
                 pk = sk.get_g1()
             elif kwargs["mnemonic"]:
-                seed = mnemonic_to_seed(kwargs["mnemonic"], kwargs["passphrase"])
+                seed = mnemonic_to_seed(kwargs["mnemonic"])
                 sk = AugSchemeMPL.key_gen(seed)
                 pk = sk.get_g1()
             elif kwargs["random"]:
-                sk = AugSchemeMPL.key_gen(mnemonic_to_seed(bytes_to_mnemonic(token_bytes(32)), ""))
+                sk = AugSchemeMPL.key_gen(mnemonic_to_seed(bytes_to_mnemonic(token_bytes(32))))
                 pk = sk.get_g1()
 
             list_path: List[int] = []
