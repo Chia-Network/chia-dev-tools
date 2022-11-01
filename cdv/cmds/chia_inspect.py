@@ -197,8 +197,8 @@ def do_inspect_coin_cmd(
     elif not kwargs or not any([kwargs[key] for key in kwargs.keys()]):
         try:
             coin_objs = streamable_load(Coin, coins)
-        except Exception:
-            print("One or more of the specified objects was not a coin")
+        except Exception as e:
+            print(f"One or more of the specified objects was not a coin: {e}")
             sys.exit(1)
     else:
         print("Invalid arguments specified.")
@@ -281,8 +281,8 @@ def do_inspect_coin_spend_cmd(
     elif not kwargs or not any([kwargs[key] for key in kwargs.keys()]):
         try:
             coin_spend_objs = streamable_load(CoinSpend, spends)
-        except Exception:
-            print("One or more of the specified objects was not a coin spend")
+        except Exception as e:
+            print(f"One or more of the specified objects was not a coin spend: {e}")
             sys.exit(1)
     else:
         print("Invalid arguments specified.")
@@ -368,8 +368,9 @@ def do_inspect_spend_bundle_cmd(
     else:
         try:
             spend_bundle_objs = streamable_load(SpendBundle, bundles)
-        except Exception:
-            print("One or more of the specified objects was not a spend bundle")
+        except Exception as e:
+            print(f"One or more of the specified objects was not a spend bundle: {e}")
+            sys.exit(1)
 
     if print_results:
         inspect_callback(
@@ -517,8 +518,9 @@ def do_inspect_coin_record_cmd(
     elif not kwargs or not any([kwargs[key] for key in kwargs.keys()]):
         try:
             coin_record_objs = streamable_load(CoinRecord, records)
-        except Exception:
-            print("One or more of the specified objects was not a coin record")
+        except Exception as e:
+            print(f"One or more of the specified objects was not a coin record: {e}")
+            sys.exit(1)
     else:
         print("Invalid arguments specified.")
         sys.exit(1)
