@@ -268,7 +268,7 @@ def select_fingerprint(
     return fingerprint
 
 
-async def generate_plots(config: Dict[str, Any], root_path: Path, fingerprint: int) -> None:
+async def generate_plots(config: Dict[str, Any], root_path: Path, fingerprint: int, bitfield: bool) -> None:
     """
     Pre-Generate plots for the new simulator instance.
     """
@@ -289,7 +289,9 @@ async def generate_plots(config: Dict[str, Any], root_path: Path, fingerprint: i
     )
     await bt.setup_keys(fingerprint=fingerprint, reward_ph=farming_puzzle_hash)
     starting_time = time()
-    await bt.setup_plots(num_og_plots=PLOTS, num_pool_plots=0, num_non_keychain_plots=0, plot_size=PLOT_SIZE)
+    await bt.setup_plots(
+        num_og_plots=PLOTS, num_pool_plots=0, num_non_keychain_plots=0, plot_size=PLOT_SIZE, bitfield=bitfield
+    )
     print(f"{'New plots generated.' if time() - starting_time > 5 else 'Using Existing Plots'}\n")
 
 
@@ -307,6 +309,7 @@ async def async_config_wizard(
     mnemonic_string: Optional[str],
     auto_farm: Optional[bool],
     docker_mode: bool,
+    bitfield: bool,
 ) -> None:
     # either return passed through fingerprint or get one
     fingerprint = select_fingerprint(fingerprint, mnemonic_string, docker_mode)
@@ -320,7 +323,7 @@ async def async_config_wizard(
     print("Please Wait, Generating plots...")
     print("This may take up to a minute if you are on a slow machine")
 
-    await generate_plots(config, root_path, fingerprint)
+    await generate_plots(config, root_path, fingerprint, bitfield)
     # final messages
     farming_address = config["simulator"]["farming_address"]
     print(f"\nFarming & Prefarm reward address: {farming_address}\n")
