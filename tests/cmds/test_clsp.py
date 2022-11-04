@@ -37,7 +37,9 @@ class TestClspCommands:
             result: Result = runner.invoke(cli, ["clsp", "build", "."])
             assert result.exit_code == 0
             assert Path("./program.clvm.hex").exists()
-            assert open("program.clvm.hex", "r").read() == "01"
+            hex_output: str = open("program.clvm.hex", "r").read()
+            assert "01" in hex_output
+            assert len(hex_output) <= 3  # With or without newline
 
             # Use the retrieve command for the include file
             runner.invoke(cli, ["clsp", "retrieve", "condition_codes"])
