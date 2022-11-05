@@ -420,7 +420,7 @@ async def print_status(
     This command allows users to easily get the status of the simulator
     and information about the state of and the coins in the simulated blockchain.
     """
-    from chia.cmds.show import print_blockchain_state  # TODO: Change for 1.6
+    from chia.cmds.show_funcs import print_blockchain_state  # TODO: Change for 1.6
     from chia.cmds.units import units
 
     # Display keychain info

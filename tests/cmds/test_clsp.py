@@ -37,7 +37,9 @@ class TestClspCommands:
             result: Result = runner.invoke(cli, ["clsp", "build", "."])
             assert result.exit_code == 0
             assert Path("./program.clvm.hex").exists()
-            assert open("program.clvm.hex", "r").read() == "01\n"
+            hex_output: str = open("program.clvm.hex", "r").read()
+            assert "01" in hex_output
+            assert len(hex_output) <= 3  # With or without newline
 
             # Use the retrieve command for the include file
             runner.invoke(cli, ["clsp", "retrieve", "condition_codes"])
@@ -49,7 +51,9 @@ class TestClspCommands:
             result = runner.invoke(cli, ["clsp", "build", "./mod.clsp"])
             assert result.exit_code == 0
             assert Path("./mod.clsp.hex").exists()
-            assert open("mod.clsp.hex", "r").read() == "ff0133\n"
+            hex_output: str = open("mod.clsp.hex", "r").read()
+            assert "ff0133" in hex_output
+            assert len(hex_output) <= 7  # With or without newline
 
             # Test building Chialisp (specified include search)
             os.remove(Path("./mod.clsp.hex"))
@@ -58,7 +62,9 @@ class TestClspCommands:
             result = runner.invoke(cli, ["clsp", "build", ".", "--include", "./include_test"])
             assert result.exit_code == 0
             assert Path("./mod.clsp.hex").exists()
-            assert open("mod.clsp.hex", "r").read() == "ff0133\n"
+            hex_output: str = open("mod.clsp.hex", "r").read()
+            assert "ff0133" in hex_output
+            assert len(hex_output) <= 7  # With or without newline
 
     def test_curry(self):
         integer: int = 1

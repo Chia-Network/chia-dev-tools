@@ -350,15 +350,14 @@ class TestInspectCommands:
 
     def test_keys(self):
         mnemonic: str = "chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia"  # noqa
-        passphrase: str = "chia"
-        sk: str = "68cbc26a245903f3d20a405c0673a9f32b2382174abeeabadb7ba1478b162326"
-        pk: str = "b7531990662d3fbff22d073a08123ddeae70e0a118cecebf8f207b373da5a90aaefcfed2d9cab8fbe711d6b4f5c72e89"
+        sk: str = "6e66bc91c04127f1178cb725faf82b55214b5f215b10bd53bf2eb1ee9e76d2cc"
+        pk: str = "8777e5c4f5b21840eb69d9cc09433655b044a8e80048cd9583bab9a90f4774d2d57c1b19196ae132c9502db5902f3e5d"
         hd_modifier: str = "m/12381/8444/0/0"
         type_modifier: str = "farmer"  # Should be same as above HD Path
-        farmer_sk: str = "5729513405cb68999711618aa02e317335cecdea63d666886bbb39c0fc487dae"
-        synthetic_sk: str = "6124dbc2580cbdc2f3c716572950434ecdb42f952ec2e947bd393643c13e8ec2"
+        farmer_sk: str = "1d4a4c2f2059ac889fe066d1116a0fe5dc3d6aa016645306698968c78e8df916"
+        synthetic_sk: str = "6963ce75cd541a0b49cc6feb15185675beb513bd5808e744d475ec50cf75b2c0"
         ph_modifier: str = "69ae360134b1fae04326e5546f25dc794a19192a1f22a44a46d038e7f0d1ecbb"
-        modified_synthetic_sk: str = "66dff9a8d49d90029e5fb42378562d459e375965150bc72c3a7ea2c523ab49f5"
+        modified_synthetic_sk: str = "2dc18bb076849fce06d9c36e59821ff43e8b81068d33fcc5ada3568fb9dcdb7f"
 
         runner = CliRunner()
 
@@ -370,7 +369,7 @@ class TestInspectCommands:
         key_output: str = result.output
 
         # Build the key from mnemonic
-        result = runner.invoke(cli, ["inspect", "keys", "-m", mnemonic, "-pw", passphrase])
+        result = runner.invoke(cli, ["inspect", "keys", "-m", mnemonic])
         assert result.exit_code == 0
         assert result.output == key_output
 
