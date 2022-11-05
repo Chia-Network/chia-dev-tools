@@ -67,6 +67,7 @@ def sim_cmd(ctx: click.Context, rpc_port: Optional[int], root_path: str, simulat
     hidden=True,
     help="Run non-interactively in Docker Mode, & generate a new key if keychain is empty.",
 )
+@click.option("-b", "--no-bitfield", type=bool, is_flag=True, help="Do not use bitfield when generating plots")
 @click.pass_context
 def create_simulator_config(
     ctx: click.Context,
@@ -76,6 +77,7 @@ def create_simulator_config(
     mnemonic: Optional[str],
     auto_farm: Optional[bool],
     docker_mode: bool,
+    no_bitfield: bool,
 ) -> None:
     print(f"Using this Directory: {ctx.obj['root_path']}\n")
     if fingerprint and mnemonic:
@@ -83,7 +85,14 @@ def create_simulator_config(
         return None
     asyncio.run(
         async_config_wizard(
-            ctx.obj["root_path"], fingerprint, reward_address, plot_directory, mnemonic, auto_farm, docker_mode
+            ctx.obj["root_path"],
+            fingerprint,
+            reward_address,
+            plot_directory,
+            mnemonic,
+            auto_farm,
+            docker_mode,
+            not no_bitfield,
         )
     )
 
