@@ -1,6 +1,9 @@
+from shutil import rmtree
+
 from click.testing import CliRunner, Result
 
 from cdv.cmds.cli import cli
+from cdv.cmds.sim_utils import SIMULATOR_ROOT_PATH
 
 mnemonic = (
     "cup smoke miss park baby say island tomorrow segment lava bitter easily settle gift renew arrive kangaroo dilemma "
@@ -14,50 +17,48 @@ burn_address = "txch1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqm6ksh7qddh"
 def test_every_simulator_command() -> None:
     runner: CliRunner = CliRunner()
     address = std_farming_address
-    with runner.isolated_filesystem():
-        start_result: Result = runner.invoke(cli, ["sim", "--root-path", ".", "create", "-bm", mnemonic])
-        assert start_result.exit_code == 0
-        assert f"Farming & Prefarm reward address: {address}" in start_result.output
-        assert "chia_full_node_simulator: started" in start_result.output
-        assert "Genesis block generated, exiting." in start_result.output
-
-        try:
-            # run all tests
-            run_all_tests(runner, address)
-        except AssertionError:
-            stop_simulator(runner)
-            raise
-
+    start_result: Result = runner.invoke(cli, ["sim", "-n", "ci_test", "create", "-bm", mnemonic])
+    assert start_result.exit_code == 0
+    assert f"Farming & Prefarm reward address: {address}" in start_result.output
+    assert "chia_full_node_simulator: started" in start_result.output
+    assert "Genesis block generated, exiting." in start_result.output
+    try:
+        # run all tests
+        run_all_tests(runner, address)
+    except AssertionError:
         stop_simulator(runner)
+        raise
+
+    stop_simulator(runner)
 
 
 def test_custom_farming_address() -> None:
     runner: CliRunner = CliRunner()
     address = burn_address
-    with runner.isolated_filesystem():
-        start_result: Result = runner.invoke(
-            cli, ["sim", "--root-path", ".", "create", "-bm", mnemonic, "--reward_address", address]
-        )
-        assert start_result.exit_code == 0
-        assert f"Farming & Prefarm reward address: {address}" in start_result.output
-        assert "chia_full_node_simulator: started" in start_result.output
-        assert "Genesis block generated, exiting." in start_result.output
+    start_result: Result = runner.invoke(
+        cli, ["sim", "-n", "ci_test", "create", "-bm", mnemonic, "--reward_address", address]
+    )
+    assert start_result.exit_code == 0
+    assert f"Farming & Prefarm reward address: {address}" in start_result.output
+    assert "chia_full_node_simulator: started" in start_result.output
+    assert "Genesis block generated, exiting." in start_result.output
 
-        try:
-            # just run status test
-            _test_sim_status(runner, address)
-        except AssertionError:
-            stop_simulator(runner)
-            raise
-
+    try:
+        # just run status test
+        _test_sim_status(runner, address)
+    except AssertionError:
         stop_simulator(runner)
+        raise
+
+    stop_simulator(runner)
 
 
 def stop_simulator(runner: CliRunner) -> None:
     """Stop simulator."""
-    result: Result = runner.invoke(cli, ["sim", "--root-path", ".", "stop", "-d"])
+    result: Result = runner.invoke(cli, ["sim", "-n", "ci_test", "-n", "ci_test", "stop", "-d"])
     assert result.exit_code == 0
     assert "chia_full_node_simulator: Stopped\nDaemon stopped\n" == result.output
+    rmtree(SIMULATOR_ROOT_PATH / "ci_test")
 
 
 def run_all_tests(runner: CliRunner, address: str) -> None:
@@ -68,7 +69,7 @@ def run_all_tests(runner: CliRunner, address: str) -> None:
 
 def _test_sim_status(runner: CliRunner, address: str) -> None:
     # show everything
-    result: Result = runner.invoke(cli, ["sim", "--root-path", ".", "status", "-kcia"])
+    result: Result = runner.invoke(cli, ["sim", "-n", "ci_test", "status", "-kcia"])
     assert result.exit_code == 0
     # asserts are grouped by arg
     assert f"Fingerprint: {fingerprint}" and f"Mnemonic seed (24 secret words):\n{mnemonic}" in result.output  # -k
@@ -86,41 +87,41 @@ def _test_sim_status(runner: CliRunner, address: str) -> None:
 
 def _test_farm_and_revert_block(runner: CliRunner, address: str) -> None:
     # make 5 blocks
-    five_blocks_result: Result = runner.invoke(cli, ["sim", "--root-path", ".", "farm", "-b", "5", "-a", address])
+    five_blocks_result: Result = runner.invoke(cli, ["sim", "-n", "ci_test", "farm", "-b", "5", "-a", address])
     assert five_blocks_result.exit_code == 0
     assert "Farmed 5 Transaction blocks" in five_blocks_result.output
 
     # check that height increased
-    five_blocks_check: Result = runner.invoke(cli, ["sim", "--root-path", ".", "status"])
+    five_blocks_check: Result = runner.invoke(cli, ["sim", "-n", "ci_test", "status"])
     assert five_blocks_check.exit_code == 0
     assert "Height:          6" in five_blocks_check.output
 
     # do a reorg, 3 blocks back, 2 blocks forward, height now 8
-    reorg_result: Result = runner.invoke(cli, ["sim", "--root-path", ".", "revert", "-b", "3", "-n", "2"])
+    reorg_result: Result = runner.invoke(cli, ["sim", "-n", "ci_test", "revert", "-b", "3", "-n", "2"])
     assert reorg_result.exit_code == 0
     assert "Block: 3 and above " and "Block Height is now: 8" in reorg_result.output
 
     # check that height changed by 2
-    reorg_check: Result = runner.invoke(cli, ["sim", "--root-path", ".", "status"])
+    reorg_check: Result = runner.invoke(cli, ["sim", "-n", "ci_test", "status"])
     assert reorg_check.exit_code == 0
     assert "Height:          8" in reorg_check.output
 
     # do a forceful reorg 4 blocks back
-    forced_reorg_result: Result = runner.invoke(cli, ["sim", "--root-path", ".", "revert", "-b", "4", "-fd"])
+    forced_reorg_result: Result = runner.invoke(cli, ["sim", "-n", "ci_test", "revert", "-b", "4", "-fd"])
     assert forced_reorg_result.exit_code == 0
     assert "Block: 8 and above were successfully deleted" and "Block Height is now: 4" in forced_reorg_result.output
 
     # check that height changed by 4
-    forced_reorg_check: Result = runner.invoke(cli, ["sim", "--root-path", ".", "status"])
+    forced_reorg_check: Result = runner.invoke(cli, ["sim", "-n", "ci_test", "status"])
     assert forced_reorg_check.exit_code == 0
     assert "Height:          4" in forced_reorg_check.output
 
     # test chain reset to genesis
-    genesis_reset_result: Result = runner.invoke(cli, ["sim", "--root-path", ".", "revert", "-fd", "--reset"])
+    genesis_reset_result: Result = runner.invoke(cli, ["sim", "-n", "ci_test", "revert", "-fd", "--reset"])
     assert genesis_reset_result.exit_code == 0
     assert "Block: 2 and above were successfully deleted" and "Block Height is now: 1" in genesis_reset_result.output
 
     # check that height changed to 1
-    genesis_reset_check: Result = runner.invoke(cli, ["sim", "--root-path", ".", "status"])
+    genesis_reset_check: Result = runner.invoke(cli, ["sim", "-n", "ci_test", "status"])
     assert genesis_reset_check.exit_code == 0
     assert "Height:          1" in genesis_reset_check.output
