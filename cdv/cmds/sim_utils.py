@@ -13,6 +13,7 @@ from chia.types.blockchain_format.sized_bytes import bytes32
 from chia.types.coin_record import CoinRecord
 from chia.util.bech32m import decode_puzzle_hash, encode_puzzle_hash
 from chia.util.config import load_config, save_config
+from chia.util.errors import KeychainFingerprintExists
 from chia.util.ints import uint16, uint32
 from chia.util.keychain import Keychain, bytes_to_mnemonic
 from chia.wallet.derive_keys import (
@@ -66,7 +67,7 @@ async def start_async(root_path: Path, group: Any, restart: bool) -> None:
 
     from chia.cmds.start_funcs import async_start
 
-    sys.argv[0] = sys.argv[0].replace("cdv", "chia")  # this is the best way I swear.
+    sys.argv[0] = str(Path(sys.executable).parent / "chia")  # this gives the correct path to the chia executable
     if root_path.exists():
         config = load_config(root_path, "config.yaml")
         await async_start(root_path, config, group, restart, True)
@@ -204,8 +205,12 @@ def generate_and_return_fingerprint(mnemonic: Optional[str] = None) -> int:
     if mnemonic is None:
         print("Generating private key")
         mnemonic = generate_mnemonic()
-    sk = Keychain().add_private_key(mnemonic, None)
-    fingerprint: int = sk.get_g1().get_fingerprint()
+    try:
+        sk = Keychain().add_private_key(mnemonic, None)
+        fingerprint: int = sk.get_g1().get_fingerprint()
+    except KeychainFingerprintExists as e:
+        print(f"Fingerprint: {e.fingerprint} for provided private key already exists.")
+        return e.fingerprint
     print(f"Added private key with public key fingerprint {fingerprint}")
     return fingerprint
 
