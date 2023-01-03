@@ -177,6 +177,9 @@ def revert_cmd(
         )
         if input(input_str) != "y":
             return
+    if reset and not force:
+        print("\n The force flag (-f) is required to reset the chain to the genesis block. \n")
+        return
     if reset and blocks != 1:
         print("\nBlocks, '-b' must not be set if all blocks are selected by reset, '-r'. Exiting.\n")
         return
