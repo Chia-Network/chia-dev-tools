@@ -204,7 +204,7 @@ def generate_and_return_fingerprint(mnemonic: Optional[str] = None) -> int:
     if mnemonic is None:
         print("Generating private key")
         mnemonic = generate_mnemonic()
-    sk = Keychain().add_private_key(mnemonic, "")
+    sk = Keychain().add_private_key(mnemonic, None)
     fingerprint: int = sk.get_g1().get_fingerprint()
     print(f"Added private key with public key fingerprint {fingerprint}")
     return fingerprint
