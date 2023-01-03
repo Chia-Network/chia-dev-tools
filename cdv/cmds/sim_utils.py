@@ -206,7 +206,7 @@ def generate_and_return_fingerprint(mnemonic: Optional[str] = None) -> int:
         print("Generating private key")
         mnemonic = generate_mnemonic()
     try:
-        sk = Keychain().add_private_key(mnemonic)
+        sk = Keychain().add_private_key(mnemonic, None)
         fingerprint: int = sk.get_g1().get_fingerprint()
     except KeychainFingerprintExists as e:
         print(f"Fingerprint: {e.fingerprint} for provided private key already exists.")
