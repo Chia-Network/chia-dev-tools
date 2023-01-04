@@ -70,7 +70,7 @@ async def start_async(root_path: Path, group: Any, restart: bool) -> None:
     sys.argv[0] = str(Path(sys.executable).parent / "chia")  # this gives the correct path to the chia executable
     if root_path.exists():
         config = load_config(root_path, "config.yaml")
-        await async_start(root_path, config, group, restart, True)
+        await async_start(root_path, config, group, restart)
     else:
         print(f"Simulator root path: {root_path} does not exist.")
         print("please run 'cdv sim create' to create and configure a new simulator.")
