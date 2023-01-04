@@ -283,6 +283,7 @@ async def generate_plots(config: Dict[str, Any], root_path: Path, fingerprint: i
     from chia.simulator.start_simulator import PLOT_SIZE, PLOTS
 
     farming_puzzle_hash = decode_puzzle_hash(config["simulator"]["farming_address"])
+    os.environ["CHIA_ROOT"] = str(root_path)  # change env variable, to make it match what the daemon would set it to
 
     # create block tools and use local keychain
     bt = BlockTools(
