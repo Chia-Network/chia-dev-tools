@@ -103,7 +103,7 @@ def create_chia_directory(
     if not chia_root.is_dir() or not Path(chia_root / "config" / "config.yaml").exists():
         # create chia directories & load config
         chia_init(chia_root, testnet=True, fix_ssl_permissions=True)
-        config = load_config(chia_root, "config.yaml")
+        config: Dict[str, Any] = load_config(chia_root, "config.yaml")
         # apply standard block-tools config.
         config["full_node"]["send_uncompact_interval"] = 0
         config["full_node"]["target_uncompact_proofs"] = 30
@@ -209,8 +209,9 @@ def generate_and_return_fingerprint(mnemonic: Optional[str] = None) -> int:
         sk = Keychain().add_private_key(mnemonic, None)
         fingerprint: int = sk.get_g1().get_fingerprint()
     except KeychainFingerprintExists as e:
-        print(f"Fingerprint: {e.fingerprint} for provided private key already exists.")
-        return e.fingerprint
+        fingerprint = e.fingerprint
+        print(f"Fingerprint: {fingerprint} for provided private key already exists.")
+        return fingerprint
     print(f"Added private key with public key fingerprint {fingerprint}")
     return fingerprint
 

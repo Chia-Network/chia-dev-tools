@@ -327,7 +327,7 @@ class Wallet:
         # We need the final coin to know what the announced coin name will be.
         final_coin = CoinWrapper(
             coins[-1].name(),
-            uint64(sum(map(lambda x: x.amount, coins))),
+            uint64(sum([c.amount for c in coins])),
             self.puzzle,
         )
 
@@ -476,7 +476,7 @@ class Wallet:
     # Balance of wallet
     def balance(self) -> uint64:
         """Return the actor's balance in standard coins as we understand it"""
-        return uint64(sum(map(lambda x: x.amount, self.usable_coins.values())))
+        return uint64(sum([c.amount for c in self.usable_coins.values()]))
 
     # Spend a coin, probably a smart coin.
     # Allows the user to specify the arguments for the puzzle solution.
