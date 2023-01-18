@@ -11,6 +11,10 @@ on:
     branches:
       - '**'
 
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}-${{ github.event_name }}--${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/long_lived/')) && github.sha || '' }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: All tests
@@ -21,12 +25,6 @@ jobs:
       max-parallel: 4
 
     steps:
-    - name: Cancel previous runs on the same branch
-      if: ${{ github.ref != 'refs/heads/main' }}
-      uses: styfle/cancel-workflow-action@0.9.1
-      with:
-        access_token: ${{ github.token }}
-
     - name: Checkout Code
       uses: actions/checkout@v3
       with:
