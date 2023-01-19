@@ -1,4 +1,4 @@
-name: Run Test Suite
+name: Test against chia-blockchain main
 
 on:
   workflow_dispatch:
@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   build:
-    name: All tests
+    name: All tests@main
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -44,6 +44,6 @@ jobs:
       run: |
         python3 -m venv venv
         . ./venv/bin/activate
-        pip install .[release]
+        pip install .[dev]
         ./venv/bin/chia init
         ./venv/bin/py.test tests/ cdv/examples/tests -s -v --durations 0

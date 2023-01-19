@@ -26,6 +26,24 @@ pip install chia-dev-tools
 cdv --version
 ```
 
+**From Source**
+
+Alternatively, you can clone the repo, and install from source:
+```
+git clone https://github.com/Chia-Network/chia-dev-tools.git
+cd chia-dev-tools
+# The following for Linux/MacOS
+python3 -m venv venv
+. ./venv/bin/activate
+# The following for Windows
+py -m venv venv
+./venv/Scripts/activate
+# To install using the latest release of chia-blockchain
+pip install .[release]
+# To install using the 'main' branch of chia-blockchain
+pip install .[dev]
+```
+
 What's in it?
 -------------
 
@@ -57,12 +75,17 @@ Tests
 ----------
 
 The test command allows you to initialize and run local tests.
+```
+cdv test
+```
 
+Optionally, to make new tests, you can bootstrap the creation of a test file by running:
 ```
 cdv test --init
 # Make changes to the ./tests/test_skeleton.py file
 cdv test
 ```
+
 
 Chialisp Commands
 -----------------
