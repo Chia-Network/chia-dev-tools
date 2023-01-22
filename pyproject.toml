@@ -9,23 +9,23 @@ build-backend = "setuptools.build_meta"
 line-length = 120
 
 [tool.isort]
-profile=black
+profile = "black"
 
-; vertical hanging indent mode also used in black configuration
+# vertical hanging indent mode also used in black configuration
 multi_line_output = 3
 
-; necessary because black expect the trailing comma
+# necessary because black expect the trailing comma
 include_trailing_comma = true
 
-; black compatibility
+# black compatibility
 force_grid_wrap = 0
 
-; black compatibility
-use_parentheses = True
+# black compatibility
+use_parentheses = true
 
-; black compatibility
-ensure_newline_before_comments = True
+# black compatibility
+ensure_newline_before_comments = true
 
-; we chose 120 as line length
+# we chose 120 as line length
 line_length = 120
 
