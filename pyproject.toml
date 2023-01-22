@@ -28,4 +28,3 @@ ensure_newline_before_comments = true
 
 # we chose 120 as line length
 line_length = 120
-
