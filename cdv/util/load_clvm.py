@@ -4,7 +4,7 @@ import os
 import pathlib
 
 import pkg_resources
-from chia.types.blockchain_format.program import Program, SerializedProgram
+from chia.types.blockchain_format.program import Program
 from clvm_tools.clvmc import compile_clvm as compile_clvm_py
 
 compile_clvm = compile_clvm_py
@@ -56,7 +56,7 @@ if "CLVM_TOOLS_RS" in os.environ:
         pass
 
 
-def load_serialized_clvm(clvm_filename, package_or_requirement=__name__, search_paths=[]) -> SerializedProgram:
+def load_serialized_clvm(clvm_filename, package_or_requirement=__name__, search_paths=[]) -> Program:
     """
     This function takes a .clvm file in the given package and compiles it to a
     .clvm.hex file if the .hex file is missing or older than the .clvm file, then
@@ -84,7 +84,7 @@ def load_serialized_clvm(clvm_filename, package_or_requirement=__name__, search_
 
     clvm_hex = pkg_resources.resource_string(package_or_requirement, hex_filename).decode("utf8")
     clvm_blob = bytes.fromhex(clvm_hex)
-    return SerializedProgram.from_bytes(clvm_blob)
+    return Program.from_bytes(clvm_blob)
 
 
 def load_clvm(clvm_filename, package_or_requirement=__name__, search_paths=[]) -> Program:
