@@ -13,7 +13,7 @@ dependencies = [
 ]
 
 release_dependencies = [
-    "chia-blockchain==1.6.2",
+    "chia-blockchain~=1.7.0",
 ]
 
 dev_dependencies = [
