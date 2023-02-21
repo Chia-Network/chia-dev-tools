@@ -13,6 +13,7 @@ dependencies = [
     "pytest-asyncio",
     "pytimeparse",
     "setuptools_scm",
+    "anyio",
 ]
 
 dev_dependencies = [
