@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 
 from setuptools import find_packages, setup
-from setuptools_scm import get_version
 
 with open("README.md", "rt") as fh:
     long_description = fh.read()
 
 dependencies = [
-    "chia-blockchain",
+    "chia-blockchain~=1.7.0",
     "packaging",
     "pytest",
     "pytest-asyncio",
@@ -32,7 +31,6 @@ dev_dependencies = [
 
 setup(
     name="chia_dev_tools",
-    version=get_version(),
     packages=find_packages(exclude=("tests",)),
     author="Quexington",
     entry_points={
