@@ -64,6 +64,7 @@ jobs:
       run: |
         set -vx
         CHIA_VERSION=$(pip index versions --pre chia-blockchain 2>&1 | head -n 2 | sed -n 's/.*(\(.*\))/\1/p')
+        echo ${CHIA_VERSION}
         sed -i "s/chia-blockchain==[^\"]*/chia-blockchain==${CHIA_VERSION}/" setup.py
 
     - name: Adjust dependencies (Release)
@@ -71,6 +72,7 @@ jobs:
       run: |
         set -vx
         CHIA_VERSION=$(pip index versions chia-blockchain 2>&1 | head -n 2 | sed -n 's/.*(\(.*\))/\1/p')
+        echo ${CHIA_VERSION}
         sed -i "s/chia-blockchain==[^\"]*/chia-blockchain==${CHIA_VERSION}/" setup.py
 
     - name: Install
