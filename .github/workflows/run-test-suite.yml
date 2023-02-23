@@ -15,14 +15,26 @@ concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}-${{ github.event_name }}--${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/long_lived/')) && github.sha || '' }}
   cancel-in-progress: true
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   build:
-    name: All tests
+    name: All tests - ${{ matrix.dependency_mode.name }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
       max-parallel: 4
+      matrix:
+        dependency_mode:
+          - name: As Is
+            matrix: as_is
+          - name: Latest Prerelease
+            matrix: prerelease
+          - name: Latest Release
+            matrix: release
 
     steps:
     - name: Checkout Code
@@ -40,10 +52,33 @@ jobs:
         mkdir -p ~/.chia/simulator/plots
         cp -r ./.github/test-plots/* ~/.chia/simulator/plots
 
+    - uses: Chia-Network/actions/create-venv@main
+      id: create-venv
+
+    - uses: Chia-Network/actions/activate-venv@main
+      with:
+        directories: ${{ steps.create-venv.outputs.activate-venv-directories }}
+
+    - name: Adjust dependencies (Prerelease)
+      if: matrix.dependency_mode.matrix == 'prerelease'
+      run: |
+        # TODO: dedupe
+        CHIA_VERSION=pip index versions --pre chia-blockchain &| head -n 2 | sed -n 's/.*(\(.*\))/\1/p'
+        sed -i 's/"chia-blockchain==[^"]*"/"chia-blockchain==${CHIA_VERSION}"/' setup.py
+
+    - name: Adjust dependencies (Release)
+      if: matrix.dependency_mode.matrix == 'release'
+      run: |
+        # TODO: dedupe
+        CHIA_VERSION=pip index versions chia-blockchain &| head -n 2 | sed -n 's/.*(\(.*\))/\1/p'
+        sed -i 's/"chia-blockchain==[^"]*"/"chia-blockchain"/' setup.py
+
+    - name: Install
+      run: |
+        git diff
+        pip install .
+
     - name: Test code with pytest
       run: |
-        python3 -m venv venv
-        . ./venv/bin/activate
-        pip install .
-        ./venv/bin/chia init
-        ./venv/bin/py.test tests/ cdv/examples/tests -s -v --durations 0
+        chia init
+        pytest tests/ cdv/examples/tests -s -v --durations 0
