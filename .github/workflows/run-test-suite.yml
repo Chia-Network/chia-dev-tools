@@ -62,12 +62,14 @@ jobs:
     - name: Adjust dependencies (Prerelease)
       if: matrix.dependency_mode.matrix == 'prerelease'
       run: |
+        set -vx
         CHIA_VERSION=$(pip index versions --pre chia-blockchain 2>&1 | head -n 2 | sed -n 's/.*(\(.*\))/\1/p')
         sed -i "s/chia-blockchain==[^\"]*/chia-blockchain==${CHIA_VERSION}/" setup.py
 
     - name: Adjust dependencies (Release)
       if: matrix.dependency_mode.matrix == 'release'
       run: |
+        set -vx
         CHIA_VERSION=$(pip index versions chia-blockchain 2>&1 | head -n 2 | sed -n 's/.*(\(.*\))/\1/p')
         sed -i "s/chia-blockchain==[^\"]*/chia-blockchain==${CHIA_VERSION}/" setup.py
 
