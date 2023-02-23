@@ -12,16 +12,15 @@ name: GithHub Super Linter
 # https://help.github.com/en/articles/workflow-syntax-for-github-actions
 #
 
-#############################
-# Start the job on all push #
-#############################
 on:
   push:
-    branches-ignore:
-      - 'main'
+    branches:
+    - main
+    tags:
+    - '**'
   pull_request:
-    branches-ignore:
-      - ''
+    branches:
+    - '**'
 
 ###############
 # Set the Job #
