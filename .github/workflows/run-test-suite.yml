@@ -15,35 +15,89 @@ concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}-${{ github.event_name }}--${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/long_lived/')) && github.sha || '' }}
   cancel-in-progress: true
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   build:
-    name: All tests
-    runs-on: ubuntu-latest
+    name: Test - ${{ matrix.os.name }} ${{ matrix.python.major-dot-minor }} ${{ matrix.arch.name }}
+    runs-on: ${{ matrix.os.runs-on[matrix.arch.matrix] }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
-      max-parallel: 4
+      matrix:
+        os:
+          - name: macOS
+            matrix: macos
+            runs-on:
+              arm: [macOS, ARM64]
+              intel: [macos-latest]
+          - name: Ubuntu
+            matrix: ubuntu
+            runs-on:
+              arm: [Linux, ARM64]
+              intel: [ubuntu-latest]
+          - name: Windows
+            matrix: windows
+            runs-on:
+              intel: [windows-latest]
+        python:
+          - major-dot-minor: '3.7'
+            matrix: '3.7'
+          - major-dot-minor: '3.8'
+            matrix: '3.8'
+          - major-dot-minor: '3.9'
+            matrix: '3.9'
+          - major-dot-minor: '3.10'
+            matrix: '3.10'
+          - major-dot-minor: '3.11'
+            matrix: '3.11'
+        arch:
+          - name: ARM
+            matrix: arm
+          - name: Intel
+            matrix: intel
+        exclude:
+          - os:
+              matrix: windows
+            arch:
+              matrix: arm
+          - os:
+              matrix: macos
+            python:
+              matrix: '3.7'
+            arch:
+              matrix: arm
+
 
     steps:
+    - name: Clean workspace
+      uses: Chia-Network/actions/clean-workspace@main
+
     - name: Checkout Code
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
-    - name: Setup Python environment
-      uses: actions/setup-python@v4
+    - uses: Chia-Network/actions/setup-python@main
       with:
-        python-version: "3.10"
+        python-version: ${{ matrix.python.major-dot-minor }}
 
     - name: Copy pre-generated plots
       run: |
         mkdir -p ~/.chia/simulator/plots
         cp -r ./.github/test-plots/* ~/.chia/simulator/plots
 
+    - uses: Chia-Network/actions/create-venv@main
+      id: create-venv
+
+    - uses: Chia-Network/actions/activate-venv@main
+      with:
+        directories: ${{ steps.create-venv.outputs.activate-venv-directories }}
+
     - name: Test code with pytest
       run: |
-        python3 -m venv venv
-        . ./venv/bin/activate
         pip install .
         ./venv/bin/chia init
         ./venv/bin/py.test tests/ cdv/examples/tests -s -v --durations 0
