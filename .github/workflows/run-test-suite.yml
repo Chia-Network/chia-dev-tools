@@ -68,8 +68,6 @@ jobs:
               matrix: macos
             python:
               matrix: '3.7'
-            arch:
-              matrix: arm
           - os:
               matrix: macos
             python:
