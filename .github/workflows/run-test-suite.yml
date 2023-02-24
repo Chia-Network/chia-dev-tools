@@ -99,5 +99,5 @@ jobs:
     - name: Test code with pytest
       run: |
         pip install .
-        ./venv/bin/chia init
-        ./venv/bin/py.test tests/ cdv/examples/tests -s -v --durations 0
+        chia init
+        pytest tests/ cdv/examples/tests -s -v --durations 0
