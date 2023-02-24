@@ -51,8 +51,9 @@ jobs:
             matrix: '3.9'
           - major-dot-minor: '3.10'
             matrix: '3.10'
-          - major-dot-minor: '3.11'
-            matrix: '3.11'
+# TODO: add back once we bump have a blockchain dep that supports 3.11
+#          - major-dot-minor: '3.11'
+#            matrix: '3.11'
         arch:
           - name: ARM
             matrix: arm
