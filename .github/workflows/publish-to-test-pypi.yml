@@ -17,6 +17,8 @@ jobs:
         fetch-depth: 0
     - run: |
         git fetch origin +refs/tags/*:refs/tags/*
+    - name: Set Job Env
+      uses: Chia-Network/actions/setjobenv@main
     - name: Set up Python 3.7
       uses: actions/setup-python@v4
       with:
@@ -35,13 +37,14 @@ jobs:
         --outdir dist/
         .
     - name: Publish distribution to Test PyPI
+      if: env.PRE_RELEASE == 'true'
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         skip_existing: true
         password: ${{ secrets.test_pypi_password }}
         repository_url: https://test.pypi.org/legacy/
     - name: Publish distribution to PyPI
-      if: startsWith(github.event.ref, 'refs/tags')
+      if: env.FULL_RELEASE == 'true'
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         password: ${{ secrets.pypi_password }}
