@@ -413,7 +413,7 @@ def do_inspect_spend_bundle_cmd(
                     "GENESIS_CHALLENGE"
                 ]
                 for bundle in spend_bundle_objs:
-                    print(bundle.debug(agg_sig_additional_data=hexstr_to_bytes(genesis_challenge)))
+                    bundle.debug(agg_sig_additional_data=hexstr_to_bytes(genesis_challenge))
             if kwargs["signable_data"]:
                 print("")
                 print("Public Key/Message Pairs")
