@@ -10,10 +10,11 @@ dependencies = [
     "pytest",
     "pytest-asyncio",
     "pytimeparse",
+    "anyio",
 ]
 
 release_dependencies = [
-    "chia-blockchain~=1.7.0",
+    "chia-blockchain==1.7.0",
 ]
 
 dev_dependencies = [
