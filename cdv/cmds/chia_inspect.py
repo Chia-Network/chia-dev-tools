@@ -312,7 +312,10 @@ def do_inspect_coin_spend_cmd(
                 program: BlockGenerator = simple_solution_generator(SpendBundle([coin_spend], G2Element()))
                 npc_result: NPCResult = get_name_puzzle_conditions(
                     # cost_per_byte=0 is meaningless and will be removed in the next chia-blockchain version
-                    program, INFINITE_COST, cost_per_byte=0, mempool_mode=True
+                    program,
+                    INFINITE_COST,
+                    cost_per_byte=0,
+                    mempool_mode=True,
                 )
                 cost: int = npc_result.cost
                 if ignore_byte_cost:
