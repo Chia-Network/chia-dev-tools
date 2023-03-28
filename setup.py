@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 release_dependencies = [
-    "chia-blockchain==1.7.0",
+    "chia-blockchain==1.7.1",
 ]
 
 dev_dependencies = [
@@ -36,7 +36,7 @@ dev_dependencies = [
 
 setup(
     name="chia_dev_tools",
-    version="1.1.5b1",
+    version="1.1.6b1",
     packages=find_packages(exclude=("tests",)),
     author="Quexington",
     entry_points={
