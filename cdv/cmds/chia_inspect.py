@@ -7,6 +7,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 import click
 from blspy import AugSchemeMPL, G1Element, G2Element, PrivateKey
 from chia.consensus.cost_calculator import NPCResult
+from chia.consensus.default_constants import DEFAULT_CONSTANTS
 from chia.full_node.bundle_tools import simple_solution_generator
 from chia.full_node.mempool_check_conditions import get_name_puzzle_conditions
 from chia.types.blockchain_format.coin import Coin
@@ -239,11 +240,9 @@ def do_inspect_coin_cmd(
 @click.option("-s", "--solution", help="The attempted solution to the puzzle")
 @click.option("-ec", "--cost", is_flag=True, help="Print the CLVM cost of the spend")
 @click.option(
-    "-bc",
-    "--cost-per-byte",
-    default=12000,
-    show_default=True,
-    help="The cost per byte in the puzzle and solution reveal to use when calculating cost",
+    "--ignore-byte-cost",
+    is_flag=True,
+    help="Ignore the puzzle reveal cost when examining a spend (mimics potential compression)",
 )
 @click.pass_context
 def inspect_coin_spend_cmd(ctx: click.Context, spends: Tuple[str], **kwargs):
@@ -257,13 +256,13 @@ def do_inspect_coin_spend_cmd(
     **kwargs,
 ) -> List[CoinSpend]:
     cost_flag: bool = False
-    cost_per_byte: int = 12000
+    ignore_byte_cost: bool = False
     if kwargs:
         # These args don't really fit with the logic below so we're going to store and delete them
         cost_flag = kwargs["cost"]
-        cost_per_byte = kwargs["cost_per_byte"]
+        ignore_byte_cost = kwargs["ignore_byte_cost"]
         del kwargs["cost"]
-        del kwargs["cost_per_byte"]
+        del kwargs["ignore_byte_cost"]
     # If this is being built from the command line and the two required args are there
     if kwargs and all([kwargs["puzzle_reveal"], kwargs["solution"]]):
         # If they specified the coin components
@@ -312,9 +311,15 @@ def do_inspect_coin_spend_cmd(
             for coin_spend in coin_spend_objs:
                 program: BlockGenerator = simple_solution_generator(SpendBundle([coin_spend], G2Element()))
                 npc_result: NPCResult = get_name_puzzle_conditions(
-                    program, INFINITE_COST, cost_per_byte=cost_per_byte, mempool_mode=True
+                    # cost_per_byte=0 is meaningless and will be removed in the next chia-blockchain version
+                    program,
+                    INFINITE_COST,
+                    cost_per_byte=0,
+                    mempool_mode=True,
                 )
                 cost: int = npc_result.cost
+                if ignore_byte_cost:
+                    cost -= len(bytes(coin_spend.puzzle_reveal)) * DEFAULT_CONSTANTS.COST_PER_BYTE
                 print(f"Cost: {cost}")
 
     return coin_spend_objs
@@ -348,11 +353,9 @@ def do_inspect_coin_spend_cmd(
 )
 @click.option("-ec", "--cost", is_flag=True, help="Print the CLVM cost of the entire bundle")
 @click.option(
-    "-bc",
-    "--cost-per-byte",
-    default=12000,
-    show_default=True,
-    help="The cost per byte in the puzzle and solution reveal to use when calculating cost",
+    "--ignore-byte-cost",
+    is_flag=True,
+    help="Ignore the puzzle reveal cost when examining a spend (mimics potential compression)",
 )
 @click.pass_context
 def inspect_spend_bundle_cmd(ctx: click.Context, bundles: Tuple[str], **kwargs):
@@ -399,10 +402,13 @@ def do_inspect_spend_bundle_cmd(
                     npc_result: NPCResult = get_name_puzzle_conditions(
                         program,
                         INFINITE_COST,
-                        cost_per_byte=kwargs["cost_per_byte"],
+                        cost_per_byte=0,  # cost_per_byte=0 is meaningless and is removed in next chia-blockchain >1.7.1
                         mempool_mode=True,
                     )
                     cost: int = npc_result.cost
+                    if kwargs["ignore_byte_cost"]:
+                        for coin_spend in spend_bundle.coin_spends:
+                            cost -= len(bytes(coin_spend.puzzle_reveal)) * DEFAULT_CONSTANTS.COST_PER_BYTE
                     print(f"Cost: {cost}")
             if kwargs["debug"]:
                 print("")
@@ -413,7 +419,7 @@ def do_inspect_spend_bundle_cmd(
                     "GENESIS_CHALLENGE"
                 ]
                 for bundle in spend_bundle_objs:
-                    print(bundle.debug(agg_sig_additional_data=hexstr_to_bytes(genesis_challenge)))
+                    bundle.debug(agg_sig_additional_data=hexstr_to_bytes(genesis_challenge))
             if kwargs["signable_data"]:
                 print("")
                 print("Public Key/Message Pairs")
