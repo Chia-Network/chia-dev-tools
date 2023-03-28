@@ -125,8 +125,7 @@ class TestInspectCommands:
         puzzle_reveal: str = "01"
         solution: str = "80"
         cost: str = "569056"
-        cost_modifier: str = "1"
-        modified_cost: str = "5103"
+        modified_cost: str = "557056"
 
         runner = CliRunner()
 
@@ -176,8 +175,7 @@ class TestInspectCommands:
         assert cost in result.output
 
         # Change the cost per byte
-        base_command.append("-bc")
-        base_command.append(cost_modifier)
+        base_command.append("--ignore-byte-cost")
         result = runner.invoke(cli, base_command)
         assert result.exit_code == 0
         assert id in result.output
@@ -194,8 +192,7 @@ class TestInspectCommands:
         network_modifier: str = "testnet7"
         modified_signable_data: str = "24f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b117816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015af"  # noqa
         cost: str = "6692283"
-        cost_modifier: str = "0"
-        modified_cost: str = "3608283"
+        modified_cost: str = "6668283"
 
         runner = CliRunner()
 
@@ -258,8 +255,7 @@ class TestInspectCommands:
         assert cost in result.output
 
         # Try a new cost per bytes
-        base_command.append("-bc")
-        base_command.append(cost_modifier)
+        base_command.append("--ignore-byte-cost")
         result = runner.invoke(cli, base_command)
         assert result.exit_code == 0
         assert modified_cost in result.output
