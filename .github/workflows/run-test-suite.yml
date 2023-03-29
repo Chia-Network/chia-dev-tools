@@ -102,6 +102,7 @@ jobs:
         directories: ${{ steps.create-venv.outputs.activate-venv-directories }}
 
     - name: Test code with pytest
+      if: runner.os == 'Linux' || runner.os == 'macOS'
       shell: bash
       run: |
         python3 -m venv venv
@@ -109,3 +110,11 @@ jobs:
         pip install .[release]
         ./venv/bin/chia init
         ./venv/bin/py.test tests/ cdv/examples/tests -s -v --durations 0
+
+    - name: Test code with pytest
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        pip install .[release]
+        chia init
+        py.test tests\ cdv\examples\tests -s -v --durations 0
