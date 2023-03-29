@@ -102,6 +102,7 @@ jobs:
         directories: ${{ steps.create-venv.outputs.activate-venv-directories }}
 
     - name: Test code with pytest
+      shell: bash
       run: |
         python3 -m venv venv
         . ./venv/bin/activate
