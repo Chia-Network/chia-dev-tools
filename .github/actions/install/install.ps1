@@ -1,2 +1,2 @@
 pip install --upgrade pip wheel
-pip install ".[release]"
+pip install ".[dev,release]"
