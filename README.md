@@ -39,9 +39,9 @@ python3 -m venv venv
 py -m venv venv
 ./venv/Scripts/activate
 # To install using the latest release of chia-blockchain
-pip install ."[release]"
+pip install .[release]
 # To install using the 'main' branch of chia-blockchain
-pip install ."[main]"
+pip install .[main]
 ```
 
 What's in it?

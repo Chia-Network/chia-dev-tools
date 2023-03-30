@@ -115,6 +115,6 @@ jobs:
       if: runner.os == 'Windows'
       shell: powershell
       run: |
-        pip install ."[dev, release]"
+        pip install .[dev, release]
         chia init
         py.test tests\ cdv\examples\tests -s -v --durations 0
