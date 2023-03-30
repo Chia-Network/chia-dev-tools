@@ -17,9 +17,12 @@ release_dependencies = [
     "chia-blockchain==1.7.1",
 ]
 
+main_dependencies = [
+    "chia-blockchain @ git+https://github.com/Chia-Network/chia-blockchain.git@main",
+]
+
 dev_dependencies = [
     "anyio",
-    "chia-blockchain @ git+https://github.com/Chia-Network/chia-blockchain.git@main",
     "flake8",
     "mypy",
     "types-aiofiles",
@@ -63,6 +66,7 @@ setup(
     extras_require=dict(
         release=release_dependencies,
         dev=dev_dependencies,
+        main=main_dependencies,
     ),
     project_urls={
         "Bug Reports": "https://github.com/Chia-Network/chia-dev-tools",
