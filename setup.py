@@ -6,7 +6,6 @@ with open("README.md", "rt") as fh:
     long_description = fh.read()
 
 dependencies = [
-    "chia-blockchain~=1.7.0",
     "packaging",
     "pytest",
     "pytest-asyncio",
@@ -14,7 +13,13 @@ dependencies = [
     "anyio",
 ]
 
+release_dependencies = [
+    "chia-blockchain==1.7.1",
+]
+
 dev_dependencies = [
+    "anyio",
+    "chia-blockchain @ git+https://github.com/Chia-Network/chia-blockchain.git@main",
     "flake8",
     "mypy",
     "types-aiofiles",
@@ -31,6 +36,7 @@ dev_dependencies = [
 
 setup(
     name="chia_dev_tools",
+    version="1.1.6b1",
     packages=find_packages(exclude=("tests",)),
     author="Quexington",
     entry_points={
@@ -55,6 +61,7 @@ setup(
         "Topic :: Security :: Cryptography",
     ],
     extras_require=dict(
+        release=release_dependencies,
         dev=dev_dependencies,
     ),
     project_urls={
