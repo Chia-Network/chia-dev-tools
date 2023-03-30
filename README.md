@@ -41,7 +41,7 @@ py -m venv venv
 # To install using the latest release of chia-blockchain
 pip install .[release]
 # To install using the 'main' branch of chia-blockchain
-pip install .[dev]
+pip install .[main]
 ```
 
 What's in it?

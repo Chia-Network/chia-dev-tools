@@ -44,6 +44,6 @@ jobs:
       run: |
         python3 -m venv venv
         . ./venv/bin/activate
-        pip install .[dev]
+        pip install ."[dev,main]"
         ./venv/bin/chia init
         ./venv/bin/py.test tests/ cdv/examples/tests -s -v --durations 0

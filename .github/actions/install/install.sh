@@ -1,3 +1,3 @@
 #!/bin/bash
 pip install --upgrade pip wheel
-pip install ."[dev]"
+pip install ."[dev,release]"
