@@ -89,11 +89,6 @@ jobs:
       with:
         python-version: ${{ matrix.python.major-dot-minor }}
 
-    - name: Copy pre-generated plots
-      run: |
-        mkdir -p ~/.chia/simulator/plots
-        cp -r ./.github/test-plots/* ~/.chia/simulator/plots
-
     - uses: Chia-Network/actions/create-venv@main
       id: create-venv
 
