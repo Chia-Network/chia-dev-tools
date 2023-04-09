@@ -102,7 +102,7 @@ jobs:
       run: |
         python3 -m venv venv
         . ./venv/bin/activate
-        pip install ."[dev,release]"
+        pip install ."[dev]"
         ./venv/bin/chia init
         ./venv/bin/py.test tests/ cdv/examples/tests -s -v --durations 0
 
@@ -110,6 +110,6 @@ jobs:
       if: runner.os == 'Windows'
       shell: powershell
       run: |
-        pip install .[dev,release]
+        pip install .[dev]
         chia init
         py.test tests\ cdv\examples\tests -s -v --durations 0
