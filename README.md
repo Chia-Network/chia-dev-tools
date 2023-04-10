@@ -10,7 +10,7 @@ Initialize a new project directory and `cd` into it. Then follow the following i
 ```
 python3 -m venv venv
 . ./venv/bin/activate
-pip install chia-dev-tools
+pip install --extra-index-url https://pypi.chia.net/simple/ chia-dev-tools
 cdv --version
 ```
 (If you're on an M1 Mac, make sure you are running an ARM64 native python virtual environment)
@@ -22,7 +22,7 @@ Requires: Installation of [Python 3 for Windows](https://www.python.org/download
 ```
 py -m venv venv
 ./venv/Scripts/activate
-pip install chia-dev-tools
+pip install --extra-index-url https://pypi.chia.net/simple/ chia-dev-tools
 cdv --version
 ```
 
@@ -39,7 +39,7 @@ python3 -m venv venv
 py -m venv venv
 ./venv/Scripts/activate
 # To install chia-dev-tools
-pip install .
+pip install --extra-index-url https://pypi.chia.net/simple/ .
 ```
 
 What's in it?
