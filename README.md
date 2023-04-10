@@ -91,10 +91,10 @@ Chialisp Commands
 The `clsp` family of commands are helpful when writing, building, and hashing Chialisp and CLVM programs.
 
 ```
-cdv clsp build .\puzzles\password.clsp
+cdv clsp build ./puzzles/password.clsp
 cdv clsp retrieve condition_codes sha256tree
 cdv clsp treehash '(a 2 3)'
-cdv clsp curry .\puzzles\password.clsp.hex -a 0xdeadbeef -a "(q . 'I'm an inner puzzle!')"
+cdv clsp curry ./puzzles/password.clsp.hex -a 0xdeadbeef -a "(q . 'I'm an inner puzzle!')"
 cdv clsp disassemble ff0180
 ```
 
@@ -105,8 +105,8 @@ The `inspect` family of commands allows you to build and examine certain Chia re
 
 ```
 cdv inspect -id coins --parent-id e16dbc782f500aa24891886779067792b3305cff8b873ae1e77273ad0b7e6c05 --puzzle-hash e16dbc782f500aa24891886779067792b3305cff8b873ae1e77273ad0b7e6c05 --amount 123
-cdv inspect --json spends --coin .\coin.json --puzzle-reveal ff0180 --solution '()'
-cdv inspect --bytes spendbundles .\spend_bundle.json
+cdv inspect --json spends --coin ./coin.json --puzzle-reveal ff0180 --solution '()'
+cdv inspect --bytes spendbundles ./spend_bundle.json
 cdv inspect --json any 0e1074f76177216b011668c35b1496cbd10eff5ae43f6a7924798771ac131b0a0e1074f76177216b011668c35b1496cbd10eff5ae43f6a7924798771ac131b0a0000000000000001ff018080
 ```
 
@@ -119,7 +119,7 @@ There are also commands for interacting with the full node's RPC endpoints (in d
 cdv rpc state
 cdv rpc blocks -s 0 -e 1
 cdv rpc coinrecords --by id 6ce8fa56321d954f54ba27e58f4a025eb1081d2e1f38fc089a2e72927bcde0d1
-cdv rpc pushtx .\spend_bundle.json
+cdv rpc pushtx ./spend_bundle.json
 ```
 
 Python Packages
