@@ -38,10 +38,8 @@ python3 -m venv venv
 # The following for Windows
 py -m venv venv
 ./venv/Scripts/activate
-# To install using the latest release of chia-blockchain
-pip install .[release]
-# To install using the 'main' branch of chia-blockchain
-pip install .[main]
+# To install chia-dev-tools
+pip install .
 ```
 
 What's in it?

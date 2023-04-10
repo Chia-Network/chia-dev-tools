@@ -35,15 +35,11 @@ jobs:
       with:
         python-version: "3.10"
 
-    - name: Copy pre-generated plots
-      run: |
-        mkdir -p ~/.chia/simulator/plots
-        cp -r ./.github/test-plots/* ~/.chia/simulator/plots
-
     - name: Test code with pytest
       run: |
         python3 -m venv venv
         . ./venv/bin/activate
-        pip install ."[dev,main]"
+        sed -i 's/chia-blockchain.*/chia-blockchain @ git+https:\/\/github.com\/Chia-Network\/chia-blockchain.git@main\",/g' setup.py
+        pip install ."[dev]"
         ./venv/bin/chia init
         ./venv/bin/py.test tests/ cdv/examples/tests -s -v --durations 0

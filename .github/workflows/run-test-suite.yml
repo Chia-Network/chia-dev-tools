@@ -89,11 +89,6 @@ jobs:
       with:
         python-version: ${{ matrix.python.major-dot-minor }}
 
-    - name: Copy pre-generated plots
-      run: |
-        mkdir -p ~/.chia/simulator/plots
-        cp -r ./.github/test-plots/* ~/.chia/simulator/plots
-
     - uses: Chia-Network/actions/create-venv@main
       id: create-venv
 
@@ -107,7 +102,7 @@ jobs:
       run: |
         python3 -m venv venv
         . ./venv/bin/activate
-        pip install ."[dev,release]"
+        pip install ."[dev]"
         ./venv/bin/chia init
         ./venv/bin/py.test tests/ cdv/examples/tests -s -v --durations 0
 
@@ -115,6 +110,6 @@ jobs:
       if: runner.os == 'Windows'
       shell: powershell
       run: |
-        pip install .[dev,release]
+        pip install .[dev]
         chia init
         py.test tests\ cdv\examples\tests -s -v --durations 0

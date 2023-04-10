@@ -13,7 +13,6 @@ from cdv import __version__
 from cdv.cmds.chia_inspect import inspect_cmd
 from cdv.cmds.clsp import clsp_cmd
 from cdv.cmds.rpc import rpc_cmd
-from cdv.cmds.sim import sim_cmd
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
@@ -113,7 +112,6 @@ def decode_cmd(address: str):
 cli.add_command(clsp_cmd)
 cli.add_command(inspect_cmd)
 cli.add_command(rpc_cmd)
-cli.add_command(sim_cmd)
 
 
 def main() -> None:
