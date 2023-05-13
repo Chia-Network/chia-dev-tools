@@ -65,7 +65,6 @@ Commands:
   hash     SHA256 hash UTF-8 strings or bytes (use 0x prefix for bytes)
   inspect  Inspect various data structures
   rpc      Make RPC requests to a Chia full node
-  sim      Configure and make requests to a Chia Simulator Full Node
   test     Run the local test suite (located in ./tests)
 ```
 
