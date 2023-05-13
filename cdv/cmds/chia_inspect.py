@@ -311,10 +311,9 @@ def do_inspect_coin_spend_cmd(
             for coin_spend in coin_spend_objs:
                 program: BlockGenerator = simple_solution_generator(SpendBundle([coin_spend], G2Element()))
                 npc_result: NPCResult = get_name_puzzle_conditions(
-                    # cost_per_byte=0 is meaningless and will be removed in the next chia-blockchain version
                     program,
                     INFINITE_COST,
-                    cost_per_byte=0,
+                    height=DEFAULT_CONSTANTS.SOFT_FORK2_HEIGHT,  # so that all opcodes are available
                     mempool_mode=True,
                 )
                 cost: int = npc_result.cost
@@ -402,7 +401,7 @@ def do_inspect_spend_bundle_cmd(
                     npc_result: NPCResult = get_name_puzzle_conditions(
                         program,
                         INFINITE_COST,
-                        cost_per_byte=0,  # cost_per_byte=0 is meaningless and is removed in next chia-blockchain >1.7.1
+                        height=DEFAULT_CONSTANTS.SOFT_FORK2_HEIGHT,  # so that all opcodes are available
                         mempool_mode=True,
                     )
                     cost: int = npc_result.cost
@@ -427,11 +426,11 @@ def do_inspect_spend_bundle_cmd(
                 pkm_dict: Dict[str, List[bytes]] = {}
                 for obj in spend_bundle_objs:
                     for coin_spend in obj.coin_spends:
-                        err, conditions_dict, _ = conditions_dict_for_solution(
+                        conditions_dict = conditions_dict_for_solution(
                             coin_spend.puzzle_reveal, coin_spend.solution, INFINITE_COST
                         )
-                        if err or conditions_dict is None:
-                            print(f"Generating conditions failed, con:{conditions_dict}, error: {err}")
+                        if conditions_dict is None:
+                            print(f"Generating conditions failed, con:{conditions_dict}")
                         else:
                             config = load_config(DEFAULT_ROOT_PATH, "config.yaml")
                             genesis_challenge = config["network_overrides"]["constants"][kwargs["network"]][
