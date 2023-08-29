@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import shutil
 from pathlib import Path
@@ -156,7 +158,7 @@ def uncurry_cmd(program: str, treehash: bool, dump: bool):
 )
 def cat_puzzle_hash(inner_puzzlehash: str, tail_hash: str):
     from chia.wallet.cat_wallet.cat_constants import DEFAULT_CATS
-    from chia.wallet.puzzles.cat_loader import CAT_MOD
+    from chia.wallet.cat_wallet.cat_utils import CAT_MOD
 
     default_cats_by_symbols = {cat["symbol"]: cat for cat in DEFAULT_CATS.values()}
     if tail_hash in default_cats_by_symbols:

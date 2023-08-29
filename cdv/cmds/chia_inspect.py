@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import sys
 from pprint import pprint
@@ -79,6 +81,7 @@ def inspect_callback(
 
 
 # Utility functions
+
 
 # If there's only one key, return the data on that key instead (for things like {'spend_bundle': {...}})
 def json_and_key_strip(input: str) -> Dict:
@@ -315,6 +318,7 @@ def do_inspect_coin_spend_cmd(
                     INFINITE_COST,
                     height=DEFAULT_CONSTANTS.SOFT_FORK2_HEIGHT,  # so that all opcodes are available
                     mempool_mode=True,
+                    constants=DEFAULT_CONSTANTS,
                 )
                 cost: int = npc_result.cost
                 if ignore_byte_cost:
@@ -403,6 +407,7 @@ def do_inspect_spend_bundle_cmd(
                         INFINITE_COST,
                         height=DEFAULT_CONSTANTS.SOFT_FORK2_HEIGHT,  # so that all opcodes are available
                         mempool_mode=True,
+                        constants=DEFAULT_CONSTANTS,
                     )
                     cost: int = npc_result.cost
                     if kwargs["ignore_byte_cost"]:
@@ -438,7 +443,7 @@ def do_inspect_spend_bundle_cmd(
                             ]
                             for pk, msg in pkm_pairs_for_conditions_dict(
                                 conditions_dict,
-                                coin_spend.coin.name(),
+                                coin_spend.coin,
                                 hexstr_to_bytes(genesis_challenge),
                             ):
                                 if str(pk) in pkm_dict:

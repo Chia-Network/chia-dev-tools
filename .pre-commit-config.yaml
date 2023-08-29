@@ -38,11 +38,14 @@ repos:
     -   id: check-merge-conflict
     -   id: check-ast
     -   id: debug-statements
--   repo: https://github.com/psf/black
-    rev: 21.12b0
+-   repo: local
     hooks:
     -   id: black
-        additional_dependencies: ['click<8.1']
+        name: black
+        entry: ./activated.py black
+        language: system
+        require_serial: true
+        types_or: [python, pyi]
 -   repo: https://github.com/pycqa/flake8
     rev: 6.0.0
     hooks:
