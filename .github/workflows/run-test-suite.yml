@@ -43,17 +43,14 @@ jobs:
             runs-on:
               intel: [windows-latest]
         python:
-          - major-dot-minor: '3.7'
-            matrix: '3.7'
           - major-dot-minor: '3.8'
             matrix: '3.8'
           - major-dot-minor: '3.9'
             matrix: '3.9'
           - major-dot-minor: '3.10'
             matrix: '3.10'
-# TODO: add back once we bump have a blockchain dep that supports 3.11
-#          - major-dot-minor: '3.11'
-#            matrix: '3.11'
+          - major-dot-minor: '3.11'
+            matrix: '3.11'
         arch:
           - name: ARM
             matrix: arm
@@ -64,10 +61,6 @@ jobs:
               matrix: windows
             arch:
               matrix: arm
-          - os:
-              matrix: macos
-            python:
-              matrix: '3.7'
           - os:
               matrix: macos
             python:
@@ -104,7 +97,7 @@ jobs:
         . ./venv/bin/activate
         pip install ."[dev]"
         ./venv/bin/chia init
-        ./venv/bin/py.test tests/ cdv/examples/tests -s -v --durations 0
+        ./venv/bin/pytest tests/ cdv/examples/tests -s -v --durations 0
 
     - name: Test code with pytest
       if: runner.os == 'Windows'
@@ -112,4 +105,4 @@ jobs:
       run: |
         pip install .[dev]
         chia init
-        py.test tests\ cdv\examples\tests -s -v --durations 0
+        pytest tests\ cdv\examples\tests -s -v --durations 0
