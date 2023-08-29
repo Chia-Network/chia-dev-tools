@@ -42,7 +42,7 @@ repos:
     hooks:
     -   id: black
         name: black
-        entry: ./activated.py black
+        entry: black
         language: system
         require_serial: true
         types_or: [python, pyi]
