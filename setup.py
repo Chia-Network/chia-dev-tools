@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import annotations
+
 from setuptools import find_packages, setup
 
 with open("README.md", "rt") as fh:
@@ -11,20 +13,20 @@ dependencies = [
     "pytest-asyncio",
     "pytimeparse",
     "anyio",
-    "chia-blockchain==1.8.1",
+    "chia-blockchain==2.0.0",
 ]
 
 dev_dependencies = [
     "anyio",
     "flake8",
     "mypy",
+    "black==23.7.0",
     "types-aiofiles",
     "types-click",
     "types-cryptography",
     "types-pkg_resources",
     "types-pyyaml",
     "types-setuptools",
-    "black==21.12b0",
     "isort",
     "pre-commit",
     "pylint",

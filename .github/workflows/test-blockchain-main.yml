@@ -42,4 +42,4 @@ jobs:
         sed -i 's/chia-blockchain.*/chia-blockchain @ git+https:\/\/github.com\/Chia-Network\/chia-blockchain.git@main\",/g' setup.py
         pip install ."[dev]"
         ./venv/bin/chia init
-        ./venv/bin/py.test tests/ cdv/examples/tests -s -v --durations 0
+        ./venv/bin/pytest tests/ cdv/examples/tests -s -v --durations 0
