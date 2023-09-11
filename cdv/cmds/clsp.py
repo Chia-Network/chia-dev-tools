@@ -114,7 +114,7 @@ def curry_cmd(program: str, args: Tuple[str], treehash: bool, dump: bool, includ
 
 @clsp_cmd.command("uncurry", short_help="Uncurry a program and list the arguments")
 @click.argument("program", required=True)
-@click.option("-H", "--treehash", is_flag=True, help="Output the tree hash of the curried puzzle")
+@click.option("-H", "--treehash", is_flag=True, help="Output the tree hash of the uncurried puzzle")
 @click.option(
     "-x",
     "--dump",
