@@ -194,7 +194,7 @@ class TestClspCommands:
             "0x7efa9f202cfd8e174e1376790232f1249e71fbe46dc428f7237a47d871a2b78b",
         ]
         expected_hex = "72fe4339bf294d6a3ba3d1642307a9356db66243de59f34ea4cace3f6138d456"
-        args_usds = ["xch16ay8wdjtl8f58gml4vl5jw4vm6ychhu3lk9hddhykhcmt6l6599s9lrvqn", "-t", "USDS"]
+        args_usds = ["xch16ay8wdjtl8f58gml4vl5jw4vm6ychhu3lk9hddhykhcmt6l6599s9lrvqn", "-t", "USDSC"]
         expected_usds = "xch1hurndm0nx93epskq496rt25yf5ar070wzhcdtpf3rt5gx2vu97wq4q5g3k"
 
         result_bech32m: Result = runner.invoke(cli, ["clsp", "cat_puzzle_hash"] + args_bech32m)
