@@ -5,7 +5,7 @@ import datetime
 import struct
 from typing import Dict, List, Optional, Tuple, Union
 
-# import pytimeparse
+import pytimeparse
 from blspy import AugSchemeMPL, G1Element, G2Element, PrivateKey
 from chia.clvm.spend_sim import SimClient, SpendSim
 from chia.consensus.default_constants import DEFAULT_CONSTANTS
@@ -628,16 +628,16 @@ class Network:
         return w
 
     # # Skip real time by farming blocks until the target duration is achieved.
-    # async def skip_time(self, target_duration: str, **kwargs):
-    #     """Skip a duration of simulated time, causing blocks to be farmed.  If a farmer
-    #     is specified, they win each block"""
-    #     target_time = self.time + datetime.timedelta(pytimeparse.parse(target_duration) / duration_div)
-    #     while target_time > self.get_timestamp():
-    #         await self.farm_block(**kwargs)
-    #         self.sim.pass_time(uint64(20))
+    async def skip_time(self, target_duration: str, **kwargs):
+        """Skip a duration of simulated time, causing blocks to be farmed.  If a farmer
+        is specified, they win each block"""
+        target_time = self.time + datetime.timedelta(pytimeparse.parse(target_duration) / duration_div)
+        while target_time > self.get_timestamp():
+            await self.farm_block(**kwargs)
+            self.sim.pass_time(uint64(20))
 
-    #     # Or possibly aggregate farm_block results.
-    #     return None
+        # Or possibly aggregate farm_block results.
+        return None
 
     def get_timestamp(self) -> datetime.timedelta:
         """Return the current simualtion time in seconds."""
