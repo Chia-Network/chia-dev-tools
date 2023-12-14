@@ -347,15 +347,15 @@ class TestInspectCommands:
         assert id in result.output
 
     def test_keys(self):
-        mnemonic: str = "chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia chia"  # noqa
-        sk: str = "6e66bc91c04127f1178cb725faf82b55214b5f215b10bd53bf2eb1ee9e76d2cc"
-        pk: str = "8777e5c4f5b21840eb69d9cc09433655b044a8e80048cd9583bab9a90f4774d2d57c1b19196ae132c9502db5902f3e5d"
+        mnemonic: str = "spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend"  # noqa
+        sk: str = "1ef0ff42df2fdd4472312e033f555c569d18b85ba0d9f1b09ed87b254dc18a8e"
+        pk: str = "ae6c7589432cb60a00d84fc83971f50a98fd728863d3ceb189300f2f80d6839e9a2e761ef6cdce809caee83a4e73b623"
         hd_modifier: str = "m/12381/8444/0/0"
         type_modifier: str = "farmer"  # Should be same as above HD Path
-        farmer_sk: str = "1d4a4c2f2059ac889fe066d1116a0fe5dc3d6aa016645306698968c78e8df916"
-        synthetic_sk: str = "6963ce75cd541a0b49cc6feb15185675beb513bd5808e744d475ec50cf75b2c0"
+        farmer_sk: str = "6a97995a8b35c69418ad60152a5e1c9a32d159bcb7c343c5ccf83c71e4df2038"
+        synthetic_sk: str = "4272b71ba1c628948e308148e92c1a9b24a785d52f604610a436d2088f72d578"
         ph_modifier: str = "69ae360134b1fae04326e5546f25dc794a19192a1f22a44a46d038e7f0d1ecbb"
-        modified_synthetic_sk: str = "2dc18bb076849fce06d9c36e59821ff43e8b81068d33fcc5ada3568fb9dcdb7f"
+        modified_synthetic_sk: str = "405d969856846304eec6b243d810665cb3b7e94b56747b87e8e5597948ba1da6"
 
         runner = CliRunner()
 

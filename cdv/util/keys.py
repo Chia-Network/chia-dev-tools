@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from typing import Dict, List
 
-from blspy import AugSchemeMPL, BasicSchemeMPL, G1Element, G2Element, PrivateKey
 from chia.util.hash import std_hash
+from chia_rs import AugSchemeMPL, G1Element, G2Element, PrivateKey
 
 
 def secret_exponent_for_index(index: int) -> int:
     blob = index.to_bytes(32, "big")
-    hashed_blob = BasicSchemeMPL.key_gen(std_hash(b"foo" + blob))
+    hashed_blob = AugSchemeMPL.key_gen(std_hash(b"foo" + blob))
     r = int.from_bytes(hashed_blob, "big")
     return r
 
