@@ -6,7 +6,6 @@ import struct
 from typing import Dict, List, Optional, Tuple, Union
 
 import pytimeparse
-from blspy import AugSchemeMPL, G1Element, G2Element, PrivateKey
 from chia.clvm.spend_sim import SimClient, SpendSim
 from chia.consensus.default_constants import DEFAULT_CONSTANTS
 from chia.types.blockchain_format.coin import Coin
@@ -25,6 +24,7 @@ from chia.wallet.puzzles.p2_delegated_puzzle_or_hidden_puzzle import (  # standa
     puzzle_for_pk,
 )
 from chia.wallet.sign_coin_spends import sign_coin_spends
+from chia_rs import AugSchemeMPL, G1Element, G2Element, PrivateKey
 
 from cdv.util.keys import private_key_for_index, public_key_for_index
 
