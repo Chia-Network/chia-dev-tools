@@ -53,7 +53,7 @@ jobs:
     - name: Add safe git directory
       uses: Chia-Network/actions/git-mark-workspace-safe@main
 
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - uses: Chia-Network/actions/setup-python@main
       with:
