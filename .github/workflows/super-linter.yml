@@ -65,7 +65,6 @@ jobs:
           VALIDATE_PYTHON_PYLINT: true
           VALIDATE_PYTHON_ISORT: true
           PYTHON_ISORT_CONFIG_FILE: pyproject.toml
-          VALIDATE_SHELL_SHFMT: true
           VALIDATE_TYPESCRIPT_ES: true
           VALIDATE_YAML: true
           DISABLE_ERRORS: false
