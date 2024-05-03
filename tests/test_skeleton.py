@@ -9,9 +9,9 @@ from cdv.test import setup as setup_test
 class TestSomething:
     @pytest_asyncio.fixture(scope="function")
     async def setup(self):
-        network, alice, bob = await setup_test()
-        await network.farm_block()
-        yield network, alice, bob
+        async with setup_test() as (network, alice, bob):
+            await network.farm_block()
+            yield network, alice, bob
 
     @pytest.mark.asyncio
     async def test_something(self, setup):
@@ -19,4 +19,4 @@ class TestSomething:
         try:
             pass
         finally:
-            await network.close()
+            pass

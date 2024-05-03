@@ -13,14 +13,14 @@ dependencies = [
     "pytest-asyncio",
     "pytimeparse",
     "anyio",
-    "chia-blockchain==2.1.4",
+    "chia-blockchain==2.2.1",
 ]
 
 dev_dependencies = [
     "anyio",
     "flake8",
     "mypy",
-    "black==24.4.0",
+    "black==24.4.2",
     "types-aiofiles",
     "types-click",
     "types-cryptography",

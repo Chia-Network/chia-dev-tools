@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import binascii
+import contextlib
 import datetime
 import struct
-from typing import Dict, List, Optional, Tuple, Union
+from contextlib import asynccontextmanager
+from typing import AsyncIterator, Dict, List, Optional, Tuple, Type, TypeVar, Union
 
 import pytimeparse
 from chia.clvm.spend_sim import SimClient, SpendSim
@@ -564,6 +566,9 @@ class Wallet:
             return spend_bundle
 
 
+_T_Network = TypeVar("_T_Network", bound="Network")
+
+
 # A user oriented (domain specific) view of the chia network.
 class Network:
     """An object that owns a simulation, responsible for managing Wallet actors,
@@ -576,18 +581,17 @@ class Network:
     nobody: Wallet
 
     @classmethod
-    async def create(cls) -> "Network":
+    @contextlib.asynccontextmanager
+    async def managed(cls: Type[_T_Network]) -> AsyncIterator[_T_Network]:
         self = cls()
         self.time = datetime.timedelta(days=18750, seconds=61201)  # Past the initial transaction freeze
-        self.sim = await SpendSim.create()
-        self.sim_client = SimClient(self.sim)
-        self.wallets = {}
-        self.nobody = self.make_wallet("nobody")
-        self.wallets[str(self.nobody.pk())] = self.nobody
-        return self
-
-    async def close(self):
-        await self.sim.close()
+        async with SpendSim.managed() as sim:
+            self.sim = sim
+            self.sim_client = SimClient(self.sim)
+            self.wallets = {}
+            self.nobody = self.make_wallet("nobody")
+            self.wallets[str(self.nobody.pk())] = self.nobody
+            yield self
 
     # Have the system farm one block with a specific beneficiary (nobody if not specified).
     async def farm_block(self, **kwargs) -> Tuple[List[Coin], List[Coin]]:
@@ -716,8 +720,9 @@ class Network:
         }
 
 
-async def setup() -> Tuple[Network, Wallet, Wallet]:
-    network: Network = await Network.create()
-    alice: Wallet = network.make_wallet("alice")
-    bob: Wallet = network.make_wallet("bob")
-    return network, alice, bob
+@asynccontextmanager
+async def setup() -> AsyncIterator[Tuple[Network, Wallet, Wallet]]:
+    async with Network.managed() as network:
+        alice = network.make_wallet("alice")
+        bob = network.make_wallet("bob")
+        yield network, alice, bob

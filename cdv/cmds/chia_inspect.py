@@ -321,7 +321,7 @@ def do_inspect_coin_spend_cmd(
                     mempool_mode=True,
                     constants=DEFAULT_CONSTANTS,
                 )
-                cost: int = npc_result.cost
+                cost = int(0 if npc_result.conds is None else npc_result.conds.cost)
                 if ignore_byte_cost:
                     cost -= len(bytes(coin_spend.puzzle_reveal)) * DEFAULT_CONSTANTS.COST_PER_BYTE
                 print(f"Cost: {cost}")
@@ -412,7 +412,7 @@ def do_inspect_spend_bundle_cmd(
                         mempool_mode=True,
                         constants=DEFAULT_CONSTANTS,
                     )
-                    cost: int = npc_result.cost
+                    cost = int(0 if npc_result.conds is None else npc_result.conds.cost)
                     if kwargs["ignore_byte_cost"]:
                         for coin_spend in spend_bundle.coin_spends:
                             cost -= len(bytes(coin_spend.puzzle_reveal)) * DEFAULT_CONSTANTS.COST_PER_BYTE
@@ -435,7 +435,7 @@ def do_inspect_spend_bundle_cmd(
                 for obj in spend_bundle_objs:
                     for coin_spend in obj.coin_spends:
                         conditions_dict = conditions_dict_for_solution(
-                            coin_spend.puzzle_reveal, coin_spend.solution, INFINITE_COST
+                            coin_spend.puzzle_reveal.to_program(), coin_spend.solution.to_program(), INFINITE_COST
                         )
                         if conditions_dict is None:
                             print(f"Generating conditions failed, con:{conditions_dict}")

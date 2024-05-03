@@ -21,9 +21,9 @@ from cdv.test import setup as setup_test
 class TestStandardTransaction:
     @pytest_asyncio.fixture(scope="function")
     async def setup(self):
-        network, alice, bob = await setup_test()
-        await network.farm_block()
-        yield network, alice, bob
+        async with setup_test() as (network, alice, bob):
+            await network.farm_block()
+            yield network, alice, bob
 
     async def make_and_spend_piggybank(self, network, alice, bob, CONTRIBUTION_AMOUNT) -> Dict[str, List[Coin]]:
         # Get our alice wallet some money
@@ -87,7 +87,7 @@ class TestStandardTransaction:
             )
             assert len(filtered_result) == 1
         finally:
-            await network.close()
+            pass
 
     @pytest.mark.asyncio
     async def test_piggybank_completion(self, setup):
@@ -118,7 +118,7 @@ class TestStandardTransaction:
             )
             assert len(filtered_result) == 1
         finally:
-            await network.close()
+            pass
 
     @pytest.mark.asyncio
     async def test_piggybank_stealing(self, setup):
@@ -130,4 +130,4 @@ class TestStandardTransaction:
                 "GENERATOR_RUNTIME_ERROR" in result["error"]
             )  # This fails during puzzle execution, not in driver code
         finally:
-            await network.close()
+            pass
