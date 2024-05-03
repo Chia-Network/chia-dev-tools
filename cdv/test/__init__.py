@@ -14,7 +14,7 @@ from chia.types.blockchain_format.coin import Coin
 from chia.types.blockchain_format.program import Program
 from chia.types.blockchain_format.sized_bytes import bytes32
 from chia.types.coin_record import CoinRecord
-from chia.types.coin_spend import CoinSpend
+from chia.types.coin_spend import CoinSpend, make_spend
 from chia.types.spend_bundle import SpendBundle
 from chia.util.condition_tools import ConditionOpcode
 from chia.util.hash import std_hash
@@ -455,13 +455,7 @@ class Wallet:
         )
 
         spend_bundle = SpendBundle(
-            [
-                CoinSpend(
-                    found_coin.coin,  # Coin to spend
-                    self.puzzle,  # Puzzle used for found_coin
-                    solution,  # The solution to the puzzle locking found_coin
-                )
-            ],
+            [make_spend(found_coin.coin, self.puzzle, solution)],
             signature,
         )
         pushed: Dict[str, Union[str, List[Coin]]] = await self.parent.push_tx(spend_bundle)
@@ -535,11 +529,7 @@ class Wallet:
             delegated_puzzle_solution = Program.to(kwargs["args"])
             solution = delegated_puzzle_solution
 
-        solution_for_coin = CoinSpend(
-            coin.coin,
-            coin.puzzle(),
-            solution,
-        )
+        solution_for_coin = make_spend(coin.coin, coin.puzzle(), solution)
 
         # The reason this use of sign_coin_spends exists is that it correctly handles
         # the signing for non-standard coins.  I don't fully understand the difference but

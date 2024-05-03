@@ -15,7 +15,7 @@ from chia.types.blockchain_format.coin import Coin
 from chia.types.blockchain_format.program import INFINITE_COST, Program
 from chia.types.blockchain_format.sized_bytes import bytes32
 from chia.types.coin_record import CoinRecord
-from chia.types.coin_spend import CoinSpend
+from chia.types.coin_spend import CoinSpend, make_spend
 from chia.types.generator_types import BlockGenerator
 from chia.types.spend_bundle import SpendBundle
 from chia.util.byte_types import hexstr_to_bytes
@@ -164,6 +164,7 @@ def inspect_any_cmd(ctx: click.Context, objects: Tuple[str]):
             assert isinstance(obj, Coin)  # mypy otherwise complains that obj is a str
             do_inspect_coin_cmd(ctx, [obj])
         elif type(obj) == CoinSpend:  # type: ignore[comparison-overlap]
+            assert isinstance(obj, CoinSpend)
             do_inspect_coin_spend_cmd(ctx, [obj])
         elif type(obj) == SpendBundle:  # type: ignore[comparison-overlap]
             do_inspect_spend_bundle_cmd(ctx, [obj])
@@ -272,7 +273,7 @@ def do_inspect_coin_spend_cmd(
         # If they specified the coin components
         if (not kwargs["coin"]) and all([kwargs["parent_id"], kwargs["puzzle_hash"], kwargs["amount"]]):
             coin_spend_objs: List[CoinSpend] = [
-                CoinSpend(
+                make_spend(
                     Coin(
                         bytes32.from_hexstr(kwargs["parent_id"]),
                         bytes32.from_hexstr(kwargs["puzzle_hash"]),
@@ -285,7 +286,7 @@ def do_inspect_coin_spend_cmd(
         # If they specifed a coin object to parse
         elif kwargs["coin"]:
             coin_spend_objs = [
-                CoinSpend(
+                make_spend(
                     do_inspect_coin_cmd(ctx, [kwargs["coin"]], print_results=False)[0],
                     parse_program(kwargs["puzzle_reveal"]),
                     parse_program(kwargs["solution"]),
