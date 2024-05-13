@@ -51,6 +51,8 @@ jobs:
             matrix: '3.10'
           - major-dot-minor: '3.11'
             matrix: '3.11'
+          - major-dot-minor: '3.12'
+            matrix: '3.12'
         arch:
           - name: ARM
             matrix: arm
