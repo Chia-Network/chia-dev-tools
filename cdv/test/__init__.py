@@ -25,10 +25,10 @@ from chia.wallet.puzzles.p2_delegated_puzzle_or_hidden_puzzle import (  # standa
     calculate_synthetic_secret_key,
     puzzle_for_pk,
 )
-from chia.wallet.sign_coin_spends import sign_coin_spends
 from chia_rs import AugSchemeMPL, G1Element, G2Element, PrivateKey
 
 from cdv.util.keys import private_key_for_index, public_key_for_index
+from cdv.util.sign_coin_spends import sign_coin_spends
 
 duration_div = 86400.0
 block_time = (600.0 / 32.0) / duration_div
@@ -94,7 +94,7 @@ class CoinWrapper:
         delegated_puzzle_solution = Program.to((1, conditions))
         solution = Program.to([[], delegated_puzzle_solution, []])
 
-        coin_spend_object = CoinSpend(
+        coin_spend_object = make_spend(
             self.coin,
             self.puzzle(),
             solution,
@@ -216,7 +216,7 @@ class Wallet:
         }
 
     def __repr__(self) -> str:
-        return f"<Wallet(name={self.name},puzzle_hash={self.puzzle_hash},pk={self.pk_})>"
+        return f"<Wallet(name={self.name}, puzzle_hash={self.puzzle_hash}, pk={self.pk_})>"
 
     # Wallet RPC methods
     async def get_public_keys(self):
