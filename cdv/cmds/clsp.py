@@ -9,7 +9,7 @@ import click
 from chia.types.blockchain_format.program import Program
 from chia.types.blockchain_format.sized_bytes import bytes32
 from chia.util.bech32m import decode_puzzle_hash, encode_puzzle_hash
-from clvm_tools.binutils import assemble, disassemble
+from clvm_tools.binutils import SExp, assemble, disassemble
 
 from cdv.cmds.util import append_include, parse_program
 from cdv.util.load_clvm import compile_clvm
@@ -101,7 +101,7 @@ def treehash_cmd(program: str, include: Tuple[str]):
 )
 def curry_cmd(program: str, args: Tuple[str], treehash: bool, dump: bool, include: Tuple[str]):
     prog: Program = parse_program(program, include)
-    curry_args: List[Program] = [assemble(arg) for arg in args]
+    curry_args: List[SExp] = [assemble(arg) for arg in args]
 
     prog_final: Program = prog.curry(*curry_args)
     if treehash:

@@ -170,7 +170,8 @@ def inspect_any_cmd(ctx: click.Context, objects: Tuple[str]):
             do_inspect_spend_bundle_cmd(ctx, [obj])
         elif type(obj) == CoinRecord:  # type: ignore[comparison-overlap]
             do_inspect_coin_record_cmd(ctx, [obj])
-        elif type(obj) == Program:
+        elif type(obj) == Program:  # type: ignore[comparison-overlap]
+            assert isinstance(obj, Program)
             do_inspect_program_cmd(ctx, [obj])
         elif type(obj) == G1Element:  # type: ignore[comparison-overlap]
             do_inspect_keys_cmd(ctx, public_key=obj)
@@ -427,7 +428,7 @@ def do_inspect_spend_bundle_cmd(
                     "GENESIS_CHALLENGE"
                 ]
                 for bundle in spend_bundle_objs:
-                    bundle.debug(agg_sig_additional_data=hexstr_to_bytes(genesis_challenge))
+                    bundle.debug(agg_sig_additional_data=bytes32(hexstr_to_bytes(genesis_challenge)))
             if kwargs["signable_data"]:
                 print("")
                 print("Public Key/Message Pairs")
@@ -439,7 +440,7 @@ def do_inspect_spend_bundle_cmd(
                             coin_spend.puzzle_reveal.to_program(), coin_spend.solution.to_program(), INFINITE_COST
                         )
                         if conditions_dict is None:
-                            print(f"Generating conditions failed, con:{conditions_dict}")
+                            print(f"Generating conditions failed, con: {conditions_dict}")
                         else:
                             config = load_config(DEFAULT_ROOT_PATH, "config.yaml")
                             genesis_challenge = config["network_overrides"]["constants"][kwargs["network"]][
@@ -456,7 +457,7 @@ def do_inspect_spend_bundle_cmd(
                                     pkm_dict[str(pk)] = [msg]
                 # This very deliberately prints identical messages multiple times
                 for pk_str, msgs in pkm_dict.items():
-                    print(f"{pk_str}:")
+                    print(f"{pk_str}: ")
                     for msg in msgs:
                         print(f"\t- {msg.hex()}")
 
