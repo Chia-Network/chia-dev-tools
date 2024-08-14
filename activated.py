@@ -7,7 +7,7 @@ import pathlib
 import subprocess
 import sys
 
-here = pathlib.Path(__file__).parent
+here = pathlib.Path(__file__).parent.absolute()
 
 
 def main(*args: str) -> int:
@@ -20,7 +20,7 @@ def main(*args: str) -> int:
         command = ["powershell", os.fspath(here.joinpath(script)), *args]
     else:
         script = "activated.sh"
-        command = [os.fspath(here.joinpath(script)), *args]
+        command = ["sh", os.fspath(here.joinpath(script)), *args]
 
     completed_process = subprocess.run(command)
 
