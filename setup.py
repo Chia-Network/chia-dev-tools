@@ -24,7 +24,7 @@ dev_dependencies = [
     "types-aiofiles",
     "types-click",
     "types-cryptography",
-    "types-pkg_resources",
+    "types-setuptools",
     "types-pyyaml",
     "types-setuptools",
     "isort",
