@@ -20,7 +20,7 @@ dev_dependencies = [
     "anyio",
     "flake8",
     "mypy",
-    "black==24.8.0",
+    "black==24.10.0",
     "types-aiofiles",
     "types-click",
     "types-cryptography",
