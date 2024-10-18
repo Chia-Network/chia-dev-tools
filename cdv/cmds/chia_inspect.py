@@ -17,7 +17,6 @@ from chia.types.blockchain_format.sized_bytes import bytes32
 from chia.types.coin_record import CoinRecord
 from chia.types.coin_spend import CoinSpend, make_spend
 from chia.types.generator_types import BlockGenerator
-from chia.types.spend_bundle import SpendBundle
 from chia.util.byte_types import hexstr_to_bytes
 from chia.util.condition_tools import conditions_dict_for_solution, pkm_pairs_for_conditions_dict
 from chia.util.config import load_config
@@ -30,6 +29,7 @@ from chia.wallet.puzzles.p2_delegated_puzzle_or_hidden_puzzle import (
     calculate_synthetic_public_key,
     calculate_synthetic_secret_key,
 )
+from chia.wallet.wallet_spend_bundle import WalletSpendBundle
 from chia_rs import AugSchemeMPL, G1Element, G2Element, PrivateKey
 
 from cdv.cmds.util import parse_program
@@ -134,7 +134,7 @@ def inspect_any_cmd(ctx: click.Context, objects: Tuple[str]):
     for obj in objects:
         in_obj: Any = obj
         # Try it as Streamable types
-        for cls in [Coin, CoinSpend, SpendBundle, CoinRecord]:
+        for cls in [Coin, CoinSpend, WalletSpendBundle, CoinRecord]:
             try:
                 in_obj = streamable_load(cls, [obj])[0]
                 break
@@ -166,7 +166,8 @@ def inspect_any_cmd(ctx: click.Context, objects: Tuple[str]):
         elif type(obj) == CoinSpend:  # type: ignore[comparison-overlap]
             assert isinstance(obj, CoinSpend)
             do_inspect_coin_spend_cmd(ctx, [obj])
-        elif type(obj) == SpendBundle:  # type: ignore[comparison-overlap]
+        elif type(obj) == WalletSpendBundle:  # type: ignore[comparison-overlap]
+            assert isinstance(obj, WalletSpendBundle)
             do_inspect_spend_bundle_cmd(ctx, [obj])
         elif type(obj) == CoinRecord:  # type: ignore[comparison-overlap]
             do_inspect_coin_record_cmd(ctx, [obj])
@@ -315,11 +316,11 @@ def do_inspect_coin_spend_cmd(
         # We're going to print some extra stuff if they wanted to see the cost
         if cost_flag:
             for coin_spend in coin_spend_objs:
-                program: BlockGenerator = simple_solution_generator(SpendBundle([coin_spend], G2Element()))
+                program: BlockGenerator = simple_solution_generator(WalletSpendBundle([coin_spend], G2Element()))
                 npc_result: NPCResult = get_name_puzzle_conditions(
                     program,
                     INFINITE_COST,
-                    height=DEFAULT_CONSTANTS.SOFT_FORK2_HEIGHT,  # so that all opcodes are available
+                    height=DEFAULT_CONSTANTS.SOFT_FORK5_HEIGHT,  # so that all opcodes are available
                     mempool_mode=True,
                     constants=DEFAULT_CONSTANTS,
                 )
@@ -370,10 +371,10 @@ def inspect_spend_bundle_cmd(ctx: click.Context, bundles: Tuple[str], **kwargs):
 
 def do_inspect_spend_bundle_cmd(
     ctx: click.Context,
-    bundles: Union[Tuple[str], List[SpendBundle]],
+    bundles: Union[Tuple[str], List[WalletSpendBundle]],
     print_results: bool = True,
     **kwargs,
-) -> List[SpendBundle]:
+) -> List[WalletSpendBundle]:
     # If this is from the command line and they've specified at lease one spend to parse
     if kwargs and (len(kwargs["spend"]) > 0):
         if len(kwargs["aggsig"]) > 0:
@@ -382,15 +383,15 @@ def do_inspect_spend_bundle_cmd(
             )
         else:
             sig = G2Element()
-        spend_bundle_objs: List[SpendBundle] = [
-            SpendBundle(
+        spend_bundle_objs: List[WalletSpendBundle] = [
+            WalletSpendBundle(
                 do_inspect_coin_spend_cmd(ctx, kwargs["spend"], print_results=False),
                 sig,
             )
         ]
     else:
         try:
-            spend_bundle_objs = streamable_load(SpendBundle, bundles)
+            spend_bundle_objs = streamable_load(WalletSpendBundle, bundles)
         except Exception as e:
             print(f"One or more of the specified objects was not a spend bundle: {e}")
             sys.exit(1)
@@ -400,7 +401,7 @@ def do_inspect_spend_bundle_cmd(
             spend_bundle_objs,
             ctx,
             id_calc=(lambda e: e.name().hex()),
-            type="SpendBundle",
+            type="WalletSpendBundle",
         )
         # We're going to print some extra stuff if they've asked for it.
         if kwargs:
@@ -410,7 +411,7 @@ def do_inspect_spend_bundle_cmd(
                     npc_result: NPCResult = get_name_puzzle_conditions(
                         program,
                         INFINITE_COST,
-                        height=DEFAULT_CONSTANTS.SOFT_FORK2_HEIGHT,  # so that all opcodes are available
+                        height=DEFAULT_CONSTANTS.SOFT_FORK5_HEIGHT,  # so that all opcodes are available
                         mempool_mode=True,
                         constants=DEFAULT_CONSTANTS,
                     )

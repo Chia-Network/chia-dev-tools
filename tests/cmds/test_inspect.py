@@ -126,8 +126,8 @@ class TestInspectCommands:
         id: str = "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b"
         puzzle_reveal: str = "01"
         solution: str = "80"
-        cost: str = "569056"
-        modified_cost: str = "557056"
+        cost: str = "564064"
+        modified_cost: str = "552064"
 
         runner = CliRunner()
 
@@ -195,12 +195,12 @@ class TestInspectCommands:
         )
         id_no_sig: str = "3fc441c1048a4e0b9fd1648d7647fdebd220cf7dd51b6967dcaf76f7043e83d6"
         id_with_sig: str = "7d6f0da915deed117ad5589aa8bd6bf99beb69f48724b14b2134f6f8af6d8afc"
-        network_modifier: str = "testnet7"
+        network_modifier: str = "testnet11"
         modified_signable_data: str = (
-            "24f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b117816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015af"  # noqa
+            "2458e8f2a1f78f0a591feb75aebecaaa81076e4290894b1c445cc32953604db08937a90eb5185a9c4439a91ddc98bbadce7b4feba060d50116a067de66bf236615"  # noqa
         )
-        cost: str = "6692283"
-        modified_cost: str = "6668283"
+        cost: str = "6684108"
+        modified_cost: str = "6660108"
 
         runner = CliRunner()
 
