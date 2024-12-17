@@ -320,7 +320,7 @@ def do_inspect_coin_spend_cmd(
                 npc_result: NPCResult = get_name_puzzle_conditions(
                     program,
                     INFINITE_COST,
-                    height=DEFAULT_CONSTANTS.SOFT_FORK5_HEIGHT,  # so that all opcodes are available
+                    height=DEFAULT_CONSTANTS.SOFT_FORK6_HEIGHT,  # so that all opcodes are available
                     mempool_mode=True,
                     constants=DEFAULT_CONSTANTS,
                 )
@@ -411,7 +411,7 @@ def do_inspect_spend_bundle_cmd(
                     npc_result: NPCResult = get_name_puzzle_conditions(
                         program,
                         INFINITE_COST,
-                        height=DEFAULT_CONSTANTS.SOFT_FORK5_HEIGHT,  # so that all opcodes are available
+                        height=DEFAULT_CONSTANTS.SOFT_FORK6_HEIGHT,  # so that all opcodes are available
                         mempool_mode=True,
                         constants=DEFAULT_CONSTANTS,
                     )
