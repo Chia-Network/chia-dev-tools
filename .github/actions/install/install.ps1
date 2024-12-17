@@ -1,2 +1,2 @@
 python -m pip install --upgrade pip wheel
-pip install .[dev]
+python -m pip install .[dev]
