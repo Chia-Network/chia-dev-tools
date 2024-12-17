@@ -102,6 +102,6 @@ jobs:
       shell: powershell
       run: |
         python -m pip install --upgrade pip
-        pip install .[dev]
+        python -m pip install .[dev]
         chia init
         pytest tests\ cdv\examples\tests -s -v --durations 0
