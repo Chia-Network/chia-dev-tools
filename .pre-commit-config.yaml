@@ -6,6 +6,7 @@ repos:
         entry: python3 tests/build-init-files.py -v --root .
         language: python
         pass_filenames: false
+        additional_dependencies: [click~=8.1]
 -   repo: local
     hooks:
       - id: ruff_format
