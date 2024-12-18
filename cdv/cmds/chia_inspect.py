@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 import sys
+from collections.abc import Iterable
 from pprint import pprint
 from secrets import token_bytes
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, ClassVar, Optional, Union
 
 import click
 from chia.consensus.cost_calculator import NPCResult
@@ -55,7 +56,7 @@ def inspect_cmd(ctx: click.Context, **kwargs) -> None:
 # Every inspect command except the key related ones will call this when they're done
 # The function allows the flags on "inspect" apply AFTER the objects have been successfully loaded
 def inspect_callback(
-    objs: List[Any],
+    objs: list[Any],
     ctx: click.Context,
     id_calc: Callable = (lambda: None),
     type: str = "Unknown",
@@ -84,30 +85,30 @@ def inspect_callback(
 
 
 # If there's only one key, return the data on that key instead (for things like {'spend_bundle': {...}})
-def json_and_key_strip(input: str) -> Dict:
-    json_dict: Dict = json.loads(input)
+def json_and_key_strip(input: str) -> dict:
+    json_dict: dict = json.loads(input)
     if len(json_dict.keys()) == 1:
-        result: Dict = json_dict[list(json_dict.keys())[0]]
+        result: dict = json_dict[next(iter(json_dict.keys()))]
         return result  # mypy
     else:
         return json_dict
 
 
 # Streamable objects can be in either bytes or JSON and we'll take them via CLI or file
-def streamable_load(cls: Any, inputs: Iterable[Any]) -> List[Any]:
+def streamable_load(cls: Any, inputs: Iterable[Any]) -> list[Any]:
     # If we're receiving a group of objects rather than strings to parse, we're going to return them back as a list
-    if inputs and not isinstance(list(inputs)[0], str):
+    if inputs and not isinstance(next(iter(inputs)), str):
         for inst in inputs:
             assert isinstance(inst, cls)
         return list(inputs)
 
-    input_objs: List[Any] = []
+    input_objs: list[Any] = []
     for input in inputs:
         if "{" in input:  # If it's a JSON string
             json_dict = json_and_key_strip(input)
             parsed_obj = cls.from_json_dict(json_dict)
         elif "." in input:  # If it's a filename
-            file_string = open(input, "r").read()
+            file_string = open(input).read()
             if "{" in file_string:  # If it's a JSON file
                 json_dict = json_and_key_strip(file_string)
                 parsed_obj = cls.from_json_dict(json_dict)
@@ -129,7 +130,7 @@ def streamable_load(cls: Any, inputs: Iterable[Any]) -> List[Any]:
 @inspect_cmd.command("any", short_help="Attempt to guess the type of the object before inspecting it")
 @click.argument("objects", nargs=-1, required=False)
 @click.pass_context
-def inspect_any_cmd(ctx: click.Context, objects: Tuple[str]):
+def inspect_any_cmd(ctx: click.Context, objects: tuple[str]):
     input_objects = []
     for obj in objects:
         in_obj: Any = obj
@@ -158,27 +159,27 @@ def inspect_any_cmd(ctx: click.Context, objects: Tuple[str]):
         input_objects.append(in_obj)
 
     for obj in input_objects:
-        if type(obj) == str:
+        if type(obj) is str:
             print(f"Could not guess the type of {obj}")
-        elif type(obj) == Coin:  # type: ignore[comparison-overlap]
+        elif type(obj) is Coin:  # type: ignore[comparison-overlap]
             assert isinstance(obj, Coin)  # mypy otherwise complains that obj is a str
             do_inspect_coin_cmd(ctx, [obj])
-        elif type(obj) == CoinSpend:  # type: ignore[comparison-overlap]
+        elif type(obj) is CoinSpend:  # type: ignore[comparison-overlap]
             assert isinstance(obj, CoinSpend)
             do_inspect_coin_spend_cmd(ctx, [obj])
-        elif type(obj) == WalletSpendBundle:  # type: ignore[comparison-overlap]
+        elif type(obj) is WalletSpendBundle:  # type: ignore[comparison-overlap]
             assert isinstance(obj, WalletSpendBundle)
             do_inspect_spend_bundle_cmd(ctx, [obj])
-        elif type(obj) == CoinRecord:  # type: ignore[comparison-overlap]
+        elif type(obj) is CoinRecord:  # type: ignore[comparison-overlap]
             do_inspect_coin_record_cmd(ctx, [obj])
-        elif type(obj) == Program:  # type: ignore[comparison-overlap]
+        elif type(obj) is Program:  # type: ignore[comparison-overlap]
             assert isinstance(obj, Program)
             do_inspect_program_cmd(ctx, [obj])
-        elif type(obj) == G1Element:  # type: ignore[comparison-overlap]
+        elif type(obj) is G1Element:  # type: ignore[comparison-overlap]
             do_inspect_keys_cmd(ctx, public_key=obj)
-        elif type(obj) == PrivateKey:  # type: ignore[comparison-overlap]
+        elif type(obj) is PrivateKey:  # type: ignore[comparison-overlap]
             do_inspect_keys_cmd(ctx, secret_key=obj)
-        elif type(obj) == G2Element:  # type: ignore[comparison-overlap]
+        elif type(obj) is G2Element:  # type: ignore[comparison-overlap]
             print("That's a BLS aggregated signature")  # This is more helpful than just printing it back to them
 
 
@@ -195,19 +196,19 @@ The objects they are inspecting can be a list of strings (from the cmd line), or
 @click.option("-ph", "--puzzle-hash", help="The tree hash of the CLVM puzzle that locks this coin")
 @click.option("-a", "--amount", help="The amount of the coin")
 @click.pass_context
-def inspect_coin_cmd(ctx: click.Context, coins: Tuple[str], **kwargs):
+def inspect_coin_cmd(ctx: click.Context, coins: tuple[str], **kwargs):
     do_inspect_coin_cmd(ctx, coins, **kwargs)
 
 
 def do_inspect_coin_cmd(
     ctx: click.Context,
-    coins: Union[Tuple[str], List[Coin]],
+    coins: Union[tuple[str], list[Coin]],
     print_results: bool = True,
     **kwargs,
-) -> List[Coin]:
+) -> list[Coin]:
     # If this is built from the command line and all relevant arguments are there
     if kwargs and all([kwargs[key] for key in kwargs.keys()]):
-        coin_objs: List[Coin] = [
+        coin_objs: list[Coin] = [
             Coin(
                 bytes32.from_hexstr(kwargs["parent_id"]),
                 bytes32.from_hexstr(kwargs["puzzle_hash"]),
@@ -252,16 +253,16 @@ def do_inspect_coin_cmd(
     help="Ignore the puzzle reveal cost when examining a spend (mimics potential compression)",
 )
 @click.pass_context
-def inspect_coin_spend_cmd(ctx: click.Context, spends: Tuple[str], **kwargs):
+def inspect_coin_spend_cmd(ctx: click.Context, spends: tuple[str], **kwargs):
     do_inspect_coin_spend_cmd(ctx, spends, **kwargs)
 
 
 def do_inspect_coin_spend_cmd(
     ctx: click.Context,
-    spends: Union[Tuple[str], List[CoinSpend]],
+    spends: Union[tuple[str], list[CoinSpend]],
     print_results: bool = True,
     **kwargs,
-) -> List[CoinSpend]:
+) -> list[CoinSpend]:
     cost_flag: bool = False
     ignore_byte_cost: bool = False
     if kwargs:
@@ -274,7 +275,7 @@ def do_inspect_coin_spend_cmd(
     if kwargs and all([kwargs["puzzle_reveal"], kwargs["solution"]]):
         # If they specified the coin components
         if (not kwargs["coin"]) and all([kwargs["parent_id"], kwargs["puzzle_hash"], kwargs["amount"]]):
-            coin_spend_objs: List[CoinSpend] = [
+            coin_spend_objs: list[CoinSpend] = [
                 make_spend(
                     Coin(
                         bytes32.from_hexstr(kwargs["parent_id"]),
@@ -365,16 +366,16 @@ def do_inspect_coin_spend_cmd(
     help="Ignore the puzzle reveal cost when examining a spend (mimics potential compression)",
 )
 @click.pass_context
-def inspect_spend_bundle_cmd(ctx: click.Context, bundles: Tuple[str], **kwargs):
+def inspect_spend_bundle_cmd(ctx: click.Context, bundles: tuple[str], **kwargs):
     do_inspect_spend_bundle_cmd(ctx, bundles, **kwargs)
 
 
 def do_inspect_spend_bundle_cmd(
     ctx: click.Context,
-    bundles: Union[Tuple[str], List[WalletSpendBundle]],
+    bundles: Union[tuple[str], list[WalletSpendBundle]],
     print_results: bool = True,
     **kwargs,
-) -> List[WalletSpendBundle]:
+) -> list[WalletSpendBundle]:
     # If this is from the command line and they've specified at lease one spend to parse
     if kwargs and (len(kwargs["spend"]) > 0):
         if len(kwargs["aggsig"]) > 0:
@@ -383,7 +384,7 @@ def do_inspect_spend_bundle_cmd(
             )
         else:
             sig = G2Element()
-        spend_bundle_objs: List[WalletSpendBundle] = [
+        spend_bundle_objs: list[WalletSpendBundle] = [
             WalletSpendBundle(
                 do_inspect_coin_spend_cmd(ctx, kwargs["spend"], print_results=False),
                 sig,
@@ -424,7 +425,7 @@ def do_inspect_spend_bundle_cmd(
                 print("")
                 print("Debugging Information")
                 print("---------------------")
-                config: Dict = load_config(DEFAULT_ROOT_PATH, "config.yaml")
+                config: dict = load_config(DEFAULT_ROOT_PATH, "config.yaml")
                 genesis_challenge: str = config["network_overrides"]["constants"][kwargs["network"]][
                     "GENESIS_CHALLENGE"
                 ]
@@ -434,7 +435,7 @@ def do_inspect_spend_bundle_cmd(
                 print("")
                 print("Public Key/Message Pairs")
                 print("------------------------")
-                pkm_dict: Dict[str, List[bytes]] = {}
+                pkm_dict: dict[str, list[bytes]] = {}
                 for obj in spend_bundle_objs:
                     for coin_spend in obj.coin_spends:
                         conditions_dict = conditions_dict_for_solution(
@@ -503,21 +504,21 @@ def do_inspect_spend_bundle_cmd(
     help="The timestamp of the block in which this coin was created",
 )
 @click.pass_context
-def inspect_coin_record_cmd(ctx: click.Context, records: Tuple[str], **kwargs):
+def inspect_coin_record_cmd(ctx: click.Context, records: tuple[str], **kwargs):
     do_inspect_coin_record_cmd(ctx, records, **kwargs)
 
 
 def do_inspect_coin_record_cmd(
     ctx: click.Context,
-    records: Union[Tuple[str], List[CoinRecord]],
+    records: Union[tuple[str], list[CoinRecord]],
     print_results: bool = True,
     **kwargs,
-) -> List[CoinRecord]:
+) -> list[CoinRecord]:
     # If we're building this from the command line and we have the two arguements we forsure need
     if kwargs and all([kwargs["confirmed_block_index"], kwargs["timestamp"]]):
         # If they've specified the components of a coin
         if (not kwargs["coin"]) and all([kwargs["parent_id"], kwargs["puzzle_hash"], kwargs["amount"]]):
-            coin_record_objs: List[CoinRecord] = [
+            coin_record_objs: list[CoinRecord] = [
                 CoinRecord(
                     Coin(
                         bytes32.from_hexstr(kwargs["parent_id"]),
@@ -567,18 +568,18 @@ def do_inspect_coin_record_cmd(
 @inspect_cmd.command("programs", short_help="Various methods for examining CLVM Program objects")
 @click.argument("programs", nargs=-1, required=False)
 @click.pass_context
-def inspect_program_cmd(ctx: click.Context, programs: Tuple[str], **kwargs):
+def inspect_program_cmd(ctx: click.Context, programs: tuple[str], **kwargs):
     do_inspect_program_cmd(ctx, programs, **kwargs)
 
 
 def do_inspect_program_cmd(
     ctx: click.Context,
-    programs: Union[Tuple[str], List[Program]],
+    programs: Union[tuple[str], list[Program]],
     print_results: bool = True,
     **kwargs,
-) -> List[Program]:
+) -> list[Program]:
     try:
-        program_objs: List[Program] = [parse_program(prog) for prog in programs]
+        program_objs: list[Program] = [parse_program(prog) for prog in programs]
     except Exception:
         print("One or more of the specified objects was not a Program")
         sys.exit(1)
@@ -663,7 +664,7 @@ def do_inspect_keys_cmd(ctx: click.Context, print_results: bool = True, **kwargs
                 sk = AugSchemeMPL.key_gen(mnemonic_to_seed(bytes_to_mnemonic(token_bytes(32))))
                 pk = sk.get_g1()
 
-            list_path: List[int] = []
+            list_path: list[int] = []
             if kwargs["hd_path"] and (kwargs["hd_path"] != "m"):
                 list_path = [uint32(int(i)) for i in kwargs["hd_path"].split("/") if i != "m"]
             elif kwargs["key_type"]:
@@ -690,21 +691,21 @@ def do_inspect_keys_cmd(ctx: click.Context, print_results: bool = True, **kwargs
 
             if kwargs["synthetic"]:
                 if sk:
-                    sk = calculate_synthetic_secret_key(sk, bytes32.from_hexstr((kwargs["hidden_puzhash"])))
-                pk = calculate_synthetic_public_key(pk, bytes32.from_hexstr((kwargs["hidden_puzhash"])))
+                    sk = calculate_synthetic_secret_key(sk, bytes32.from_hexstr(kwargs["hidden_puzhash"]))
+                pk = calculate_synthetic_public_key(pk, bytes32.from_hexstr(kwargs["hidden_puzhash"]))
         else:
             print("Invalid arguments specified.")
 
     if sk:
         print(f"Secret Key: {bytes(sk).hex()}")
-    print(f"Public Key: {str(pk)}")
-    print(f"Fingerprint: {str(pk.get_fingerprint())}")
+    print(f"Public Key: {pk!s}")
+    print(f"Fingerprint: {pk.get_fingerprint()!s}")
     print(f"HD Path: {path}")
 
 
 # This class is necessary for being able to handle parameters in order, rather than grouped by name
 class OrderedParamsCommand(click.Command):
-    _options: List = []
+    _options: ClassVar[list] = []
 
     def parse_args(self, ctx, args):
         # run the parser for ourselves to preserve the passed order

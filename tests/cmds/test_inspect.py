@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Dict, List
 
 from click.testing import CliRunner, Result
 
@@ -60,8 +59,8 @@ class TestInspectCommands:
             valid_json_path = Path(__file__).parent.joinpath(f"object_files/{class_type}s/{class_type}.json")
             invalid_json_path = Path(__file__).parent.joinpath(f"object_files/{class_type}s/{class_type}_invalid.json")
             metadata_path = Path(__file__).parent.joinpath(f"object_files/{class_type}s/{class_type}_metadata.json")
-            valid_json: Dict = json.loads(open(valid_json_path, "r").read())
-            metadata_json: Dict = json.loads(open(metadata_path, "r").read())
+            valid_json: dict = json.loads(open(valid_json_path).read())
+            metadata_json: dict = json.loads(open(metadata_path).read())
 
             # Try to load the invalid and make sure it fails
             result = runner.invoke(cli, ["inspect", "any", str(invalid_json_path)])
@@ -72,10 +71,10 @@ class TestInspectCommands:
             # Try to load the valid json
             result = runner.invoke(cli, ["inspect", "any", json.dumps(valid_json)])
             assert result.exit_code == 0
-            for key in valid_json.keys():
-                key_type = type(valid_json[key])
+            for key, value in valid_json.items():
+                key_type = type(value)
                 if (key_type is not dict) and (key_type is not list):
-                    assert (str(valid_json[key]) in result.output) or (str(valid_json[key]).lower() in result.output)
+                    assert (str(value) in result.output) or (str(value).lower() in result.output)
 
             # Try to load bytes
             if class_type != "coin":
@@ -87,7 +86,7 @@ class TestInspectCommands:
                 assert '"coin":' in result.output
 
                 # From a string
-                valid_hex: str = open(valid_hex_path, "r").read()
+                valid_hex: str = open(valid_hex_path).read()
                 result = runner.invoke(cli, ["inspect", "--json", "any", valid_hex])
                 assert result.exit_code == 0
                 assert '"coin":' in result.output
@@ -150,7 +149,7 @@ class TestInspectCommands:
         assert id in result.output
 
         # Specify all of the arguments
-        base_command: List[str] = [
+        base_command: list[str] = [
             "inspect",
             "--id",
             "spends",
@@ -187,18 +186,12 @@ class TestInspectCommands:
         spend_path = Path(__file__).parent.joinpath("object_files/spends/spend.json")
         spend_path_2 = Path(__file__).parent.joinpath("object_files/spends/spend_2.json")
         pubkey: str = "80df54b2a616f5c79baaed254134ae5dfc6e24e2d8e1165b251601ceb67b1886db50aacf946eb20f00adc303e7534dd0"
-        signable_data: str = (
-            "24f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4bccd5bb71183532bff220ba46c268991a3ff07eb358e8255a65c30a2dce0e5fbb"  # noqa
-        )
-        agg_sig: str = (
-            "b83fe374efbc5776735df7cbfb7e27ede5079b41cd282091450e4de21c4b772e254ce906508834b0c2dcd3d58c47a96914c782f0baf8eaff7ece3b070d2035cd878f744deadcd6c6625c1d0a1b418437ee3f25c2df08ffe08bdfe06b8a83b514"  # noqa
-        )
+        signable_data: str = "24f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4bccd5bb71183532bff220ba46c268991a3ff07eb358e8255a65c30a2dce0e5fbb"  # noqa
+        agg_sig: str = "b83fe374efbc5776735df7cbfb7e27ede5079b41cd282091450e4de21c4b772e254ce906508834b0c2dcd3d58c47a96914c782f0baf8eaff7ece3b070d2035cd878f744deadcd6c6625c1d0a1b418437ee3f25c2df08ffe08bdfe06b8a83b514"  # noqa
         id_no_sig: str = "3fc441c1048a4e0b9fd1648d7647fdebd220cf7dd51b6967dcaf76f7043e83d6"
         id_with_sig: str = "7d6f0da915deed117ad5589aa8bd6bf99beb69f48724b14b2134f6f8af6d8afc"
         network_modifier: str = "testnet11"
-        modified_signable_data: str = (
-            "2458e8f2a1f78f0a591feb75aebecaaa81076e4290894b1c445cc32953604db08937a90eb5185a9c4439a91ddc98bbadce7b4feba060d50116a067de66bf236615"  # noqa
-        )
+        modified_signable_data: str = "2458e8f2a1f78f0a591feb75aebecaaa81076e4290894b1c445cc32953604db08937a90eb5185a9c4439a91ddc98bbadce7b4feba060d50116a067de66bf236615"  # noqa
         cost: str = "6684108"
         modified_cost: str = "6660108"
 
@@ -221,7 +214,7 @@ class TestInspectCommands:
         assert id_no_sig in result.output
 
         # Build with the aggsig as well
-        base_command: List[str] = [
+        base_command: list[str] = [
             "inspect",
             "--id",
             "spendbundles",
@@ -353,9 +346,7 @@ class TestInspectCommands:
         assert id in result.output
 
     def test_keys(self):
-        mnemonic: str = (
-            "spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend"  # noqa
-        )
+        mnemonic: str = "spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend"  # noqa
         sk: str = "1ef0ff42df2fdd4472312e033f555c569d18b85ba0d9f1b09ed87b254dc18a8e"
         pk: str = "ae6c7589432cb60a00d84fc83971f50a98fd728863d3ceb189300f2f80d6839e9a2e761ef6cdce809caee83a4e73b623"
         hd_modifier: str = "m/12381/8444/0/0"
@@ -415,12 +406,8 @@ class TestInspectCommands:
         secret_key_2: str = "0f01f7f68935f8594548bca3892fec419c6b2aa7cff54c3353a2e9b1011f09c7"
         text_message: str = "cafe food"
         bytes_message: str = "0xcafef00d"
-        extra_signature: str = (
-            "b5d4e653ec9a737d19abe9af7050d37b0f464f9570ec66a8457fbdabdceb50a77c6610eb442ed1e4ace39d9ecc6d40560de239c1c8f7a115e052438385d594be7394df9287cf30c3254d39f0ae21daefc38d3d07ba3e373628bf8ed73f074a80"  # noqa
-        )
-        final_signature: str = (
-            "b7a6ab2c825068eb40298acab665f95c13779e828d900b8056215b54e47d8b8314e8b61fbb9c98a23ef8a134155a35b109ba284bd5f1f90f96e0d41427132b3ca6a83faae0806daa632ee6b1602a0b4bad92f2743fdeb452822f0599dfa147c0"  # noqa
-        )
+        extra_signature: str = "b5d4e653ec9a737d19abe9af7050d37b0f464f9570ec66a8457fbdabdceb50a77c6610eb442ed1e4ace39d9ecc6d40560de239c1c8f7a115e052438385d594be7394df9287cf30c3254d39f0ae21daefc38d3d07ba3e373628bf8ed73f074a80"  # noqa
+        final_signature: str = "b7a6ab2c825068eb40298acab665f95c13779e828d900b8056215b54e47d8b8314e8b61fbb9c98a23ef8a134155a35b109ba284bd5f1f90f96e0d41427132b3ca6a83faae0806daa632ee6b1602a0b4bad92f2743fdeb452822f0599dfa147c0"  # noqa
 
         runner = CliRunner()
 

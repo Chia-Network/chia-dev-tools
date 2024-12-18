@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import shutil
 from pathlib import Path
-from typing import IO, List
+from typing import IO
 
 from chia.types.blockchain_format.program import Program
 from click.testing import CliRunner, Result
@@ -39,7 +39,7 @@ class TestClspCommands:
             result: Result = runner.invoke(cli, ["clsp", "build", "."])
             assert result.exit_code == 0
             assert Path("./program.clvm.hex").exists()
-            hex_output: str = open("program.clvm.hex", "r").read()
+            hex_output: str = open("program.clvm.hex").read()
             assert "01" in hex_output
             assert len(hex_output) <= 3  # With or without newline
 
@@ -53,7 +53,7 @@ class TestClspCommands:
             result = runner.invoke(cli, ["clsp", "build", "./mod.clsp"])
             assert result.exit_code == 0
             assert Path("./mod.clsp.hex").exists()
-            hex_output: str = open("mod.clsp.hex", "r").read()
+            hex_output: str = open("mod.clsp.hex").read()
             assert "ff0133" in hex_output
             assert len(hex_output) <= 7  # With or without newline
 
@@ -64,7 +64,7 @@ class TestClspCommands:
             result = runner.invoke(cli, ["clsp", "build", ".", "--include", "./include_test"])
             assert result.exit_code == 0
             assert Path("./mod.clsp.hex").exists()
-            hex_output: str = open("mod.clsp.hex", "r").read()
+            hex_output: str = open("mod.clsp.hex").read()
             assert "ff0133" in hex_output
             assert len(hex_output) <= 7  # With or without newline
 
@@ -78,7 +78,7 @@ class TestClspCommands:
 
         runner = CliRunner()
         # Curry one of each kind of argument
-        cmd: List[str] = [
+        cmd: list[str] = [
             "clsp",
             "curry",
             str(mod),
@@ -113,7 +113,7 @@ class TestClspCommands:
 
         runner = CliRunner()
         # Curry one of each kind of argument
-        cmd: List[str] = [
+        cmd: list[str] = [
             "clsp",
             "uncurry",
             str(curried_mod),
@@ -197,12 +197,12 @@ class TestClspCommands:
         args_usds = ["xch16ay8wdjtl8f58gml4vl5jw4vm6ychhu3lk9hddhykhcmt6l6599s9lrvqn", "-t", "USDSC"]
         expected_usds = "xch1hurndm0nx93epskq496rt25yf5ar070wzhcdtpf3rt5gx2vu97wq4q5g3k"
 
-        result_bech32m: Result = runner.invoke(cli, ["clsp", "cat_puzzle_hash"] + args_bech32m)
+        result_bech32m: Result = runner.invoke(cli, ["clsp", "cat_puzzle_hash", *args_bech32m])
         assert result_bech32m.exit_code == 0
         assert expected_bech32m in result_bech32m.output
-        result_hex: Result = runner.invoke(cli, ["clsp", "cat_puzzle_hash"] + args_hex)
+        result_hex: Result = runner.invoke(cli, ["clsp", "cat_puzzle_hash", *args_hex])
         assert result_hex.exit_code == 0
         assert expected_hex in result_hex.output
-        result_usds: Result = runner.invoke(cli, ["clsp", "cat_puzzle_hash"] + args_usds)
+        result_usds: Result = runner.invoke(cli, ["clsp", "cat_puzzle_hash", *args_usds])
         assert result_usds.exit_code == 0
         assert expected_usds in result_usds.output

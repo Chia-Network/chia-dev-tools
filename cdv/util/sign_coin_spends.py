@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import inspect
-from typing import Any, Callable, List
+from typing import Any, Callable
 
 from chia.types.blockchain_format.sized_bytes import bytes32
 from chia.types.coin_spend import CoinSpend
@@ -11,12 +11,12 @@ from chia_rs import AugSchemeMPL, G1Element, G2Element
 
 
 async def sign_coin_spends(
-    coin_spends: List[CoinSpend],
+    coin_spends: list[CoinSpend],
     secret_key_for_public_key_f: Any,  # Potentially awaitable function from G1Element => Optional[PrivateKey]
     secret_key_for_puzzle_hash: Any,  # Potentially awaitable function from bytes32 => Optional[PrivateKey]
     additional_data: bytes,
     max_cost: int,
-    potential_derivation_functions: List[Callable[[G1Element], bytes32]],
+    potential_derivation_functions: list[Callable[[G1Element], bytes32]],
 ) -> SpendBundle:
     """
     Sign_coin_spends runs the puzzle code with the given argument and searches the
@@ -33,9 +33,9 @@ async def sign_coin_spends(
     derived keys (those returned by master_sk_to_wallet_sk from the ['sk'] member of
     wallet rpc's get_private_key method).
     """
-    signatures: List[G2Element] = []
-    pk_list: List[G1Element] = []
-    msg_list: List[bytes] = []
+    signatures: list[G2Element] = []
+    pk_list: list[G1Element] = []
+    msg_list: list[bytes] = []
     for coin_spend in coin_spends:
         # Get AGG_SIG conditions
         conditions_dict = conditions_dict_for_solution(coin_spend.puzzle_reveal, coin_spend.solution, max_cost)
