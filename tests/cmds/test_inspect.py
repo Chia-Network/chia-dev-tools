@@ -360,7 +360,7 @@ class TestInspectCommands:
     def test_keys(self):
         mnemonic: str = (
             "spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend spend"
-            "spend spend spend spend spend spend spend spend"
+            " spend spend spend spend spend spend spend spend"
         )
         sk: str = "1ef0ff42df2fdd4472312e033f555c569d18b85ba0d9f1b09ed87b254dc18a8e"
         pk: str = "ae6c7589432cb60a00d84fc83971f50a98fd728863d3ceb189300f2f80d6839e9a2e761ef6cdce809caee83a4e73b623"
