@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from setuptools import find_packages, setup
 
-with open("README.md", "rt") as fh:
+with open("README.md") as fh:
     long_description = fh.read()
 
 dependencies = [
@@ -18,18 +18,15 @@ dependencies = [
 
 dev_dependencies = [
     "anyio",
-    "flake8",
     "mypy",
-    "black==24.10.0",
+    "ruff>=0.8.1",
     "types-aiofiles",
     "types-click",
     "types-cryptography",
     "types-setuptools",
     "types-pyyaml",
     "types-setuptools",
-    "isort",
     "pre-commit",
-    "pylint",
 ]
 
 setup(

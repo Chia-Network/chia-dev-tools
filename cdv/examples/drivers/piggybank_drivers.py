@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
 
 from chia.types.blockchain_format.coin import Coin
 from chia.types.blockchain_format.program import Program
@@ -30,7 +29,7 @@ def solution_for_piggybank(pb_coin: Coin, contrib_amount: uint64) -> Program:
 
 
 # Return the condition to assert the announcement
-def piggybank_announcement_assertion(pb_coin: Coin, contrib_amount: uint64) -> List:
+def piggybank_announcement_assertion(pb_coin: Coin, contrib_amount: uint64) -> list:
     return [
         ConditionOpcode.ASSERT_COIN_ANNOUNCEMENT,
         std_hash(pb_coin.name() + int_to_bytes(pb_coin.amount + contrib_amount)),

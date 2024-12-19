@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Dict, List
-
 from chia.util.hash import std_hash
 from chia_rs import AugSchemeMPL, G1Element, G2Element, PrivateKey
 
@@ -27,7 +25,7 @@ def sign_message_with_index(index: int, message: str) -> G2Element:
     return AugSchemeMPL.sign(sk, bytes(message, "utf-8"))
 
 
-def sign_messages_with_indexes(sign_ops: List[Dict[int, str]]) -> G2Element:
+def sign_messages_with_indexes(sign_ops: list[dict[int, str]]) -> G2Element:
     signatures = []
     for _ in sign_ops:
         for index, message in _.items():
@@ -36,5 +34,5 @@ def sign_messages_with_indexes(sign_ops: List[Dict[int, str]]) -> G2Element:
     return AugSchemeMPL.aggregate(signatures)
 
 
-def aggregate_signatures(signatures: List[G2Element]) -> G2Element:
+def aggregate_signatures(signatures: list[G2Element]) -> G2Element:
     return AugSchemeMPL.aggregate(signatures)

@@ -4,8 +4,9 @@ import binascii
 import contextlib
 import datetime
 import struct
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator, Dict, List, Optional, Tuple, Type, TypeVar, Union
+from typing import Optional, TypeVar, Union
 
 import pytimeparse
 from chia.clvm.spend_sim import SimClient, SpendSim
@@ -36,7 +37,7 @@ block_time = (600.0 / 32.0) / duration_div
 
 
 class SpendResult:
-    def __init__(self, result: Dict):
+    def __init__(self, result: dict):
         """Constructor for internal use.
 
         error - a string describing the error or None
@@ -46,12 +47,12 @@ class SpendResult:
         self.result = result
         if "error" in result:
             self.error: Optional[str] = result["error"]
-            self.outputs: List[Coin] = []
+            self.outputs: list[Coin] = []
         else:
             self.error = None
             self.outputs = result["additions"]
 
-    def find_standard_coins(self, puzzle_hash: bytes32) -> List[Coin]:
+    def find_standard_coins(self, puzzle_hash: bytes32) -> list[Coin]:
         """Given a Wallet's puzzle_hash, find standard coins usable by it.
 
         These coins are recognized as changing the Wallet's chia balance and are
@@ -78,19 +79,19 @@ class CoinWrapper:
         """Return the program that unlocks this coin"""
         return self.source
 
-    def smart_coin(self) -> "SmartCoinWrapper":
+    def smart_coin(self) -> SmartCoinWrapper:
         """Return a smart coin object wrapping this coin's program"""
         return SmartCoinWrapper(DEFAULT_CONSTANTS.GENESIS_CHALLENGE, self.source)
 
     @classmethod
-    def from_coin(cls, coin: Coin, puzzle: Program) -> "CoinWrapper":
+    def from_coin(cls, coin: Coin, puzzle: Program) -> CoinWrapper:
         return cls(
             coin.parent_coin_info,
             coin.amount,
             puzzle,
         )
 
-    def create_standard_spend(self, priv: PrivateKey, conditions: List[List]):
+    def create_standard_spend(self, priv: PrivateKey, conditions: list[list]):
         delegated_puzzle_solution = Program.to((1, conditions))
         solution = Program.to([[], delegated_puzzle_solution, []])
 
@@ -148,9 +149,9 @@ class CoinPairSearch:
     def __init__(self, target_amount: uint64):
         self.target = target_amount
         self.total: uint64 = uint64(0)
-        self.max_coins: List[Coin] = []
+        self.max_coins: list[Coin] = []
 
-    def get_result(self) -> Tuple[List[Coin], uint64]:
+    def get_result(self) -> tuple[list[Coin], uint64]:
         return self.max_coins, self.total
 
     def insort(self, coin: Coin):
@@ -181,7 +182,7 @@ class CoinPairSearch:
 # chia that is released by smart coins, if the smart coins interact
 # meaningfully with them, as many likely will.
 class Wallet:
-    def __init__(self, parent: "Network", name: str, key_idx: int):
+    def __init__(self, parent: Network, name: str, key_idx: int):
         """Internal use constructor, use Network::make_wallet
 
         Fields:
@@ -205,12 +206,12 @@ class Wallet:
         self.sk_ = master_sk_to_wallet_sk(self.generator_sk_, uint32(0))
         self.pk_ = self.sk_.get_g1()
 
-        self.usable_coins: Dict[bytes32, Union[Coin, CoinWrapper]] = {}
+        self.usable_coins: dict[bytes32, Union[Coin, CoinWrapper]] = {}
         self.puzzle: Program = puzzle_for_pk(self.pk())
         self.puzzle_hash: bytes32 = self.puzzle.get_tree_hash()
 
         synth_sk: PrivateKey = calculate_synthetic_secret_key(self.sk_, DEFAULT_HIDDEN_PUZZLE_HASH)
-        self.pk_to_sk_dict: Dict[str, PrivateKey] = {
+        self.pk_to_sk_dict: dict[str, PrivateKey] = {
             str(self.pk_): self.sk_,
             str(synth_sk.get_g1()): synth_sk,
         }
@@ -247,8 +248,8 @@ class Wallet:
         return None
 
     def compute_combine_action(
-        self, amt: uint64, actions: List, usable_coins: Dict[bytes32, Union[Coin, CoinWrapper]]
-    ) -> Optional[List[Coin]]:
+        self, amt: uint64, actions: list, usable_coins: dict[bytes32, Union[Coin, CoinWrapper]]
+    ) -> Optional[list[Coin]]:
         # No one coin is enough, try to find a best fit pair, otherwise combine the two
         # maximum coins.
         searcher = CoinPairSearch(amt)
@@ -325,7 +326,7 @@ class Wallet:
     #         signature = AugSchemeMPL.aggregate(signatures)
     #         spend_bundle = SpendBundle(coin_spends, signature)
     #
-    async def combine_coins(self, coins: List[CoinWrapper]) -> Optional[SpendResult]:
+    async def combine_coins(self, coins: list[CoinWrapper]) -> Optional[SpendResult]:
         # Overall structure:
         # Create len-1 spends that just assert that the final coin is created with full value.
         # Create 1 spend for the final coin that asserts the other spends occurred and
@@ -341,13 +342,13 @@ class Wallet:
             self.puzzle,
         )
 
-        destroyed_coin_spends: List[CoinSpend] = []
+        destroyed_coin_spends: list[CoinSpend] = []
 
         # Each coin wants agg_sig_me so we aggregate them at the end.
-        signatures: List[G2Element] = []
+        signatures: list[G2Element] = []
 
         for c in coins[:-1]:
-            announce_conditions: List[List] = [
+            announce_conditions: list[list] = [
                 # Each coin expects the final coin creation announcement
                 [
                     ConditionOpcode.ASSERT_COIN_ANNOUNCEMENT,
@@ -359,7 +360,7 @@ class Wallet:
             destroyed_coin_spends.append(coin_spend)
             signatures.append(signature)
 
-        final_coin_creation: List[List] = [
+        final_coin_creation: list[list] = [
             [ConditionOpcode.CREATE_COIN_ANNOUNCEMENT, final_coin.name()],
             [ConditionOpcode.CREATE_COIN, self.puzzle_hash, final_coin.amount],
         ]
@@ -371,7 +372,7 @@ class Wallet:
         signature = AugSchemeMPL.aggregate(signatures)
         spend_bundle = SpendBundle(destroyed_coin_spends, signature)
 
-        pushed: Dict[str, Union[str, List[Coin]]] = await self.parent.push_tx(spend_bundle)
+        pushed: dict[str, Union[str, list[Coin]]] = await self.parent.push_tx(spend_bundle)
 
         # We should have the same amount of money.
         assert beginning_balance == self.balance()
@@ -385,7 +386,7 @@ class Wallet:
     async def choose_coin(self, amt) -> Optional[CoinWrapper]:
         """Given an amount requirement, find a coin that contains at least that much chia"""
         start_balance: uint64 = self.balance()
-        coins_to_spend: Optional[List[Coin]] = self.compute_combine_action(amt, [], dict(self.usable_coins))
+        coins_to_spend: Optional[list[Coin]] = self.compute_combine_action(amt, [], dict(self.usable_coins))
 
         # Couldn't find a working combination.
         if coins_to_spend is None:
@@ -435,7 +436,7 @@ class Wallet:
 
         # Create a puzzle based on the incoming smart coin
         cw = SmartCoinWrapper(DEFAULT_CONSTANTS.GENESIS_CHALLENGE, source)
-        condition_args: List[List] = [
+        condition_args: list[list] = [
             [ConditionOpcode.CREATE_COIN, cw.puzzle_hash(), amt],
         ]
         if amt < found_coin.amount:
@@ -458,14 +459,14 @@ class Wallet:
             [make_spend(found_coin.coin, self.puzzle, solution)],
             signature,
         )
-        pushed: Dict[str, Union[str, List[Coin]]] = await self.parent.push_tx(spend_bundle)
+        pushed: dict[str, Union[str, list[Coin]]] = await self.parent.push_tx(spend_bundle)
         if "error" not in pushed:
             return cw.custom_coin(found_coin.coin, amt)
         else:
             return None
 
     # Give chia
-    async def give_chia(self, target: "Wallet", amt: uint64) -> Optional[CoinWrapper]:
+    async def give_chia(self, target: Wallet, amt: uint64) -> Optional[CoinWrapper]:
         return await self.launch_smart_coin(target.puzzle, amt=amt)
 
     # Called each cycle before coins are re-established from the simulator.
@@ -503,7 +504,7 @@ class Wallet:
 
             # Automatic arguments from the user's intention.
             if "custom_conditions" not in kwargs:
-                solution_list: List[List] = [[ConditionOpcode.CREATE_COIN, target_puzzle_hash, amt]]
+                solution_list: list[list] = [[ConditionOpcode.CREATE_COIN, target_puzzle_hash, amt]]
             else:
                 solution_list = kwargs["custom_conditions"]
             if "remain" in kwargs:
@@ -550,7 +551,7 @@ class Wallet:
             )
 
         if pushtx:
-            pushed: Dict[str, Union[str, List[Coin]]] = await self.parent.push_tx(spend_bundle)
+            pushed: dict[str, Union[str, list[Coin]]] = await self.parent.push_tx(spend_bundle)
             return SpendResult(pushed)
         else:
             return spend_bundle
@@ -567,12 +568,12 @@ class Network:
     time: datetime.timedelta
     sim: SpendSim
     sim_client: SimClient
-    wallets: Dict[str, Wallet]
+    wallets: dict[str, Wallet]
     nobody: Wallet
 
     @classmethod
     @contextlib.asynccontextmanager
-    async def managed(cls: Type[_T_Network]) -> AsyncIterator[_T_Network]:
+    async def managed(cls: type[_T_Network]) -> AsyncIterator[_T_Network]:
         self = cls()
         self.time = datetime.timedelta(days=18750, seconds=61201)  # Past the initial transaction freeze
         async with SpendSim.managed() as sim:
@@ -584,7 +585,7 @@ class Network:
             yield self
 
     # Have the system farm one block with a specific beneficiary (nobody if not specified).
-    async def farm_block(self, **kwargs) -> Tuple[List[Coin], List[Coin]]:
+    async def farm_block(self, **kwargs) -> tuple[list[Coin], list[Coin]]:
         """Given a farmer, farm a block with that actor as the beneficiary of the farm
         reward.
 
@@ -595,13 +596,13 @@ class Network:
             farmer = kwargs["farmer"]
 
         farm_duration = datetime.timedelta(block_time)
-        farmed: Tuple[List[Coin], List[Coin]] = await self.sim.farm_block(farmer.puzzle_hash)
+        farmed: tuple[list[Coin], list[Coin]] = await self.sim.farm_block(farmer.puzzle_hash)
 
         for k, w in self.wallets.items():
             w._clear_coins()
 
         for kw, w in self.wallets.items():
-            coin_records: List[CoinRecord] = await self.sim_client.get_coin_records_by_puzzle_hash(w.puzzle_hash)
+            coin_records: list[CoinRecord] = await self.sim_client.get_coin_records_by_puzzle_hash(w.puzzle_hash)
             for coin_record in coin_records:
                 if coin_record.spent is False:
                     w.add_coin(CoinWrapper.from_coin(coin_record.coin, w.puzzle))
@@ -631,14 +632,13 @@ class Network:
             self.sim.pass_time(uint64(20))
 
         # Or possibly aggregate farm_block results.
-        return None
 
     def get_timestamp(self) -> datetime.timedelta:
         """Return the current simualtion time in seconds."""
         return datetime.timedelta(seconds=float(self.sim.timestamp))
 
     # 'peak' is valid
-    async def get_blockchain_state(self) -> Dict:
+    async def get_blockchain_state(self) -> dict:
         return {"peak": self.sim.get_height()}
 
     async def get_block_record_by_height(self, height):
@@ -652,11 +652,11 @@ class Network:
 
     async def get_coin_records_by_names(
         self,
-        names: List[bytes32],
+        names: list[bytes32],
         include_spent_coins: bool = True,
         start_height: Optional[int] = None,
         end_height: Optional[int] = None,
-    ) -> List:
+    ) -> list:
         result_list = []
 
         for n in names:
@@ -668,11 +668,11 @@ class Network:
 
     async def get_coin_records_by_parent_ids(
         self,
-        parent_ids: List[bytes32],
+        parent_ids: list[bytes32],
         include_spent_coins: bool = True,
         start_height: Optional[int] = None,
         end_height: Optional[int] = None,
-    ) -> List:
+    ) -> list:
         result = []
 
         peak_data = await self.get_blockchain_state()
@@ -680,7 +680,7 @@ class Network:
 
         while last_block.height > 0:
             last_block_hash = last_block.header_hash
-            additions, removals = await self.sim_client.get_additions_and_removals(last_block_hash)
+            additions, _removals = await self.sim_client.get_additions_and_removals(last_block_hash)
             for new_coin in additions:
                 if new_coin.coin.parent_coin_info in parent_ids:
                     result.append(new_coin)
@@ -693,12 +693,12 @@ class Network:
         return await self.sim_client.get_puzzle_and_solution(coin_id, height)
 
     # Given a spend bundle, farm a block and analyze the result.
-    async def push_tx(self, bundle: SpendBundle) -> Dict[str, Union[str, List[Coin]]]:
+    async def push_tx(self, bundle: SpendBundle) -> dict[str, Union[str, list[Coin]]]:
         """Given a spend bundle, try to farm a block containing it.  If the spend bundle
         didn't validate, then a result containing an 'error' key is returned.  The reward
         for the block goes to Network::nobody"""
 
-        status, error = await self.sim_client.push_tx(bundle)
+        _status, error = await self.sim_client.push_tx(bundle)
         if error:
             return {"error": str(error)}
 
@@ -711,7 +711,7 @@ class Network:
 
 
 @asynccontextmanager
-async def setup() -> AsyncIterator[Tuple[Network, Wallet, Wallet]]:
+async def setup() -> AsyncIterator[tuple[Network, Wallet, Wallet]]:
     async with Network.managed() as network:
         alice = network.make_wallet("alice")
         bob = network.make_wallet("bob")

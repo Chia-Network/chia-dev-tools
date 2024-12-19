@@ -15,7 +15,7 @@ class TestSomething:
 
     @pytest.mark.asyncio
     async def test_something(self, setup):
-        network, alice, bob = setup
+        _network, _alice, _bob = setup
         try:
             pass
         finally:
