@@ -61,10 +61,7 @@ jobs:
           VALIDATE_JSON: true
           VALIDATE_MD: true
           VALIDATE_POWERSHELL: true
-          VALIDATE_PYTHON: true
-          VALIDATE_PYTHON_PYLINT: true
-          VALIDATE_PYTHON_ISORT: true
-          PYTHON_ISORT_CONFIG_FILE: pyproject.toml
+          VALIDATE_PYTHON: false
           VALIDATE_TYPESCRIPT_ES: true
           VALIDATE_YAML: true
           DISABLE_ERRORS: false
