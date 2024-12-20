@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 import shutil
 from pathlib import Path
-from typing import List
 
 import click
 import pytest
@@ -51,7 +50,7 @@ def cli(ctx: click.Context) -> None:
     "-d",
     "--discover",
     is_flag=True,
-    help="List the tests without running them",
+    help="list the tests without running them",
 )
 @click.option(
     "-i",
@@ -60,7 +59,7 @@ def cli(ctx: click.Context) -> None:
     help="Create the test directory and/or add a new test skeleton",
 )
 def test_cmd(tests: str, discover: bool, init: str):
-    test_paths: List[str] = list(map(lambda e: str(e), Path.cwd().glob(tests)))
+    test_paths: list[str] = list(map(str, Path.cwd().glob(tests)))
     if init:
         test_dir = Path(os.getcwd()).joinpath("tests")
         if not test_dir.exists():

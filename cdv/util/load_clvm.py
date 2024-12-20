@@ -50,7 +50,7 @@ if "CLVM_TOOLS_RS" in os.environ:
                 rs256 = sha256file(output)
 
                 if orig256 != rs256:
-                    print("Compiled %s: %s vs %s\n" % (full_path, orig256, rs256))
+                    print(f"Compiled {full_path}: {orig256} vs {rs256}\n")
                     print("Aborting compilation due to mismatch with rust")
                     assert orig256 == rs256
 

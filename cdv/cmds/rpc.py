@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 from pprint import pprint
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 import aiohttp
 import click
@@ -58,7 +58,7 @@ def rpc_state_cmd():
     async def do_command():
         try:
             node_client: FullNodeRpcClient = await get_client()
-            state: Dict = await node_client.get_blockchain_state()
+            state: dict = await node_client.get_blockchain_state()
             state["peak"] = state["peak"].to_json_dict()
             print(json.dumps(state, sort_keys=True, indent=4))
         finally:
@@ -77,9 +77,9 @@ def rpc_blocks_cmd(header_hash: str, start: int, end: int):
         try:
             node_client: FullNodeRpcClient = await get_client()
             if header_hash:
-                blocks: List[FullBlock] = [await node_client.get_block(hexstr_to_bytes(header_hash))]
+                blocks: list[FullBlock] = [await node_client.get_block(hexstr_to_bytes(header_hash))]
             elif start and end:
-                blocks: List[FullBlock] = await node_client.get_all_block(start, end)
+                blocks: list[FullBlock] = await node_client.get_all_block(start, end)
             else:
                 print("Invalid arguments specified")
                 return
@@ -105,12 +105,12 @@ def rpc_blockrecords_cmd(header_hash: str, height: int, start: int, end: int):
             node_client: FullNodeRpcClient = await get_client()
             if header_hash:
                 block_record: BlockRecord = await node_client.get_block_record(hexstr_to_bytes(header_hash))
-                block_records: List = block_record.to_json_dict() if block_record else []
+                block_records: list = block_record.to_json_dict() if block_record else []
             elif height:
                 block_record: BlockRecord = await node_client.get_block_record_by_height(height)
-                block_records: List = block_record.to_json_dict() if block_record else []
+                block_records: list = block_record.to_json_dict() if block_record else []
             elif start and end:
-                block_records: List = await node_client.get_block_records(start, end)
+                block_records: list = await node_client.get_block_records(start, end)
             else:
                 print("Invalid arguments specified")
             print(json.dumps(block_records, sort_keys=True, indent=4))
@@ -130,7 +130,7 @@ def rpc_unfinished_cmd():
     async def do_command():
         try:
             node_client: FullNodeRpcClient = await get_client()
-            header_blocks: List[UnfinishedHeaderBlock] = await node_client.get_unfinished_block_headers()
+            header_blocks: list[UnfinishedHeaderBlock] = await node_client.get_unfinished_block_headers()
             print(json.dumps([block.to_json_dict() for block in header_blocks], sort_keys=True, indent=4))
         finally:
             node_client.close()
@@ -201,8 +201,8 @@ def rpc_addrem_cmd(headerhash: str):
         try:
             node_client: FullNodeRpcClient = await get_client()
             additions, removals = await node_client.get_additions_and_removals(hexstr_to_bytes(headerhash))
-            additions: List[Dict] = [rec.to_json_dict() for rec in additions]
-            removals: List[Dict] = [rec.to_json_dict() for rec in removals]
+            additions: list[dict] = [rec.to_json_dict() for rec in additions]
+            removals: list[dict] = [rec.to_json_dict() for rec in removals]
             print(json.dumps({"additions": additions, "removals": removals}, sort_keys=True, indent=4))
         finally:
             node_client.close()
@@ -240,14 +240,14 @@ def rpc_puzsol_cmd(coinid: str, block_height: int):
 
 @rpc_cmd.command("pushtx", short_help="Pushes a spend bundle to the network (push_tx)")
 @click.argument("spendbundles", nargs=-1, required=True)
-def rpc_pushtx_cmd(spendbundles: Tuple[str]):
+def rpc_pushtx_cmd(spendbundles: tuple[str]):
     async def do_command():
         try:
             node_client: FullNodeRpcClient = await get_client()
             # It loads the spend bundle using cdv inspect
             for bundle in do_inspect_spend_bundle_cmd(fake_context(), spendbundles, print_results=False):
                 try:
-                    result: Dict = await node_client.push_tx(bundle)
+                    result: dict = await node_client.push_tx(bundle)
                     print(json.dumps(result, sort_keys=True, indent=4))
                 except ValueError as e:
                     pprint(str(e))
@@ -277,10 +277,10 @@ def rpc_mempool_cmd(transaction_id: str, ids_only: bool):
                     transaction_id: await node_client.get_mempool_item_by_tx_id(bytes32.from_hexstr(transaction_id))
                 }
             else:
-                b_items: Dict = await node_client.get_all_mempool_items()
+                b_items: dict = await node_client.get_all_mempool_items()
                 items = {}
-                for key in b_items.keys():
-                    items[key.hex()] = b_items[key]
+                for key, value in b_items.items():
+                    items[key.hex()] = value
 
             if ids_only:
                 print(json.dumps(list(items.keys()), sort_keys=True, indent=4))
@@ -313,19 +313,19 @@ def rpc_mempool_cmd(transaction_id: str, ids_only: bool):
 )
 @click.option("-s", "--start", type=int, help="The block index to start at (included)")
 @click.option("-e", "--end", type=int, help="The block index to end at (excluded)")
-def rpc_coinrecords_cmd(values: Tuple[str], by: str, as_name_dict: bool, **kwargs):
+def rpc_coinrecords_cmd(values: tuple[str], by: str, as_name_dict: bool, **kwargs):
     async def do_command():
         try:
             node_client: FullNodeRpcClient = await get_client()
-            coin_info: List[bytes32] = [bytes32.from_hexstr(hexstr) for hexstr in values]
-            if by in ["name", "id"]:
+            coin_info: list[bytes32] = [bytes32.from_hexstr(hexstr) for hexstr in values]
+            if by in {"name", "id"}:
                 # TODO: When a by-multiple-names rpc exits, use it instead
-                coin_records: List[CoinRecord] = await node_client.get_coin_records_by_names(coin_info, **kwargs)
-            elif by in ["puzhash", "puzzle_hash", "puzzlehash"]:
-                coin_records: List[CoinRecord] = await node_client.get_coin_records_by_puzzle_hashes(
+                coin_records: list[CoinRecord] = await node_client.get_coin_records_by_names(coin_info, **kwargs)
+            elif by in {"puzhash", "puzzle_hash", "puzzlehash"}:
+                coin_records: list[CoinRecord] = await node_client.get_coin_records_by_puzzle_hashes(
                     coin_info, **kwargs
                 )
-            elif by in [
+            elif by in {
                 "parent_id",
                 "parent_info",
                 "parent_coin_info",
@@ -333,16 +333,16 @@ def rpc_coinrecords_cmd(values: Tuple[str], by: str, as_name_dict: bool, **kwarg
                 "parentinfo",
                 "parent",
                 "pid",
-            ]:
-                coin_records: List[CoinRecord] = await node_client.get_coin_records_by_parent_ids(coin_info, **kwargs)
-            elif by in ["hint"]:
-                hint = list(coin_info)[0]
-                coin_records: List[CoinRecord] = await node_client.get_coin_records_by_hint(hint=hint, **kwargs)
+            }:
+                coin_records: list[CoinRecord] = await node_client.get_coin_records_by_parent_ids(coin_info, **kwargs)
+            elif by in {"hint"}:
+                hint = next(iter(coin_info))
+                coin_records: list[CoinRecord] = await node_client.get_coin_records_by_hint(hint=hint, **kwargs)
             else:
                 print(f"Unaware of property {by}.")
                 return
 
-            coin_record_dicts: List[Dict] = [rec.to_json_dict() for rec in coin_records]
+            coin_record_dicts: list[dict] = [rec.to_json_dict() for rec in coin_records]
 
             if as_name_dict:
                 cr_dict = {}

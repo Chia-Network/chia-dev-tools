@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Optional
 
 import pytest
 import pytest_asyncio
@@ -25,7 +25,7 @@ class TestStandardTransaction:
             await network.farm_block()
             yield network, alice, bob
 
-    async def make_and_spend_piggybank(self, network, alice, bob, CONTRIBUTION_AMOUNT) -> Dict[str, List[Coin]]:
+    async def make_and_spend_piggybank(self, network, alice, bob, CONTRIBUTION_AMOUNT) -> dict[str, list[Coin]]:
         # Get our alice wallet some money
         await network.farm_block(farmer=alice)
 
@@ -64,19 +64,19 @@ class TestStandardTransaction:
         # Aggregate them to make sure they are spent together
         combined_spend = SpendBundle.aggregate([contribution_spend, piggybank_spend])
 
-        result: Dict[str, List[Coin]] = await network.push_tx(combined_spend)
+        result: dict[str, list[Coin]] = await network.push_tx(combined_spend)
         return result
 
     @pytest.mark.asyncio
     async def test_piggybank_contribution(self, setup):
         network, alice, bob = setup
         try:
-            result: Dict[str, List[Coin]] = await self.make_and_spend_piggybank(network, alice, bob, 500)
+            result: dict[str, list[Coin]] = await self.make_and_spend_piggybank(network, alice, bob, 500)
 
             assert "error" not in result
 
             # Make sure there is exactly one piggybank with the new amount
-            filtered_result: List[Coin] = list(
+            filtered_result: list[Coin] = list(
                 filter(
                     lambda addition: (addition.amount == 501)
                     and (
@@ -93,12 +93,12 @@ class TestStandardTransaction:
     async def test_piggybank_completion(self, setup):
         network, alice, bob = setup
         try:
-            result: Dict[str, List[Coin]] = await self.make_and_spend_piggybank(network, alice, bob, 1000000000000)
+            result: dict[str, list[Coin]] = await self.make_and_spend_piggybank(network, alice, bob, 1000000000000)
 
             assert "error" not in result
 
             # Make sure there is exactly one piggybank with value 0
-            filtered_result: List[Coin] = list(
+            filtered_result: list[Coin] = list(
                 filter(
                     lambda addition: (addition.amount == 0)
                     and (
@@ -110,7 +110,7 @@ class TestStandardTransaction:
             assert len(filtered_result) == 1
 
             # Make sure there is exactly one coin that has been cashed out to bob
-            filtered_result: List[Coin] = list(
+            filtered_result: list[Coin] = list(
                 filter(
                     lambda addition: (addition.amount == 1000000000001) and (addition.puzzle_hash == bob.puzzle_hash),
                     result["additions"],
@@ -124,7 +124,7 @@ class TestStandardTransaction:
     async def test_piggybank_stealing(self, setup):
         network, alice, bob = setup
         try:
-            result: Dict[str, List[Coin]] = await self.make_and_spend_piggybank(network, alice, bob, -100)
+            result: dict[str, list[Coin]] = await self.make_and_spend_piggybank(network, alice, bob, -100)
             assert "error" in result
             assert (
                 "GENERATOR_RUNTIME_ERROR" in result["error"]
