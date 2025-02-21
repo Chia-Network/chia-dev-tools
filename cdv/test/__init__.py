@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 from typing import Optional, TypeVar, Union
 
 import pytimeparse
-from chia.clvm.spend_sim import SimClient, SpendSim
+from chia._tests.util.spend_sim import SimClient, SpendSim
 from chia.consensus.default_constants import DEFAULT_CONSTANTS
 from chia.types.blockchain_format.coin import Coin
 from chia.types.blockchain_format.program import Program
