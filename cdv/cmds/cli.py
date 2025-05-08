@@ -6,9 +6,9 @@ from pathlib import Path
 
 import click
 import pytest
-from chia.types.blockchain_format.sized_bytes import bytes32
 from chia.util.bech32m import decode_puzzle_hash, encode_puzzle_hash
 from chia.util.hash import std_hash
+from chia_rs.sized_bytes import bytes32
 
 from cdv import __version__
 from cdv.cmds.chia_inspect import inspect_cmd

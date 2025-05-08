@@ -6,8 +6,8 @@ from pathlib import Path
 
 import click
 from chia.types.blockchain_format.program import Program
-from chia.types.blockchain_format.sized_bytes import bytes32
 from chia.util.bech32m import decode_puzzle_hash, encode_puzzle_hash
+from chia_rs.sized_bytes import bytes32
 from clvm_tools.binutils import SExp, assemble, disassemble
 
 from cdv.cmds.util import append_include, parse_program
