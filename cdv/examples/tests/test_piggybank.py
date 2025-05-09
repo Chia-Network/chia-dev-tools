@@ -7,7 +7,7 @@ import pytest_asyncio
 from chia.types.blockchain_format.coin import Coin
 from chia.types.condition_opcodes import ConditionOpcode
 from chia.types.spend_bundle import SpendBundle
-from chia.util.ints import uint64
+from chia_rs.sized_ints import uint64
 
 from cdv.examples.drivers.piggybank_drivers import (
     create_piggybank_puzzle,
