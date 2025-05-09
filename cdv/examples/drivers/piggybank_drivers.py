@@ -6,8 +6,8 @@ from chia.types.blockchain_format.coin import Coin
 from chia.types.blockchain_format.program import Program
 from chia.types.condition_opcodes import ConditionOpcode
 from chia.util.hash import std_hash
-from chia_rs.sized_ints import uint64
 from chia_rs.sized_bytes import bytes32
+from chia_rs.sized_ints import uint64
 from clvm.casts import int_to_bytes
 
 import cdv.clibs as std_lib
