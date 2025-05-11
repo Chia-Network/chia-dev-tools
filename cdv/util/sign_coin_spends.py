@@ -3,11 +3,11 @@ from __future__ import annotations
 import inspect
 from typing import Any, Callable
 
-from chia.types.blockchain_format.sized_bytes import bytes32
 from chia.types.coin_spend import CoinSpend
 from chia.types.spend_bundle import SpendBundle
 from chia.util.condition_tools import conditions_dict_for_solution, pkm_pairs_for_conditions_dict
 from chia_rs import AugSchemeMPL, G1Element, G2Element
+from chia_rs.sized_bytes import bytes32
 
 
 async def sign_coin_spends(
