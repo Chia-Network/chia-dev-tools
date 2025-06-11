@@ -161,25 +161,25 @@ def inspect_any_cmd(ctx: click.Context, objects: tuple[str]):
     for obj in input_objects:
         if type(obj) is str:
             print(f"Could not guess the type of {obj}")
-        elif type(obj) is Coin:  # type: ignore[comparison-overlap]
+        elif type(obj) is Coin:
             assert isinstance(obj, Coin)  # mypy otherwise complains that obj is a str
             do_inspect_coin_cmd(ctx, [obj])
-        elif type(obj) is CoinSpend:  # type: ignore[comparison-overlap]
+        elif type(obj) is CoinSpend:
             assert isinstance(obj, CoinSpend)
             do_inspect_coin_spend_cmd(ctx, [obj])
-        elif type(obj) is WalletSpendBundle:  # type: ignore[comparison-overlap]
+        elif type(obj) is WalletSpendBundle:
             assert isinstance(obj, WalletSpendBundle)
             do_inspect_spend_bundle_cmd(ctx, [obj])
-        elif type(obj) is CoinRecord:  # type: ignore[comparison-overlap]
+        elif type(obj) is CoinRecord:
             do_inspect_coin_record_cmd(ctx, [obj])
-        elif type(obj) is Program:  # type: ignore[comparison-overlap]
+        elif type(obj) is Program:
             assert isinstance(obj, Program)
             do_inspect_program_cmd(ctx, [obj])
-        elif type(obj) is G1Element:  # type: ignore[comparison-overlap]
+        elif type(obj) is G1Element:
             do_inspect_keys_cmd(ctx, public_key=obj)
-        elif type(obj) is PrivateKey:  # type: ignore[comparison-overlap]
+        elif type(obj) is PrivateKey:
             do_inspect_keys_cmd(ctx, secret_key=obj)
-        elif type(obj) is G2Element:  # type: ignore[comparison-overlap]
+        elif type(obj) is G2Element:
             print("That's a BLS aggregated signature")  # This is more helpful than just printing it back to them
 
 

@@ -5,7 +5,7 @@ import inspect
 import os
 import pathlib
 
-import pkg_resources
+import importlib_resources
 from chia.types.blockchain_format.program import Program
 from chia.types.blockchain_format.serialized_program import SerializedProgram
 from clvm_tools.clvmc import compile_clvm as compile_clvm_py
@@ -71,21 +71,22 @@ def load_serialized_clvm(clvm_filename, package_or_requirement=__name__, search_
 
     hex_filename = f"{clvm_filename}.hex"
 
+    resources = importlib_resources.files(package_or_requirement)
+
     try:
-        if pkg_resources.resource_exists(package_or_requirement, clvm_filename):
-            full_path = pathlib.Path(pkg_resources.resource_filename(package_or_requirement, clvm_filename))
-            output = full_path.parent / hex_filename
-            compile_clvm(
-                full_path,
-                output,
-                search_paths=[full_path.parent, pathlib.Path.cwd().joinpath("include"), *search_paths],
-            )
-    except NotImplementedError:
-        # pyinstaller doesn't support `pkg_resources.resource_exists`
+        full_path = resources.joinpath(clvm_filename)
+        output = full_path.parent / hex_filename
+        compile_clvm(
+            full_path,
+            output,
+            search_paths=[full_path.parent, pathlib.Path.cwd().joinpath("include"), *search_paths],
+        )
+    except Exception:
         # so we just fall through to loading the hex clvm
         pass
 
-    clvm_hex = pkg_resources.resource_string(package_or_requirement, hex_filename).decode("utf8")
+    clvm_path = resources.joinpath(hex_filename)
+    clvm_hex = clvm_path.read_text(encoding="utf-8")
     clvm_blob = bytes.fromhex(clvm_hex)
     return SerializedProgram.from_bytes(clvm_blob)
 
