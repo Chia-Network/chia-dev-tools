@@ -8,7 +8,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Optional, TypeVar, Union
 
-import pytimeparse
+import pytimeparse  # type: ignore[import-untyped]
 from chia._tests.util.spend_sim import SimClient, SpendSim
 from chia.consensus.default_constants import DEFAULT_CONSTANTS
 from chia.types.blockchain_format.coin import Coin
