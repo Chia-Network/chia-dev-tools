@@ -19,7 +19,7 @@ dependencies = [
 dev_dependencies = [
     "anyio",
     "mypy",
-    "ruff>=0.8.1",
+    "ruff==0.12.11",
     "types-aiofiles",
     "types-click",
     "types-cryptography",
