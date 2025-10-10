@@ -6,7 +6,7 @@ import datetime
 import struct
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Optional, TypeVar, Union
+from typing import Optional, Union
 
 import pytimeparse  # type: ignore[import-untyped]
 from chia._tests.util.spend_sim import SimClient, SpendSim
@@ -27,6 +27,7 @@ from chia.wallet.puzzles.p2_delegated_puzzle_or_hidden_puzzle import (  # standa
 from chia_rs import AugSchemeMPL, G1Element, G2Element, PrivateKey
 from chia_rs.sized_bytes import bytes32
 from chia_rs.sized_ints import uint32, uint64
+from typing_extensions import Self
 
 from cdv.util.keys import private_key_for_index, public_key_for_index
 from cdv.util.sign_coin_spends import sign_coin_spends
@@ -557,9 +558,6 @@ class Wallet:
             return spend_bundle
 
 
-_T_Network = TypeVar("_T_Network", bound="Network")
-
-
 # A user oriented (domain specific) view of the chia network.
 class Network:
     """An object that owns a simulation, responsible for managing Wallet actors,
@@ -573,7 +571,7 @@ class Network:
 
     @classmethod
     @contextlib.asynccontextmanager
-    async def managed(cls: type[_T_Network]) -> AsyncIterator[_T_Network]:
+    async def managed(cls) -> AsyncIterator[Self]:
         self = cls()
         self.time = datetime.timedelta(days=18750, seconds=61201)  # Past the initial transaction freeze
         async with SpendSim.managed() as sim:

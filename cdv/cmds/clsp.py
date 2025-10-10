@@ -194,7 +194,7 @@ def retrieve_cmd(libraries: tuple[str]):
 
     for lib in libraries:
         if lib[-5:] == ".clib":  # We'll take it with or without the extension
-            lib = lib[:-5]
+            lib = lib[:-5]  # noqa: PLW2901
         src_path = Path(clibs.__file__).parent.joinpath(f"{lib}.clib")
         include_path = Path(os.getcwd()).joinpath("include")
         if not include_path.exists():
