@@ -15,7 +15,7 @@ jobs:
     steps:
     - uses: actions/checkout@v5
       with:
-        fetch-depth: 0
+        fetch-depth: 1
 
     - run: |
         git fetch origin +refs/tags/*:refs/tags/*

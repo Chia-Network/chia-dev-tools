@@ -74,7 +74,7 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v5
       with:
-        fetch-depth: 0
+        fetch-depth: 1
 
     - uses: Chia-Network/actions/setup-python@main
       with:
