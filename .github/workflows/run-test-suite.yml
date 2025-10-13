@@ -6,10 +6,10 @@ on:
     branches:
       - main
     tags:
-        - '**'
+      - "**"
   pull_request:
     branches:
-      - '**'
+      - "**"
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}-${{ github.event_name }}--${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/long_lived/')) && github.sha || '' }}
@@ -43,14 +43,12 @@ jobs:
             runs-on:
               intel: [windows-latest]
         python:
-          - major-dot-minor: '3.9'
-            matrix: '3.9'
-          - major-dot-minor: '3.10'
-            matrix: '3.10'
-          - major-dot-minor: '3.11'
-            matrix: '3.11'
-          - major-dot-minor: '3.12'
-            matrix: '3.12'
+          - major-dot-minor: "3.10"
+            matrix: "3.10"
+          - major-dot-minor: "3.11"
+            matrix: "3.11"
+          - major-dot-minor: "3.12"
+            matrix: "3.12"
         arch:
           - name: ARM
             matrix: arm
@@ -66,42 +64,41 @@ jobs:
             arch:
               matrix: arm
 
-
     steps:
-    - name: Clean workspace
-      uses: Chia-Network/actions/clean-workspace@main
+      - name: Clean workspace
+        uses: Chia-Network/actions/clean-workspace@main
 
-    - name: Checkout Code
-      uses: actions/checkout@v5
-      with:
-        fetch-depth: 0
+      - name: Checkout Code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
-    - uses: Chia-Network/actions/setup-python@main
-      with:
-        python-version: ${{ matrix.python.major-dot-minor }}
+      - uses: Chia-Network/actions/setup-python@main
+        with:
+          python-version: ${{ matrix.python.major-dot-minor }}
 
-    - uses: Chia-Network/actions/create-venv@main
-      id: create-venv
+      - uses: Chia-Network/actions/create-venv@main
+        id: create-venv
 
-    - uses: Chia-Network/actions/activate-venv@main
-      with:
-        directories: ${{ steps.create-venv.outputs.activate-venv-directories }}
+      - uses: Chia-Network/actions/activate-venv@main
+        with:
+          directories: ${{ steps.create-venv.outputs.activate-venv-directories }}
 
-    - name: Test code with pytest
-      if: runner.os == 'Linux' || runner.os == 'macOS'
-      shell: bash
-      run: |
-        python3 -m venv venv
-        . ./venv/bin/activate
-        pip install ."[dev]"
-        ./venv/bin/chia init
-        ./venv/bin/pytest tests/ cdv/examples/tests -s -v --durations 0
+      - name: Test code with pytest
+        if: runner.os == 'Linux' || runner.os == 'macOS'
+        shell: bash
+        run: |
+          python3 -m venv venv
+          . ./venv/bin/activate
+          pip install ."[dev]"
+          ./venv/bin/chia init
+          ./venv/bin/pytest tests/ cdv/examples/tests -s -v --durations 0
 
-    - name: Test code with pytest
-      if: runner.os == 'Windows'
-      shell: powershell
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install .[dev]
-        chia init
-        pytest tests\ cdv\examples\tests -s -v --durations 0
+      - name: Test code with pytest
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install .[dev]
+          chia init
+          pytest tests\ cdv\examples\tests -s -v --durations 0

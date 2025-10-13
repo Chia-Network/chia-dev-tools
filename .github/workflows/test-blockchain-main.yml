@@ -6,10 +6,10 @@ on:
     branches:
       - main
     tags:
-        - '**'
+      - "**"
   pull_request:
     branches:
-      - '**'
+      - "**"
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}-${{ github.event_name }}--${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/long_lived/')) && github.sha || '' }}
@@ -25,21 +25,21 @@ jobs:
       max-parallel: 4
 
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v5
-      with:
-        fetch-depth: 0
+      - name: Checkout Code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
-    - name: Setup Python environment
-      uses: actions/setup-python@v6
-      with:
-        python-version: "3.10"
+      - name: Setup Python environment
+        uses: Chia-Network/actions/setup-python@main
+        with:
+          python-version: "3.12"
 
-    - name: Test code with pytest
-      run: |
-        python3 -m venv venv
-        . ./venv/bin/activate
-        sed -i 's/chia-blockchain.*/chia-blockchain @ git+https:\/\/github.com\/Chia-Network\/chia-blockchain.git@main\",/g' setup.py
-        pip install ."[dev]"
-        ./venv/bin/chia init
-        ./venv/bin/pytest tests/ cdv/examples/tests -s -v --durations 0
+      - name: Test code with pytest
+        run: |
+          python3 -m venv venv
+          . ./venv/bin/activate
+          sed -i 's/chia-blockchain.*/chia-blockchain @ git+https:\/\/github.com\/Chia-Network\/chia-blockchain.git@main\",/g' setup.py
+          pip install ."[dev]"
+          ./venv/bin/chia init
+          ./venv/bin/pytest tests/ cdv/examples/tests -s -v --durations 0
