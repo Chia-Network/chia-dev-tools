@@ -128,8 +128,8 @@ class TestInspectCommands:
         id: str = "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b"
         puzzle_reveal: str = "01"
         solution: str = "80"
-        cost: str = "564064"
-        modified_cost: str = "552064"
+        cost: str = "569056"
+        modified_cost: str = "557056"
 
         runner = CliRunner()
 
@@ -204,8 +204,8 @@ class TestInspectCommands:
             "2458e8f2a1f78f0a591feb75aebecaaa81076e4290894b1c445cc32953604db08937a90eb5185a"
             "9c4439a91ddc98bbadce7b4feba060d50116a067de66bf236615"
         )
-        cost: str = "6684108"
-        modified_cost: str = "6660108"
+        cost: str = "6692283"
+        modified_cost: str = "6668283"
 
         runner = CliRunner()
 
