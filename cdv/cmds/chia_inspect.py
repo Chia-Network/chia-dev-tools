@@ -9,6 +9,7 @@ from typing import Any, Callable, ClassVar, Optional, Union
 
 import click
 from chia._tests.util.get_name_puzzle_conditions import get_name_puzzle_conditions
+from chia.consensus.condition_tools import conditions_dict_for_solution, pkm_pairs_for_conditions_dict
 from chia.consensus.cost_calculator import NPCResult
 from chia.consensus.default_constants import DEFAULT_CONSTANTS
 from chia.full_node.bundle_tools import simple_solution_generator
@@ -18,7 +19,6 @@ from chia.types.coin_record import CoinRecord
 from chia.types.coin_spend import CoinSpend, make_spend
 from chia.types.generator_types import BlockGenerator
 from chia.util.byte_types import hexstr_to_bytes
-from chia.util.condition_tools import conditions_dict_for_solution, pkm_pairs_for_conditions_dict
 from chia.util.config import load_config
 from chia.util.default_root import DEFAULT_ROOT_PATH
 from chia.util.keychain import bytes_to_mnemonic, mnemonic_to_seed
@@ -321,7 +321,7 @@ def do_inspect_coin_spend_cmd(
                 npc_result: NPCResult = get_name_puzzle_conditions(
                     program,
                     INFINITE_COST,
-                    height=DEFAULT_CONSTANTS.SOFT_FORK6_HEIGHT,  # so that all opcodes are available
+                    height=DEFAULT_CONSTANTS.HARD_FORK_HEIGHT,  # so that all opcodes are available
                     mempool_mode=True,
                     constants=DEFAULT_CONSTANTS,
                 )
@@ -412,7 +412,7 @@ def do_inspect_spend_bundle_cmd(
                     npc_result: NPCResult = get_name_puzzle_conditions(
                         program,
                         INFINITE_COST,
-                        height=DEFAULT_CONSTANTS.SOFT_FORK6_HEIGHT,  # so that all opcodes are available
+                        height=DEFAULT_CONSTANTS.HARD_FORK_HEIGHT,  # so that all opcodes are available
                         mempool_mode=True,
                         constants=DEFAULT_CONSTANTS,
                     )
@@ -439,7 +439,7 @@ def do_inspect_spend_bundle_cmd(
                 for obj in spend_bundle_objs:
                     for coin_spend in obj.coin_spends:
                         conditions_dict = conditions_dict_for_solution(
-                            coin_spend.puzzle_reveal.to_program(), coin_spend.solution.to_program(), INFINITE_COST
+                            coin_spend.puzzle_reveal, coin_spend.solution, INFINITE_COST
                         )
                         if conditions_dict is None:
                             print(f"Generating conditions failed, con: {conditions_dict}")
