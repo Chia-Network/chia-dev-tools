@@ -417,8 +417,8 @@ class TestInspectCommands:
         assert modified_synthetic_sk in result.output
 
     def test_signatures(self):
-        secret_key_1: str = "70432627e84c13c1a6e6007bf6d9a7a0342018fdef7fc911757aad5a6929d20a"  # noqa: S105
-        secret_key_2: str = "0f01f7f68935f8594548bca3892fec419c6b2aa7cff54c3353a2e9b1011f09c7"  # noqa: S105
+        secret_key_1: str = "70432627e84c13c1a6e6007bf6d9a7a0342018fdef7fc911757aad5a6929d20a"
+        secret_key_2: str = "0f01f7f68935f8594548bca3892fec419c6b2aa7cff54c3353a2e9b1011f09c7"
         text_message: str = "cafe food"
         bytes_message: str = "0xcafef00d"
         extra_signature: str = (
