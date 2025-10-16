@@ -39,7 +39,7 @@ jobs:
           - name: Intel
             matrix: intel
         python:
-          - major_dot_minor: '3.10'
+          - major_dot_minor: "3.12"
         exclude:
           - os:
               matrix: windows
@@ -47,28 +47,28 @@ jobs:
               matrix: arm
 
     steps:
-    - name: Clean workspace
-      uses: Chia-Network/actions/clean-workspace@main
+      - name: Clean workspace
+        uses: Chia-Network/actions/clean-workspace@main
 
-    - name: Add safe git directory
-      uses: Chia-Network/actions/git-mark-workspace-safe@main
+      - name: Add safe git directory
+        uses: Chia-Network/actions/git-mark-workspace-safe@main
 
-    - name: disable git autocrlf
-      run: |
-        git config --global core.autocrlf false
+      - name: disable git autocrlf
+        run: |
+          git config --global core.autocrlf false
 
-    - uses: actions/checkout@v5
-      with:
-        fetch-depth: 0
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
-    - uses: Chia-Network/actions/setup-python@main
-      with:
-        python-version: ${{ matrix.python.major_dot_minor }}
+      - uses: Chia-Network/actions/setup-python@main
+        with:
+          python-version: ${{ matrix.python.major_dot_minor }}
 
-    - uses: ./.github/actions/install
-      with:
-        development: true
+      - uses: ./.github/actions/install
+        with:
+          development: true
 
-    - uses: pre-commit/action@v3.0.1
-      with:
-        extra_args: --verbose --all-files
+      - uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: --verbose --all-files

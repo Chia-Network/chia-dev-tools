@@ -64,6 +64,11 @@ ignore = [
     "RUF009", # function-call-in-dataclass-default-argument
     # Should probably fix this
     "RUF029",
+
+    # TODO: Remove these
+    "UP045",
+    "UP007",
+    "UP035"
 ]
 
 
