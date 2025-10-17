@@ -6,7 +6,6 @@ import datetime
 import struct
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Optional, Union
 
 import pytimeparse  # type: ignore[import-untyped]
 from chia._tests.util.spend_sim import SimClient, SpendSim
@@ -46,7 +45,7 @@ class SpendResult:
         """
         self.result = result
         if "error" in result:
-            self.error: Optional[str] = result["error"]
+            self.error: str | None = result["error"]
             self.outputs: list[Coin] = []
         else:
             self.error = None
@@ -206,7 +205,7 @@ class Wallet:
         self.sk_ = master_sk_to_wallet_sk(self.generator_sk_, uint32(0))
         self.pk_ = self.sk_.get_g1()
 
-        self.usable_coins: dict[bytes32, Union[Coin, CoinWrapper]] = {}
+        self.usable_coins: dict[bytes32, Coin | CoinWrapper] = {}
         self.puzzle: Program = puzzle_for_pk(self.pk())
         self.puzzle_hash: bytes32 = self.puzzle.get_tree_hash()
 
@@ -234,22 +233,22 @@ class Wallet:
         return {"sk": binascii.hexlify(bytes(self.generator_sk_))}
 
     # Make this coin available to the user it goes with.
-    def add_coin(self, coin: Union[CoinWrapper, Coin]):
+    def add_coin(self, coin: CoinWrapper | Coin):
         self.usable_coins[coin.name()] = coin
 
     def pk_to_sk(self, pk: G1Element) -> PrivateKey:
         assert str(pk) in self.pk_to_sk_dict
         return self.pk_to_sk_dict[str(pk)]
 
-    def sk_for_puzzle_hash(self, puzzle_hash: bytes32) -> Optional[PrivateKey]:
+    def sk_for_puzzle_hash(self, puzzle_hash: bytes32) -> PrivateKey | None:
         """
         This method is a stub, required for the sign_coin_spends method in chia wallet.
         """
         return None
 
     def compute_combine_action(
-        self, amt: uint64, actions: list, usable_coins: dict[bytes32, Union[Coin, CoinWrapper]]
-    ) -> Optional[list[Coin]]:
+        self, amt: uint64, actions: list, usable_coins: dict[bytes32, Coin | CoinWrapper]
+    ) -> list[Coin] | None:
         # No one coin is enough, try to find a best fit pair, otherwise combine the two
         # maximum coins.
         searcher = CoinPairSearch(amt)
@@ -326,7 +325,7 @@ class Wallet:
     #         signature = AugSchemeMPL.aggregate(signatures)
     #         spend_bundle = SpendBundle(coin_spends, signature)
     #
-    async def combine_coins(self, coins: list[CoinWrapper]) -> Optional[SpendResult]:
+    async def combine_coins(self, coins: list[CoinWrapper]) -> SpendResult | None:
         # Overall structure:
         # Create len-1 spends that just assert that the final coin is created with full value.
         # Create 1 spend for the final coin that asserts the other spends occurred and
@@ -372,7 +371,7 @@ class Wallet:
         signature = AugSchemeMPL.aggregate(signatures)
         spend_bundle = SpendBundle(destroyed_coin_spends, signature)
 
-        pushed: dict[str, Union[str, list[Coin]]] = await self.parent.push_tx(spend_bundle)
+        pushed: dict[str, str | list[Coin]] = await self.parent.push_tx(spend_bundle)
 
         # We should have the same amount of money.
         assert beginning_balance == self.balance()
@@ -383,10 +382,10 @@ class Wallet:
 
     # Find a coin containing amt we can use as a parent.
     # Synthesize a coin with sufficient funds if possible.
-    async def choose_coin(self, amt) -> Optional[CoinWrapper]:
+    async def choose_coin(self, amt) -> CoinWrapper | None:
         """Given an amount requirement, find a coin that contains at least that much chia"""
         start_balance: uint64 = self.balance()
-        coins_to_spend: Optional[list[Coin]] = self.compute_combine_action(amt, [], dict(self.usable_coins))
+        coins_to_spend: list[Coin] | None = self.compute_combine_action(amt, [], dict(self.usable_coins))
 
         # Couldn't find a working combination.
         if coins_to_spend is None:
@@ -402,7 +401,7 @@ class Wallet:
 
         # We receive a timeline of actions to take (indicating that we have a plan)
         # Do the first action and start over.
-        result: Optional[SpendResult] = await self.combine_coins(
+        result: SpendResult | None = await self.combine_coins(
             [CoinWrapper(coin.parent_coin_info, coin.amount, self.puzzle) for coin in coins_to_spend]
         )
 
@@ -417,11 +416,11 @@ class Wallet:
     #  - allow use of more than one coin to launch smart coin
     #  - ensure input chia = output chia.  it'd be dumb to just allow somebody
     #    to lose their chia without telling them.
-    async def launch_smart_coin(self, source: Program, **kwargs) -> Optional[CoinWrapper]:
+    async def launch_smart_coin(self, source: Program, **kwargs) -> CoinWrapper | None:
         """Create a new smart coin based on a parent coin and return the smart coin's living
         coin to the user or None if the spend failed."""
         amt = uint64(1)
-        found_coin: Optional[CoinWrapper] = None
+        found_coin: CoinWrapper | None = None
 
         if "amt" in kwargs:
             amt = kwargs["amt"]
@@ -459,14 +458,14 @@ class Wallet:
             [make_spend(found_coin.coin, self.puzzle, solution)],
             signature,
         )
-        pushed: dict[str, Union[str, list[Coin]]] = await self.parent.push_tx(spend_bundle)
+        pushed: dict[str, str | list[Coin]] = await self.parent.push_tx(spend_bundle)
         if "error" not in pushed:
             return cw.custom_coin(found_coin.coin, amt)
         else:
             return None
 
     # Give chia
-    async def give_chia(self, target: Wallet, amt: uint64) -> Optional[CoinWrapper]:
+    async def give_chia(self, target: Wallet, amt: uint64) -> CoinWrapper | None:
         return await self.launch_smart_coin(target.puzzle, amt=amt)
 
     # Called each cycle before coins are re-established from the simulator.
@@ -488,14 +487,14 @@ class Wallet:
     # Automatically takes care of signing, etc.
     # Result is an object representing the actions taken when the block
     # with this transaction was farmed.
-    async def spend_coin(self, coin: CoinWrapper, pushtx: bool = True, **kwargs) -> Union[SpendResult, SpendBundle]:
+    async def spend_coin(self, coin: CoinWrapper, pushtx: bool = True, **kwargs) -> SpendResult | SpendBundle:
         """Given a coin object, invoke it on the blockchain, either as a standard
         coin if no arguments are given or with custom arguments in args="""
         amt = uint64(1)
         if "amt" in kwargs:
             amt = kwargs["amt"]
 
-        delegated_puzzle_solution: Optional[Program] = None
+        delegated_puzzle_solution: Program | None = None
         if "args" not in kwargs:
             target_puzzle_hash: bytes32 = self.puzzle_hash
             # Allow the user to 'give this much chia' to another user.
@@ -508,7 +507,7 @@ class Wallet:
             else:
                 solution_list = kwargs["custom_conditions"]
             if "remain" in kwargs:
-                remainer: Union[SmartCoinWrapper, Wallet] = kwargs["remain"]
+                remainer: SmartCoinWrapper | Wallet = kwargs["remain"]
                 remain_amt = uint64(coin.amount - amt)
                 if isinstance(remainer, SmartCoinWrapper):
                     solution_list.append(
@@ -551,7 +550,7 @@ class Wallet:
             )
 
         if pushtx:
-            pushed: dict[str, Union[str, list[Coin]]] = await self.parent.push_tx(spend_bundle)
+            pushed: dict[str, str | list[Coin]] = await self.parent.push_tx(spend_bundle)
             return SpendResult(pushed)
         else:
             return spend_bundle
@@ -644,15 +643,15 @@ class Network:
     async def get_additions_and_removals(self, header_hash):
         return await self.sim_client.get_additions_and_removals(header_hash)
 
-    async def get_coin_record_by_name(self, name: bytes32) -> Optional[CoinRecord]:
+    async def get_coin_record_by_name(self, name: bytes32) -> CoinRecord | None:
         return await self.sim_client.get_coin_record_by_name(name)
 
     async def get_coin_records_by_names(
         self,
         names: list[bytes32],
         include_spent_coins: bool = True,
-        start_height: Optional[int] = None,
-        end_height: Optional[int] = None,
+        start_height: int | None = None,
+        end_height: int | None = None,
     ) -> list:
         result_list = []
 
@@ -667,8 +666,8 @@ class Network:
         self,
         parent_ids: list[bytes32],
         include_spent_coins: bool = True,
-        start_height: Optional[int] = None,
-        end_height: Optional[int] = None,
+        start_height: int | None = None,
+        end_height: int | None = None,
     ) -> list:
         result = []
 
@@ -686,11 +685,11 @@ class Network:
 
         return result
 
-    async def get_puzzle_and_solution(self, coin_id: bytes32, height: uint32) -> Optional[CoinSpend]:
+    async def get_puzzle_and_solution(self, coin_id: bytes32, height: uint32) -> CoinSpend | None:
         return await self.sim_client.get_puzzle_and_solution(coin_id, height)
 
     # Given a spend bundle, farm a block and analyze the result.
-    async def push_tx(self, bundle: SpendBundle) -> dict[str, Union[str, list[Coin]]]:
+    async def push_tx(self, bundle: SpendBundle) -> dict[str, str | list[Coin]]:
         """Given a spend bundle, try to farm a block containing it.  If the spend bundle
         didn't validate, then a result containing an 'error' key is returned.  The reward
         for the block goes to Network::nobody"""

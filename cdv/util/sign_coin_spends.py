@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import inspect
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from chia.consensus.condition_tools import conditions_dict_for_solution, pkm_pairs_for_conditions_dict
 from chia.types.coin_spend import CoinSpend

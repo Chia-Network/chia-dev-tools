@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import json
 from pprint import pprint
-from typing import Optional
 
 import aiohttp
 import click
@@ -35,12 +34,12 @@ def rpc_cmd() -> None:
 
 
 # Loading the client requires the standard chia root directory configuration that all of the chia commands rely on
-async def get_client() -> Optional[FullNodeRpcClient]:
+async def get_client() -> FullNodeRpcClient | None:
     try:
         config = load_config(DEFAULT_ROOT_PATH, "config.yaml")
         self_hostname = config["self_hostname"]
         full_node_rpc_port = config["full_node"]["rpc_port"]
-        full_node_client: Optional[FullNodeRpcClient] = await FullNodeRpcClient.create(
+        full_node_client: FullNodeRpcClient | None = await FullNodeRpcClient.create(
             self_hostname, uint16(full_node_rpc_port), DEFAULT_ROOT_PATH, config
         )
         return full_node_client
@@ -177,7 +176,7 @@ def rpc_space_cmd(older: str, newer: str, start: int, end: int):
                         )
                     ).header_hash
 
-            netspace: Optional[uint64] = await node_client.get_network_space(start_hash, end_hash)
+            netspace: uint64 | None = await node_client.get_network_space(start_hash, end_hash)
             if netspace:
                 pprint(format_bytes(netspace))
             else:
@@ -226,7 +225,7 @@ def rpc_puzsol_cmd(coinid: str, block_height: int):
     async def do_command():
         try:
             node_client: FullNodeRpcClient = await get_client()
-            coin_spend: Optional[CoinSpend] = await node_client.get_puzzle_and_solution(
+            coin_spend: CoinSpend | None = await node_client.get_puzzle_and_solution(
                 bytes.fromhex(coinid), block_height
             )
             print(json.dumps(coin_spend.to_json_dict(), sort_keys=True, indent=4))

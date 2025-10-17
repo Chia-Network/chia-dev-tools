@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable
-from typing import Union
 
 from chia.types.blockchain_format.program import Program
 from clvm_tools.binutils import assemble
@@ -26,7 +25,7 @@ def append_include(search_paths: Iterable[str]) -> list[str]:
 
 
 # This is used in many places to go from CLI string -> Program object
-def parse_program(program: Union[str, Program], include: Iterable = []) -> Program:
+def parse_program(program: str | Program, include: Iterable = []) -> Program:
     if isinstance(program, Program):
         return program
     else:
