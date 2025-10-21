@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-
 import pytest
 import pytest_asyncio
 from chia.types.blockchain_format.coin import Coin
@@ -30,11 +28,11 @@ class TestStandardTransaction:
         await network.farm_block(farmer=alice)
 
         # This will use one mojo to create our piggybank on the blockchain.
-        piggybank_coin: Optional[CoinWrapper] = await alice.launch_smart_coin(
+        piggybank_coin: CoinWrapper | None = await alice.launch_smart_coin(
             create_piggybank_puzzle(uint64(1000000000000), bob.puzzle_hash)
         )
         # This retrieves us a coin that is at least 500 mojos.
-        contribution_coin: Optional[CoinWrapper] = await alice.choose_coin(CONTRIBUTION_AMOUNT)
+        contribution_coin: CoinWrapper | None = await alice.choose_coin(CONTRIBUTION_AMOUNT)
 
         # Make sure everything succeeded
         if not piggybank_coin or not contribution_coin:

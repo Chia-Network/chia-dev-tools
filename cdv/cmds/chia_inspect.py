@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import json
 import sys
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from pprint import pprint
 from secrets import token_bytes
-from typing import Any, Callable, ClassVar, Optional, Union
+from typing import Any, ClassVar
 
 import click
 from chia._tests.util.get_name_puzzle_conditions import get_name_puzzle_conditions
@@ -202,7 +202,7 @@ def inspect_coin_cmd(ctx: click.Context, coins: tuple[str], **kwargs):
 
 def do_inspect_coin_cmd(
     ctx: click.Context,
-    coins: Union[tuple[str], list[Coin]],
+    coins: tuple[str] | list[Coin],
     print_results: bool = True,
     **kwargs,
 ) -> list[Coin]:
@@ -259,7 +259,7 @@ def inspect_coin_spend_cmd(ctx: click.Context, spends: tuple[str], **kwargs):
 
 def do_inspect_coin_spend_cmd(
     ctx: click.Context,
-    spends: Union[tuple[str], list[CoinSpend]],
+    spends: tuple[str] | list[CoinSpend],
     print_results: bool = True,
     **kwargs,
 ) -> list[CoinSpend]:
@@ -372,7 +372,7 @@ def inspect_spend_bundle_cmd(ctx: click.Context, bundles: tuple[str], **kwargs):
 
 def do_inspect_spend_bundle_cmd(
     ctx: click.Context,
-    bundles: Union[tuple[str], list[WalletSpendBundle]],
+    bundles: tuple[str] | list[WalletSpendBundle],
     print_results: bool = True,
     **kwargs,
 ) -> list[WalletSpendBundle]:
@@ -510,7 +510,7 @@ def inspect_coin_record_cmd(ctx: click.Context, records: tuple[str], **kwargs):
 
 def do_inspect_coin_record_cmd(
     ctx: click.Context,
-    records: Union[tuple[str], list[CoinRecord]],
+    records: tuple[str] | list[CoinRecord],
     print_results: bool = True,
     **kwargs,
 ) -> list[CoinRecord]:
@@ -574,7 +574,7 @@ def inspect_program_cmd(ctx: click.Context, programs: tuple[str], **kwargs):
 
 def do_inspect_program_cmd(
     ctx: click.Context,
-    programs: Union[tuple[str], list[Program]],
+    programs: tuple[str] | list[Program],
     print_results: bool = True,
     **kwargs,
 ) -> list[Program]:
@@ -626,7 +626,7 @@ def inspect_keys_cmd(ctx: click.Context, **kwargs):
 
 
 def do_inspect_keys_cmd(ctx: click.Context, print_results: bool = True, **kwargs):
-    sk: Optional[PrivateKey] = None
+    sk: PrivateKey | None = None
     pk: G1Element = G1Element()
     path: str = "m"
     # If we're receiving this from the any command
@@ -748,7 +748,7 @@ def inspect_sigs_cmd(ctx: click.Context, **kwargs):
 # at the end it returns the result of running those parameters in that order.
 def do_inspect_sigs_cmd(ctx: click.Context, print_results: bool = True, **kwargs) -> G2Element:
     base = G2Element()
-    sk: Optional[PrivateKey] = None
+    sk: PrivateKey | None = None
     for param, value in OrderedParamsCommand._options:
         if param.name == "secret_key":
             sk = PrivateKey.from_bytes(hexstr_to_bytes(value))
