@@ -31,8 +31,8 @@ jobs:
           - name: macOS
             matrix: macos
             runs-on:
-              arm: macos-13-arm64
-              intel: [macos-13]
+              arm: [macos-13-arm64]
+              intel: [macos-15-intel]
           - name: Ubuntu
             matrix: ubuntu
             runs-on:
