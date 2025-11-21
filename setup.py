@@ -13,7 +13,7 @@ dependencies = [
     "pytest-asyncio",
     "pytimeparse",
     "anyio",
-    "chia-blockchain==2.5.6",
+    "chia-blockchain==2.5.7",
 ]
 
 dev_dependencies = [
