@@ -487,6 +487,7 @@ def do_inspect_spend_bundle_cmd(
 @click.option(
     "-ci",
     "--confirmed-block-index",
+    type=int,
     help="The block index in which this coin was created",
 )
 @click.option(
@@ -500,6 +501,7 @@ def do_inspect_spend_bundle_cmd(
 @click.option(
     "-t",
     "--timestamp",
+    type=int,
     help="The timestamp of the block in which this coin was created",
 )
 @click.pass_context
