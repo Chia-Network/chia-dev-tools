@@ -1,3 +1,5 @@
+# comment to change the hash and force a cache miss
+# Hello
 repos:
 -   repo: local
     hooks:
