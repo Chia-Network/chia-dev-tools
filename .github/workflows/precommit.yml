@@ -69,6 +69,6 @@ jobs:
         with:
           development: true
 
-      - uses: pre-commit/action@v3.0.1
+      - uses: pre-commit/action@v3.0.0
         with:
           extra_args: --verbose --all-files
