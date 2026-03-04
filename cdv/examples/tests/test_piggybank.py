@@ -76,9 +76,12 @@ class TestStandardTransaction:
             # Make sure there is exactly one piggybank with the new amount
             filtered_result: list[Coin] = list(
                 filter(
-                    lambda addition: (addition.amount == 501)
-                    and (
-                        addition.puzzle_hash == create_piggybank_puzzle(1000000000000, bob.puzzle_hash).get_tree_hash()
+                    lambda addition: (
+                        (addition.amount == 501)
+                        and (
+                            addition.puzzle_hash
+                            == create_piggybank_puzzle(1000000000000, bob.puzzle_hash).get_tree_hash()
+                        )
                     ),
                     result["additions"],
                 )
@@ -98,9 +101,12 @@ class TestStandardTransaction:
             # Make sure there is exactly one piggybank with value 0
             filtered_result: list[Coin] = list(
                 filter(
-                    lambda addition: (addition.amount == 0)
-                    and (
-                        addition.puzzle_hash == create_piggybank_puzzle(1000000000000, bob.puzzle_hash).get_tree_hash()
+                    lambda addition: (
+                        (addition.amount == 0)
+                        and (
+                            addition.puzzle_hash
+                            == create_piggybank_puzzle(1000000000000, bob.puzzle_hash).get_tree_hash()
+                        )
                     ),
                     result["additions"],
                 )
