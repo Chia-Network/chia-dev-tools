@@ -7,4 +7,58 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
+name = "chia_dev_tools"
+description = "Chia development commands"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "CNI", email = "hello@chia.net" },
+]
+license = "Apache-2.0"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Security :: Cryptography",
+]
 dynamic = ["version"]
+dependencies = [
+    "packaging",
+    "pytest",
+    "pytest-asyncio",
+    "pytimeparse",
+    "anyio",
+    "chia-blockchain==2.6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "anyio",
+    "mypy",
+    "ruff==0.14.6",
+    "types-aiofiles",
+    "types-click",
+    "types-cryptography",
+    "types-setuptools",
+    "types-pyyaml",
+    "pre-commit",
+]
+
+[project.scripts]
+cdv = "cdv.cmds.cli:main"
+
+[project.urls]
+"Bug Reports" = "https://github.com/Chia-Network/chia-dev-tools"
+Source = "https://github.com/Chia-Network/chia-dev-tools"
+Homepage = "https://github.com/Chia-Network"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+exclude = ["tests*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.clvm", "*.clvm.hex", "*.clib", "*.clsp", "*.clsp.hex"]
+
+[tool.setuptools_scm]
