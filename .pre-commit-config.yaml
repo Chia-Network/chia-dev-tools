@@ -1,4 +1,4 @@
-# Comment to force a cache miss
+# Comment to force a cache miss again
 repos:
 -   repo: local
     hooks:
