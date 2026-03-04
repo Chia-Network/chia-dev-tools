@@ -15,7 +15,6 @@ from chia.consensus.default_constants import DEFAULT_CONSTANTS
 from chia.full_node.bundle_tools import simple_solution_generator
 from chia.types.blockchain_format.coin import Coin
 from chia.types.blockchain_format.program import INFINITE_COST, Program
-from chia.types.coin_record import CoinRecord
 from chia.types.coin_spend import CoinSpend, make_spend
 from chia.types.generator_types import BlockGenerator
 from chia.util.byte_types import hexstr_to_bytes
@@ -29,7 +28,7 @@ from chia.wallet.puzzles.p2_delegated_puzzle_or_hidden_puzzle import (
     calculate_synthetic_secret_key,
 )
 from chia.wallet.wallet_spend_bundle import WalletSpendBundle
-from chia_rs import AugSchemeMPL, G1Element, G2Element, PrivateKey
+from chia_rs import AugSchemeMPL, CoinRecord, G1Element, G2Element, PrivateKey
 from chia_rs.sized_bytes import bytes32
 from chia_rs.sized_ints import uint32, uint64
 
@@ -488,6 +487,7 @@ def do_inspect_spend_bundle_cmd(
 @click.option(
     "-ci",
     "--confirmed-block-index",
+    type=int,
     help="The block index in which this coin was created",
 )
 @click.option(
@@ -501,6 +501,7 @@ def do_inspect_spend_bundle_cmd(
 @click.option(
     "-t",
     "--timestamp",
+    type=int,
     help="The timestamp of the block in which this coin was created",
 )
 @click.pass_context
