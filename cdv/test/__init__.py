@@ -13,7 +13,6 @@ from chia.consensus.condition_tools import ConditionOpcode
 from chia.consensus.default_constants import DEFAULT_CONSTANTS
 from chia.types.blockchain_format.coin import Coin
 from chia.types.blockchain_format.program import Program
-from chia.types.coin_record import CoinRecord
 from chia.types.coin_spend import CoinSpend, make_spend
 from chia.util.hash import std_hash
 from chia.wallet.derive_keys import master_sk_to_wallet_sk
@@ -22,7 +21,7 @@ from chia.wallet.puzzles.p2_delegated_puzzle_or_hidden_puzzle import (  # standa
     calculate_synthetic_secret_key,
     puzzle_for_pk,
 )
-from chia_rs import AugSchemeMPL, G1Element, G2Element, PrivateKey, SpendBundle
+from chia_rs import AugSchemeMPL, CoinRecord, G1Element, G2Element, PrivateKey, SpendBundle
 from chia_rs.sized_bytes import bytes32
 from chia_rs.sized_ints import uint32, uint64
 from typing_extensions import Self

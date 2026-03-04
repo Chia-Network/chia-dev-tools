@@ -1,3 +1,4 @@
+# Comment to force a cache miss
 repos:
 -   repo: local
     hooks:
