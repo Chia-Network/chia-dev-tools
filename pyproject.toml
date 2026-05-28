@@ -34,7 +34,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "anyio",
-    "mypy>=1.19,<2.0",
+    "mypy",
     "ruff==0.14.6",
     "types-aiofiles",
     "types-click",
