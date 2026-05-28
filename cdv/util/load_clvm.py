@@ -74,7 +74,7 @@ def load_serialized_clvm(clvm_filename, package_or_requirement=__name__, search_
     resources = importlib_resources.files(package_or_requirement)
 
     try:
-        full_path = resources.joinpath(clvm_filename)
+        full_path = pathlib.Path(str(resources.joinpath(clvm_filename)))
         output = full_path.parent / hex_filename
         compile_clvm(
             full_path,
