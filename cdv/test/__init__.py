@@ -7,7 +7,7 @@ import struct
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-import pytimeparse  # type: ignore[import-untyped]
+import pytimeparse
 from chia._tests.util.spend_sim import SimClient, SpendSim
 from chia.consensus.condition_tools import ConditionOpcode
 from chia.consensus.default_constants import DEFAULT_CONSTANTS
@@ -621,7 +621,10 @@ class Network:
     async def skip_time(self, target_duration: str, **kwargs):
         """Skip a duration of simulated time, causing blocks to be farmed.  If a farmer
         is specified, they win each block"""
-        target_time = self.time + datetime.timedelta(pytimeparse.parse(target_duration) / duration_div)
+        parsed_duration = pytimeparse.parse(target_duration)
+        if parsed_duration is None:
+            raise ValueError(f"Unable to parse duration: {target_duration!r}")
+        target_time = self.time + datetime.timedelta(parsed_duration / duration_div)
         while target_time > self.get_timestamp():
             await self.farm_block(**kwargs)
             self.sim.pass_time(uint64(20))
