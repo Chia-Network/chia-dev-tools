@@ -20,3 +20,9 @@ class TestSomething:
             pass
         finally:
             pass
+
+    @pytest.mark.asyncio
+    async def test_skip_time_invalid_duration(self, setup):
+        network, _alice, _bob = setup
+        with pytest.raises(ValueError, match="not a duration"):
+            await network.skip_time("not a duration")
