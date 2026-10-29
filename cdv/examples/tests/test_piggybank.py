@@ -68,64 +68,57 @@ class TestStandardTransaction:
     @pytest.mark.asyncio
     async def test_piggybank_contribution(self, setup):
         network, alice, bob = setup
-        try:
-            result: dict[str, list[Coin]] = await self.make_and_spend_piggybank(network, alice, bob, 500)
+        result: dict[str, list[Coin]] = await self.make_and_spend_piggybank(network, alice, bob, 500)
 
-            assert "error" not in result
+        assert "error" not in result
 
-            # Make sure there is exactly one piggybank with the new amount
-            filtered_result: list[Coin] = list(
-                filter(
-                    lambda addition: (addition.amount == 501)
+        # Make sure there is exactly one piggybank with the new amount
+        filtered_result: list[Coin] = list(
+            filter(
+                lambda addition: (
+                    (addition.amount == 501)
                     and (
                         addition.puzzle_hash == create_piggybank_puzzle(1000000000000, bob.puzzle_hash).get_tree_hash()
-                    ),
-                    result["additions"],
-                )
+                    )
+                ),
+                result["additions"],
             )
-            assert len(filtered_result) == 1
-        finally:
-            pass
+        )
+        assert len(filtered_result) == 1
 
     @pytest.mark.asyncio
     async def test_piggybank_completion(self, setup):
         network, alice, bob = setup
-        try:
-            result: dict[str, list[Coin]] = await self.make_and_spend_piggybank(network, alice, bob, 1000000000000)
+        result: dict[str, list[Coin]] = await self.make_and_spend_piggybank(network, alice, bob, 1000000000000)
 
-            assert "error" not in result
+        assert "error" not in result
 
-            # Make sure there is exactly one piggybank with value 0
-            filtered_result: list[Coin] = list(
-                filter(
-                    lambda addition: (addition.amount == 0)
+        # Make sure there is exactly one piggybank with value 0
+        filtered_result: list[Coin] = list(
+            filter(
+                lambda addition: (
+                    (addition.amount == 0)
                     and (
                         addition.puzzle_hash == create_piggybank_puzzle(1000000000000, bob.puzzle_hash).get_tree_hash()
-                    ),
-                    result["additions"],
-                )
+                    )
+                ),
+                result["additions"],
             )
-            assert len(filtered_result) == 1
+        )
+        assert len(filtered_result) == 1
 
-            # Make sure there is exactly one coin that has been cashed out to bob
-            filtered_result: list[Coin] = list(
-                filter(
-                    lambda addition: (addition.amount == 1000000000001) and (addition.puzzle_hash == bob.puzzle_hash),
-                    result["additions"],
-                )
+        # Make sure there is exactly one coin that has been cashed out to bob
+        filtered_result: list[Coin] = list(
+            filter(
+                lambda addition: (addition.amount == 1000000000001) and (addition.puzzle_hash == bob.puzzle_hash),
+                result["additions"],
             )
-            assert len(filtered_result) == 1
-        finally:
-            pass
+        )
+        assert len(filtered_result) == 1
 
     @pytest.mark.asyncio
     async def test_piggybank_stealing(self, setup):
         network, alice, bob = setup
-        try:
-            result: dict[str, list[Coin]] = await self.make_and_spend_piggybank(network, alice, bob, -100)
-            assert "error" in result
-            assert (
-                "GENERATOR_RUNTIME_ERROR" in result["error"]
-            )  # This fails during puzzle execution, not in driver code
-        finally:
-            pass
+        result: dict[str, list[Coin]] = await self.make_and_spend_piggybank(network, alice, bob, -100)
+        assert "error" in result
+        assert "GENERATOR_RUNTIME_ERROR" in result["error"]  # This fails during puzzle execution, not in driver code
