@@ -28,7 +28,7 @@ dependencies = [
     "pytest-asyncio",
     "pytimeparse",
     "anyio",
-    "chia-blockchain==2.7.4",
+    "chia-blockchain==2.7.5",
 ]
 
 [project.optional-dependencies]
