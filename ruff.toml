@@ -18,52 +18,54 @@ select = [
 explicit-preview-rules = false
 ignore = [
     # Pylint convention
-    "PLC0415", # import-outside-top-level
-    "PLC1901", # compare-to-empty-string
+    "import-outside-top-level",
+    "compare-to-empty-string",
     # Should probably fix these
-    "PLC2801", # unnecessary-dunder-call
-    "PLC2701", # import-private-name
+    "unnecessary-dunder-call",
+    "import-private-name",
 
     # Pylint refactor
-    "PLR0915", # too-many-statements
-    "PLR0914", # too-many-locals
-    "PLR0913", # too-many-arguments
-    "PLR0912", # too-many-branches
-    "PLR1702", # too-many-nested-blocks
-    "PLR0904", # too-many-public-methods
-    "PLR0917", # too-many-positional-arguments
-    "PLR0916", # too-many-boolean-expressions
-    "PLR0911", # too-many-return-statements
+    "too-many-statements",
+    "too-many-locals",
+    "too-many-arguments",
+    "too-many-branches",
+    "too-many-nested-blocks",
+    "too-many-public-methods",
+    "too-many-positional-arguments",
+    "too-many-boolean-expressions",
+    "too-many-return-statements",
     # Should probably fix these
-    "PLR6301", # no-self-use
-    "PLR2004", # magic-value-comparison
-    "PLR1704", # redefined-argument-from-local
-    "PLR5501", # collapsible-else-if
+    "no-self-use",
+    "magic-value-comparison",
+    "redefined-argument-from-local",
+    "collapsible-else-if",
 
     # Pylint warning
-    "PLW1641", # eq-without-hash
+    "eq-without-hash",
     # Should probably fix these
-    "PLW2901", # redefined-loop-name
-    "PLW1514", # unspecified-encoding
-    "PLW0603", # global-statement
+    "redefined-loop-name",
+    "unspecified-encoding",
+    "global-statement",
 
     # Flake8 async
     # Should probably fix these
-    "ASYNC230", # blocking-open-call-in-async-function
+    "blocking-open-call-in-async-function",
     # Should probably fix these after dealing with shielding for anyio
-    "ASYNC109", # async-function-with-timeout
+    "async-function-with-timeout",
 
     # flake8-implicit-str-concat
-    "ISC003", # explicit-string-concatenation
+    "explicit-string-concatenation",
 
     # Ruff Specific
+    # Module-level code is intentional in __init__.py files.
+    "non-empty-init-module",
 
     # This code is problematic because using instantiated types as defaults is so common across the codebase.
     # Its purpose is to prevent accidenatally assigning mutable defaults. However, this is a bit overkill for that.
     # That being said, it would be nice to add some way to actually guard against that specific mutable default behavior.
-    "RUF009", # function-call-in-dataclass-default-argument
+    "function-call-in-dataclass-default-argument",
     # Should probably fix this
-    "RUF029",
+    "unused-async",
 ]
 
 

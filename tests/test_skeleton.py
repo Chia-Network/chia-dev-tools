@@ -16,10 +16,7 @@ class TestSomething:
     @pytest.mark.asyncio
     async def test_something(self, setup):
         _network, _alice, _bob = setup
-        try:
-            pass
-        finally:
-            pass
+        pass
 
     @pytest.mark.asyncio
     async def test_skip_time_invalid_duration(self, setup):

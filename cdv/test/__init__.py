@@ -4,7 +4,7 @@ import binascii
 import contextlib
 import datetime
 import struct
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import pytimeparse
@@ -568,7 +568,7 @@ class Network:
 
     @classmethod
     @contextlib.asynccontextmanager
-    async def managed(cls) -> AsyncIterator[Self]:
+    async def managed(cls) -> AsyncGenerator[Self, None]:
         self = cls()
         self.time = datetime.timedelta(days=18750, seconds=61201)  # Past the initial transaction freeze
         async with SpendSim.managed() as sim:
@@ -709,7 +709,7 @@ class Network:
 
 
 @asynccontextmanager
-async def setup() -> AsyncIterator[tuple[Network, Wallet, Wallet]]:
+async def setup() -> AsyncGenerator[tuple[Network, Wallet, Wallet], None]:
     async with Network.managed() as network:
         alice = network.make_wallet("alice")
         bob = network.make_wallet("bob")
